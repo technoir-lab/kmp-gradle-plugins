@@ -1,0 +1,45 @@
+complexity:
+  TooManyFunctions:
+    ignoreAnnotatedFunctions:
+      - Test
+      - ParameterizedTest
+
+formatting:
+  ArgumentListWrapping:
+    maxLineLength: 140
+  ContextReceiverMapping:
+    maxLineLength: 140
+  FunctionReturnTypeSpacing:
+    maxLineLength: 140
+  FunctionSignature:
+    maxLineLength: 140
+  MaximumLineLength:
+    maxLineLength: 140
+  ParameterListWrapping:
+    maxLineLength: 140
+  ParameterWrapping:
+    maxLineLength: 140
+  PropertyWrapping:
+    maxLineLength: 140
+  Wrapping:
+    maxLineLength: 140
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated:
+      - org.junit.jupiter.api.Test
+      - org.junit.jupiter.params.ParameterizedTest
+  MatchingDeclarationName:
+    active: false # overlaps with formatting>Filename
+
+style:
+  ForbiddenComment:
+    active: false
+  MaxLineLength:
+    active: false # overlaps with formatting>MaximumLineLength
+  ModifierOrder:
+    active: false # overlaps with formatting>ModifierOrdering
+  NewLineAtEndOfFile:
+    active: false # overlaps with formatting>FinalNewline
+  VarCouldBeVal:
+    ignoreLateinitVar: true

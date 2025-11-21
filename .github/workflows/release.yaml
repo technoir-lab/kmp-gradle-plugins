@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags: [ "*" ]
+
+concurrency:
+  group: ${{ github.workflow_ref }}
+
+jobs:
+  packages:
+    name: Packages
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: write # Required for creating release
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5.0.1
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5.0.0
+        with:
+          java-version: 21
+          distribution: corretto
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5.0.0
+
+      - name: Publish to GitHub Packages
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          ./gradlew publishAllPublicationsToGithubRepository \
+          --scan \
+          -Ppublish.github.username=${{ secrets.GPR_DEPLOY_USER }} \
+          -Ppublish.github.password=${{ secrets.GPR_DEPLOY_TOKEN }}
+
+      - name: Publish to Maven Central
+        env:
+          CENTRAL_PORTAL_USER: ${{ secrets.CENTRAL_PORTAL_USER }}
+          CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: ./gradlew publishAggregationToCentralPortal --scan
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2.4.2
+        if: github.ref_type == 'tag'
+        with:
+          generate_release_notes: true
