@@ -33,6 +33,7 @@ interface VfsOverlayExtension {
 
     /**
      * Adds a file mapping from a source (original) path to a target (virtual) path.
+     * Has no effect if the source or target provider is empty.
      */
     fun mapping(source: Provider<File>, target: Provider<File>)
 }

@@ -16,6 +16,9 @@ internal abstract class VfsOverlayExtensionImpl(private val providerFactory: Pro
     }
 
     override fun mapping(source: Provider<File>, target: Provider<File>) {
-        mappings.putAll(source.zip(target) { sourceDir, targetDir -> mapOf(sourceDir to targetDir) })
+        mappings.putAll(
+            source.zip(target) { sourceDir, targetDir -> mapOf(sourceDir to targetDir) }
+                .orElse(emptyMap())
+        )
     }
 }
