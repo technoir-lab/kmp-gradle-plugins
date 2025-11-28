@@ -29,6 +29,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.kotlinx.serialization.json)
 
+    functionalTestImplementation(libs.assertj.core)
+    functionalTestImplementation(libs.gradle.test.kit)
+
     compileOnly(libs.kotlin.gradle.plugin)
 
     testImplementation(libs.assertj.core)
