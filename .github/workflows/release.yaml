@@ -28,6 +28,8 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6.1.0
+        with:
+          cache-provider: basic
 
       - name: Publish to GitHub Packages
         env:
