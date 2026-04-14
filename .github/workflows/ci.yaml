@@ -45,8 +45,8 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build --scan
 
-  actions-lint:
-    name: Lint workflows
+  actionlint:
+    name: Lint GitHub Actions
     runs-on: ubuntu-24.04
 
     permissions:
