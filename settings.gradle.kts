@@ -5,7 +5,7 @@ pluginManagement {
         mavenLocal()
     }
     plugins {
-        val conventionPluginsVersion = "v48"
+        val conventionPluginsVersion = "v53"
         id("io.technoirlab.conventions.gradle-plugin") version conventionPluginsVersion
         id("io.technoirlab.conventions.root") version conventionPluginsVersion
         id("io.technoirlab.conventions.settings") version conventionPluginsVersion
