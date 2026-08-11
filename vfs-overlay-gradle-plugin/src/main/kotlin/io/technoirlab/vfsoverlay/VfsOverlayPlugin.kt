@@ -17,7 +17,7 @@ class VfsOverlayPlugin : Plugin<Project> {
         val config = extensions.create(
             name = "vfsOverlay",
             publicType = VfsOverlayExtension::class,
-            instanceType = VfsOverlayExtensionImpl::class
+            instanceType = VfsOverlayExtensionImpl::class,
         )
 
         whenPluginApplied("org.jetbrains.kotlin.multiplatform") {

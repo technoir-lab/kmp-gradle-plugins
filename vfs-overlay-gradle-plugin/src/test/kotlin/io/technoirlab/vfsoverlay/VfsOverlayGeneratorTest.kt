@@ -33,7 +33,7 @@ class VfsOverlayGeneratorTest {
                         }
                     ]
                 }
-                """.trimIndent()
+                """.trimIndent(),
             )
     }
 
@@ -43,7 +43,7 @@ class VfsOverlayGeneratorTest {
         val mappings = mapOf(
             File("/first/source") to File("/first/target"),
             File("/second/source") to File("/second/target"),
-            File("/third/source") to File("/third/target")
+            File("/third/source") to File("/third/target"),
         )
 
         generator.generate(outputFile, mappings)
@@ -71,7 +71,7 @@ class VfsOverlayGeneratorTest {
                     }
                 ]
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -90,7 +90,7 @@ class VfsOverlayGeneratorTest {
                     "version": 0,
                     "roots": []
                 }
-                """.trimIndent()
+                """.trimIndent(),
             )
     }
 }
