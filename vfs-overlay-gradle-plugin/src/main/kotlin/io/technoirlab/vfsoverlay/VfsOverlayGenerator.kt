@@ -18,15 +18,14 @@ internal class VfsOverlayGenerator {
                 VfsOverlayRootJson(
                     name = from.normalizedPath(),
                     type = "directory-remap",
-                    externalContents = to.normalizedPath()
+                    externalContents = to.normalizedPath(),
                 )
-            }
+            },
         )
         outputFile.outputStream().buffered().use { output ->
             json.encodeToStream(overlay, output)
         }
     }
 
-    private fun File.normalizedPath(): String =
-        absolutePath.replace("\\", "/")
+    private fun File.normalizedPath(): String = absolutePath.replace("\\", "/")
 }

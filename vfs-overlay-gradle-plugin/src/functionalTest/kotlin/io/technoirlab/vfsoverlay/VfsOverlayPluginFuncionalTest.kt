@@ -25,7 +25,7 @@ class VfsOverlayPluginFuncionalTest {
                     target = provider { null }
                 )
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         val buildResult = gradleRunner.build(":build")
