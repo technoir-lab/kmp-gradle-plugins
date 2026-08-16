@@ -35,4 +35,5 @@ globalSettings {
     }
 }
 
+include(":cmake-import-gradle-plugin")
 include(":vfs-overlay-gradle-plugin")

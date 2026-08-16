@@ -1,0 +1,35 @@
+package io.technoirlab.cmake.import.internal
+
+import java.nio.file.Path
+import kotlin.io.path.isDirectory
+import kotlin.io.path.isRegularFile
+import kotlin.io.path.walk
+
+internal class CMakeInstallScanner {
+    fun scan(installDirectory: Path): CMakeInstallOutput {
+        val includeDirectory = installDirectory.resolve(INCLUDE_DIRECTORY_NAME)
+        val libraryDirectory = installDirectory.resolve(LIBRARY_DIRECTORY_NAME)
+        return CMakeInstallOutput(
+            includeDirectory = includeDirectory,
+            libraryDirectory = libraryDirectory,
+            headers = includeDirectory.regularFiles(),
+            archives = libraryDirectory.regularFiles().filter { isStaticArchive(it) },
+        )
+    }
+
+    private fun Path.regularFiles(): List<Path> = takeIf { it.isDirectory() }
+        ?.walk()
+        ?.filter { it.isRegularFile() }
+        ?.toList()
+        .orEmpty()
+
+    private fun isStaticArchive(path: Path): Boolean {
+        val name = path.fileName.toString()
+        return name.endsWith(".a") || name.endsWith(".lib", ignoreCase = true)
+    }
+
+    private companion object {
+        private const val INCLUDE_DIRECTORY_NAME = "include"
+        private const val LIBRARY_DIRECTORY_NAME = "lib"
+    }
+}

@@ -4,6 +4,7 @@ kotlin-gradle-plugin = "2.2.21"
 
 [libraries]
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+core-utils = { module = "io.technoirlab.conventions:core-utils" }
 gradle-extensions = { module = "io.technoirlab.conventions:gradle-extensions" }
 gradle-test-kit = { module = "io.technoirlab.conventions:gradle-test-kit" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-gradle-plugin" }
