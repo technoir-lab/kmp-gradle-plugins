@@ -7,7 +7,14 @@ import kotlin.io.path.absolutePathString
 internal class CMakeRunner(
     private val execOperations: ExecOperations,
 ) {
-    fun generate(projectDir: Path, configureDir: Path, buildType: String, defines: Map<String, String>) {
+    fun generate(
+        projectDir: Path,
+        configureDir: Path,
+        toolchainFile: Path,
+        buildType: String,
+        generator: String?,
+        defines: Map<String, String>,
+    ) {
         execOperations.exec {
             executable = "cmake"
             args(
@@ -17,9 +24,13 @@ internal class CMakeRunner(
                 configureDir.absolutePathString(),
                 "-DCMAKE_BUILD_TYPE=$buildType",
             )
+            if (generator != null) {
+                args("-G", generator)
+            }
             defines.toSortedMap().forEach { (name, value) ->
                 args("-D$name=$value")
             }
+            args("--toolchain", toolchainFile.absolutePathString())
         }
     }
 

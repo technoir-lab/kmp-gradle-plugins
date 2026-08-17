@@ -1,13 +1,15 @@
 # Kotlin Multiplatform CMake integration
 
-The `io.technoirlab.cmake-import` plugin connects one host-native Kotlin Multiplatform
-target to a CMake static-library target. It configures and builds the selected target,
+The `io.technoirlab.cmake-import` plugin connects Kotlin/Native targets in a Kotlin Multiplatform
+project to a CMake static-library target. It configures and builds each supported target,
 installs its public headers and archive into a Gradle-managed staging directory, and
 generates the C-interop definition from that installed surface.
 
 ## Prerequisites
 
-Install CMake 3.23 or newer and make `cmake` available on `PATH`.
+Install CMake 3.23 or newer and make `cmake` available on `PATH`. On Windows, also
+install Ninja and make `ninja` available on `PATH`, or set `CMAKE_GENERATOR` to another
+compiler-compatible CMake generator.
 
 The CMake project must expose a static-library target with a `PUBLIC` or `INTERFACE`
 `HEADERS` file set. It must install exactly one static archive to `lib/` and its public
@@ -57,11 +59,26 @@ cmakeImport {
 }
 ```
 
-The plugin registers target-specific `cmakeGenerate<HostTarget>`,
-`cmakeBuild<HostTarget>`, and `cmakeInstall<HostTarget>` tasks. They form a dependency
-chain that generates the CMake build system, builds the selected target, and stages its
-interop surface. CMake runs only for the Kotlin/Native target matching the current host;
-cross-compilation targets do not run CMake.
+For every Kotlin/Native target, the plugin registers target-specific
+`cmakeGenerateToolchain<Target>`, `cmakeGenerate<Target>`, `cmakeBuild<Target>`, and
+`cmakeInstall<Target>` tasks, plus a `cmake` cinterop. They form a dependency chain that
+generates a toolchain, generates the CMake build system, builds the selected target, and
+stages its interop surface.
+
+The generated toolchain reuses Kotlin/Native's prepared Clang compiler, compiler arguments,
+target triple, sysroot, LLVM archiver, and Apple or Android platform settings. This makes
+the CMake library use the same cross-compilation environment as the Kotlin/Native binary;
+no compiler or sysroot paths need to be configured in `cmakeImport`. Consequently,
+`CMAKE_TOOLCHAIN_FILE` is owned by the plugin and a value in `defines` is ignored in favor
+of the generated target toolchain.
+
+Kotlin/Native targets unavailable on the current host still have their CMake and cinterop
+tasks registered, but those tasks are skipped just like Kotlin's own target tasks. Projects
+that declare unavailable targets must opt in to Kotlin's disabled-target behavior:
+
+```properties
+kotlin.native.ignoreDisabledTargets=true
+```
 
 The generated definition references the installed public headers and static archive.
 For a KMP library, the Release native publication is intended to carry a self-contained

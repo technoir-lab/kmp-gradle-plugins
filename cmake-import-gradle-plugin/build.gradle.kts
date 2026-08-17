@@ -20,6 +20,7 @@ dependencies {
     compileOnly(libs.kotlin.gradle.plugin)
 
     testImplementation(libs.assertj.core)
+    testImplementation(libs.kotlin.gradle.plugin)
 }
 
 gradlePlugin {
