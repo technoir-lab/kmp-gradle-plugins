@@ -12,7 +12,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 
 class CMakeToolchainGeneratorTest {
-    private val generator = CMakeToolchainGenerator()
+    private val generator = CMakeToolchainGenerator(executableSuffix = "")
 
     @ParameterizedTest
     @MethodSource("systemNames")
