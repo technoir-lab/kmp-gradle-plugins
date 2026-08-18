@@ -9,7 +9,9 @@ import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
+import kotlin.io.path.appendText
 import kotlin.io.path.div
+import kotlin.io.path.writeText
 
 class CMakeImportPluginFunctionalTest {
     @RegisterExtension
@@ -74,6 +76,78 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
+    fun `generated target toolchain overrides a configured CMake toolchain definition`() {
+        gradleRunner.root.project("kmp-application").appendBuildScript(
+            """
+            cmakeImport {
+                defines.put("CMAKE_TOOLCHAIN_FILE", "missing-user-toolchain.cmake")
+            }
+            """.trimIndent(),
+        )
+
+        gradleRunner.build(":kmp-application:cmakeGenerate${hostTargetSuffix()}")
+
+        val project = gradleRunner.root.project("kmp-application")
+        val toolchain = project.buildDir / "generated/cmake/${hostTargetName()}/toolchain.cmake"
+        val cache = project.buildDir / "intermediates/cmake/${hostTargetName()}/CMakeCache.txt"
+        assertThat(cache)
+            .content()
+            .contains("CMAKE_TOOLCHAIN_FILE:FILEPATH=${toolchain.toAbsolutePath().cmakePath()}")
+            .doesNotContain("missing-user-toolchain.cmake")
+    }
+
+    @Test
+    fun `changing the generated toolchain recreates CMake state`() {
+        val suffix = hostTargetSuffix()
+        val generateTask = ":kmp-application:cmakeGenerate$suffix"
+        val toolchainTask = ":kmp-application:cmakeGenerateToolchain$suffix"
+        val project = gradleRunner.root.project("kmp-application")
+
+        gradleRunner.build(generateTask)
+
+        val configureDirectory = project.buildDir / "intermediates/cmake/${hostTargetName()}"
+        val staleState = configureDirectory / "stale-state"
+        staleState.writeText("must be removed")
+        val toolchain = project.buildDir / "generated/cmake/${hostTargetName()}/toolchain.cmake"
+        toolchain.appendText("\n# Simulate a changed toolchain from a plugin or Kotlin upgrade.\n")
+
+        val result = gradleRunner.build(generateTask, "-x", toolchainTask)
+
+        assertThat(result.task(generateTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(staleState).doesNotExist()
+    }
+
+    @Test
+    fun `konan data Gradle property takes precedence over the environment`() {
+        val suffix = hostTargetSuffix()
+        val propertyDirectory = gradleRunner.root.dir / "property-konan-data"
+        val environmentDirectory = gradleRunner.root.dir / "environment-konan-data"
+        gradleRunner.root.project("kmp-application").appendBuildScript(
+            """
+            tasks.register("printCmakeNativeDependenciesDirectory") {
+                doLast {
+                    val toolchainTask = tasks.named("cmakeGenerateToolchain$suffix").get()
+                    println("nativeDependencies=" + toolchainTask.inputs.properties["kotlinNativeDependenciesDirectory"])
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner.build(
+            ":kmp-application:printCmakeNativeDependenciesDirectory",
+            configuration = {
+                configurationCache = false
+                isolatedProjects = false
+                gradleProperties["konan.data.dir"] = propertyDirectory
+                environmentVariables.putAll(System.getenv())
+                environmentVariables["KONAN_DATA_DIR"] = environmentDirectory
+            },
+        )
+
+        assertThat(result.output).contains("nativeDependencies=${propertyDirectory / "dependencies"}")
+    }
+
+    @Test
     fun `published library carries the CMake archive to a consumer`() {
         gradleRunner.build(
             ":kmp-library:publishKotlinMultiplatformPublicationToTestRepository",
@@ -101,6 +175,7 @@ class CMakeImportPluginFunctionalTest {
     @Test
     fun `repeated CMake lifecycle tasks are up to date`() {
         val suffix = hostTargetSuffix()
+        val toolchainTask = ":kmp-application:cmakeGenerateToolchain$suffix"
         val generateTask = ":kmp-application:cmakeGenerate$suffix"
         val buildTask = ":kmp-application:cmakeBuild$suffix"
         val installTask = ":kmp-application:cmakeInstall$suffix"
@@ -108,9 +183,70 @@ class CMakeImportPluginFunctionalTest {
         gradleRunner.build(installTask)
         val repeatResult = gradleRunner.build(installTask)
 
+        assertThat(repeatResult.task(toolchainTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
         assertThat(repeatResult.task(generateTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
         assertThat(repeatResult.task(buildTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
         assertThat(repeatResult.task(installTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+    }
+
+    @Test
+    fun `builds and links an enabled non-host target with its generated toolchain`() {
+        val target = nonHostTarget()
+        val project = gradleRunner.root.project("kmp-application")
+        val buildDirectory = gradleRunner.root.dir / "b"
+        project.appendBuildScript(
+            """
+            // Keep cross-linker inputs below the Windows MAX_PATH limit in the deeply nested TestKit project.
+            layout.buildDirectory = layout.projectDirectory.dir("../b")
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner.build(":kmp-application:linkReleaseExecutable${target.suffix}")
+
+        assertThat(result.task(":kmp-application:cmakeGenerateToolchain${target.suffix}")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":kmp-application:cmakeInstall${target.suffix}")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":kmp-application:cinteropCmake${target.suffix}")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":kmp-application:linkReleaseExecutable${target.suffix}")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+
+        val archives = (buildDirectory / "outputs/cmake/${target.name}/lib")
+            .toFile()
+            .walkTopDown()
+            .filter { it.isFile && (it.extension == "a" || it.extension.equals("lib", ignoreCase = true)) }
+            .toList()
+        assertThat(archives).hasSize(1)
+
+        val toolchain = buildDirectory / "generated/cmake/${target.name}/toolchain.cmake"
+        val cache = buildDirectory / "intermediates/cmake/${target.name}/CMakeCache.txt"
+        assertThat(toolchain).isRegularFile()
+        assertThat(cache)
+            .content()
+            .contains("CMAKE_TOOLCHAIN_FILE:FILEPATH=${toolchain.toAbsolutePath().cmakePath()}")
+    }
+
+    @Test
+    fun `unsupported target and CMake tasks are skipped`() {
+        assumeTrue(
+            System.getProperty("os.name").startsWith("Linux", ignoreCase = true),
+            "The fixture's macOS target is unsupported only on Linux and Windows",
+        )
+        val suffix = "MacosArm64"
+        val taskNames = listOf(
+            "cmakeGenerateToolchain$suffix",
+            "cmakeGenerate$suffix",
+            "cmakeBuild$suffix",
+            "cmakeInstall$suffix",
+            "cinteropCmake$suffix",
+        )
+
+        val result = gradleRunner.build(*taskNames.map { ":kmp-application:$it" }.toTypedArray())
+
+        taskNames.forEach { taskName ->
+            assertThat(result.task(":kmp-application:$taskName")?.outcome).isEqualTo(TaskOutcome.SKIPPED)
+        }
     }
 
     @Test
@@ -182,6 +318,15 @@ class CMakeImportPluginFunctionalTest {
         assumeTrue(host != null, "No exact-host fixture target is available on this host")
         return host!!.name
     }
+
+    private fun nonHostTarget(): HostTarget = when {
+        System.getProperty("os.name").startsWith("Linux", ignoreCase = true) -> HostTarget("mingwX64", "MingwX64")
+        System.getProperty("os.name").startsWith("Windows", ignoreCase = true) -> HostTarget("linuxX64", "LinuxX64")
+        System.getProperty("os.name").startsWith("Mac", ignoreCase = true) -> HostTarget("mingwX64", "MingwX64")
+        else -> error("No enabled non-host fixture target is available")
+    }
+
+    private fun java.nio.file.Path.cmakePath(): String = toString().replace('\\', '/')
 
     private data class HostTarget(
         val name: String,

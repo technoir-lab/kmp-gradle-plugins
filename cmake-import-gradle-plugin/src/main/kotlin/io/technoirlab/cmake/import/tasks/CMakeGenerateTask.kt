@@ -4,13 +4,16 @@ import io.technoirlab.cmake.import.CMakeImportPlugin.Companion.PROBLEM_GROUP
 import io.technoirlab.cmake.import.internal.CMakeRunner
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.problems.ProblemId
 import org.gradle.api.problems.Problems
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.LocalState
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
@@ -19,7 +22,16 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 import org.gradle.work.DisableCachingByDefault
+import java.nio.file.Files
+import java.nio.file.Path
+import java.security.MessageDigest
+import java.util.HexFormat
 import javax.inject.Inject
+import kotlin.io.path.createParentDirectories
+import kotlin.io.path.exists
+import kotlin.io.path.isRegularFile
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
 
 /**
  * Generates a CMake build system for a project.
@@ -28,7 +40,9 @@ import javax.inject.Inject
 @DisableCachingByDefault(because = "CMake manages non-relocatable build state")
 internal abstract class CMakeGenerateTask @Inject constructor(
     private val execOperations: ExecOperations,
+    private val fileSystemOperations: FileSystemOperations,
     private val problems: Problems,
+    private val providerFactory: ProviderFactory,
 ) : DefaultTask() {
 
     @get:InputDirectory
@@ -41,6 +55,10 @@ internal abstract class CMakeGenerateTask @Inject constructor(
     @get:Input
     abstract val defines: MapProperty<String, String>
 
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val toolchainFile: RegularFileProperty
+
     /**
      * CMake's non-relocatable build tree.
      */
@@ -51,7 +69,7 @@ internal abstract class CMakeGenerateTask @Inject constructor(
     abstract val cacheFile: RegularFileProperty
 
     /**
-     * Empty directory recording successful completion without overlapping CMake's build tree.
+     * Directory recording successful completion and the active toolchain without overlapping CMake's build tree.
      */
     @get:OutputDirectory
     abstract val generateOutputDirectory: DirectoryProperty
@@ -61,9 +79,26 @@ internal abstract class CMakeGenerateTask @Inject constructor(
         val projectDir = projectDirectory.get().asFile.toPath()
         val buildType = buildType.get()
         val configureDirectory = configureDirectory.get().asFile.toPath()
+        val toolchainFile = toolchainFile.get().asFile.toPath()
+        val toolchainFingerprint = fingerprint(toolchainFile)
+        val toolchainFingerprintFile = generateOutputDirectory.get().asFile.toPath()
+            .resolve(TOOLCHAIN_FINGERPRINT_FILE_NAME)
 
+        if (configureDirectory.exists() && toolchainFingerprintFile.fingerprintOrNull() != toolchainFingerprint) {
+            fileSystemOperations.delete {
+                delete(configureDirectory)
+            }
+        }
+
+        val generator = providerFactory.environmentVariable(CMAKE_GENERATOR_ENVIRONMENT_VARIABLE)
+            .filter { it.isNotBlank() }
+            .orElse(
+                providerFactory.systemProperty(OS_NAME_SYSTEM_PROPERTY)
+                    .map(::defaultGenerator),
+            )
+            .orNull
         val cmakeRunner = CMakeRunner(execOperations)
-        cmakeRunner.generate(projectDir, configureDirectory, buildType, defines.get())
+        cmakeRunner.generate(projectDir, configureDirectory, toolchainFile, buildType, generator, defines.get())
 
         val cacheFile = cacheFile.get().asFile
         if (!cacheFile.isFile) {
@@ -75,10 +110,26 @@ internal abstract class CMakeGenerateTask @Inject constructor(
                 contextualLabel(message)
             }
         }
+
+        toolchainFingerprintFile.createParentDirectories().writeText(toolchainFingerprint)
     }
 
-    private companion object {
+    private fun Path.fingerprintOrNull(): String? = takeIf { it.isRegularFile() }?.readText()
+
+    private fun fingerprint(path: Path): String = HexFormat.of().formatHex(
+        MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(path)),
+    )
+
+    internal companion object {
+        private const val CMAKE_GENERATOR_ENVIRONMENT_VARIABLE = "CMAKE_GENERATOR"
+        private const val OS_NAME_SYSTEM_PROPERTY = "os.name"
+        const val TOOLCHAIN_FINGERPRINT_FILE_NAME = "toolchain.sha256"
+        private const val WINDOWS_DEFAULT_GENERATOR = "Ninja"
+
         val CACHE_FILE_NOT_GENERATED =
             ProblemId.create("cache-file-not-generated", "CMake cache file was not generated", PROBLEM_GROUP)
+
+        fun defaultGenerator(operatingSystemName: String): String? = WINDOWS_DEFAULT_GENERATOR
+            .takeIf { operatingSystemName.startsWith("Windows", ignoreCase = true) }
     }
 }
