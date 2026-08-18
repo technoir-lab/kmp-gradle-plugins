@@ -13,14 +13,27 @@ concurrency:
 
 jobs:
   build:
-    name: Build
-    runs-on: ubuntu-26.04
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-26.04
+          - macos-26
+          - windows-2025
 
     permissions:
       contents: read
       checks: write
 
     steps:
+      - name: Configure Git line endings
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
       - name: Checkout
         uses: actions/checkout@v7.0.1
 
@@ -42,6 +55,11 @@ jobs:
           key: ${{ runner.os }}-konan-${{ hashFiles('settings.gradle.kts') }}
           restore-keys: |
             ${{ runner.os }}-konan-
+
+      - name: Configure CMake generator
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
 
       - name: Build with Gradle
         run: ./gradlew build --scan

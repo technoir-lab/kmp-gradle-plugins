@@ -14,8 +14,8 @@ class VfsOverlayGeneratorTest {
     @Test
     fun `generate overlay with single mapping`() {
         val outputFile = File(tempDir, "overlay.json")
-        val fromDir = File("/path/to/source")
-        val toDir = File("/path/to/target")
+        val fromDir = unixAbsoluteFile("/path/to/source")
+        val toDir = unixAbsoluteFile("/path/to/target")
 
         generator.generate(outputFile, mapOf(fromDir to toDir))
 
@@ -41,9 +41,9 @@ class VfsOverlayGeneratorTest {
     fun `generate overlay with multiple mappings`() {
         val outputFile = File(tempDir, "overlay.json")
         val mappings = mapOf(
-            File("/first/source") to File("/first/target"),
-            File("/second/source") to File("/second/target"),
-            File("/third/source") to File("/third/target"),
+            unixAbsoluteFile("/first/source") to unixAbsoluteFile("/first/target"),
+            unixAbsoluteFile("/second/source") to unixAbsoluteFile("/second/target"),
+            unixAbsoluteFile("/third/source") to unixAbsoluteFile("/third/target"),
         )
 
         generator.generate(outputFile, mappings)
@@ -92,5 +92,9 @@ class VfsOverlayGeneratorTest {
                 }
                 """.trimIndent(),
             )
+    }
+
+    private fun unixAbsoluteFile(path: String): File = object : File(path) {
+        override fun getAbsolutePath(): String = path
     }
 }

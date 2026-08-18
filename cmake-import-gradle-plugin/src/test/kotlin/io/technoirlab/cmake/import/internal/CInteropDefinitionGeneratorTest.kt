@@ -2,20 +2,41 @@ package io.technoirlab.cmake.import.internal
 
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
+import java.net.URI
+import java.nio.file.FileSystem
+import java.nio.file.FileSystems
 import java.nio.file.Path
 import kotlin.io.path.div
 
 class CInteropDefinitionGeneratorTest {
     private val generator = CInteropDefinitionGenerator()
+    private lateinit var fileSystem: FileSystem
+
+    @BeforeEach
+    fun createUnixFileSystem(@TempDir tempDirectory: Path) {
+        val archive = tempDirectory.resolve("paths.zip")
+        fileSystem = FileSystems.newFileSystem(
+            URI.create("jar:${archive.toUri()}"),
+            mapOf("create" to "true"),
+        )
+    }
+
+    @AfterEach
+    fun closeUnixFileSystem() {
+        fileSystem.close()
+    }
 
     @Test
     fun `generates all definition properties in order`() {
-        val includeDirectory = Path.of("/install/include")
-        val archive = Path.of("/install/lib/libhello.a")
+        val includeDirectory = path("/install/include")
+        val archive = path("/install/lib/libhello.a")
 
         val definition = generator.generate(
             packageName = "cmake.hello",
@@ -37,8 +58,8 @@ class CInteropDefinitionGeneratorTest {
 
     @Test
     fun `normalizes paths`() {
-        val includeDirectory = Path.of("/project/build/../include")
-        val archive = Path.of("/project/build/../lib/nested/../libhello.a")
+        val includeDirectory = path("/project/build/../include")
+        val archive = path("/project/build/../lib/nested/../libhello.a")
 
         val definition = generator.generate(
             packageName = "cmake.hello",
@@ -60,8 +81,8 @@ class CInteropDefinitionGeneratorTest {
 
     @Test
     fun `omits headers property when headers are empty`() {
-        val includeDirectory = Path.of("/install/include")
-        val archive = Path.of("/install/lib/libhello.a")
+        val includeDirectory = path("/install/include")
+        val archive = path("/install/lib/libhello.a")
 
         val definition = generator.generate(
             packageName = "cmake.hello",
@@ -93,8 +114,8 @@ class CInteropDefinitionGeneratorTest {
         val definition = generator.generate(
             packageName = packageName,
             headers = emptyList(),
-            includeDirectory = Path.of("/install/include"),
-            archive = Path.of("/install/lib/libhello.a"),
+            includeDirectory = path("/install/include"),
+            archive = path("/install/lib/libhello.a"),
         )
 
         assertThat(definition.lineSequence().first()).isEqualTo("package = $expectedValue")
@@ -102,9 +123,9 @@ class CInteropDefinitionGeneratorTest {
 
     @Test
     fun `quotes special characters in every path property`() {
-        val includeDirectory = Path.of("/install/include files#1")
+        val includeDirectory = path("/install/include files#1")
         val header = includeDirectory / "hello\"world.h"
-        val archive = Path.of("/install/library files#1/lib\"hello.a")
+        val archive = path("/install/library files#1/lib\"hello.a")
 
         val definition = generator.generate(
             packageName = "cmake.hello",
@@ -131,11 +152,13 @@ class CInteropDefinitionGeneratorTest {
             generator.generate(
                 packageName = packageName,
                 headers = emptyList(),
-                includeDirectory = Path.of("/install/include"),
-                archive = Path.of("/install/lib/libhello.a"),
+                includeDirectory = path("/install/include"),
+                archive = path("/install/lib/libhello.a"),
             )
         }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage("packageName must not be blank")
     }
+
+    private fun path(path: String): Path = fileSystem.getPath(path)
 }
