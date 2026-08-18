@@ -42,6 +42,17 @@ class CMakeToolchainGeneratorTest {
     }
 
     @Test
+    fun `uses Windows executable suffix for Kotlin Native tools on Windows hosts`() {
+        val toolchain = CMakeToolchainGenerator(executableSuffix = ".exe")
+            .generate(FakeConfigurables(KonanTarget.MINGW_X64))
+
+        assertThat(toolchain)
+            .contains("set(CMAKE_C_COMPILER [=[/llvm home/bin/clang.exe]=])")
+            .contains("set(CMAKE_CXX_COMPILER [=[/llvm home/bin/clang++.exe]=])")
+            .contains("set(CMAKE_AR [=[/llvm home/bin/llvm-ar.exe]=] CACHE FILEPATH")
+    }
+
+    @Test
     fun `renders Apple architecture SDK sysroot and deployment settings`() {
         val toolchain = generator.generate(FakeAppleConfigurables(KonanTarget.IOS_SIMULATOR_ARM64))
 

@@ -5,12 +5,15 @@ import org.jetbrains.kotlin.konan.target.AppleConfigurables
 import org.jetbrains.kotlin.konan.target.ClangArgs
 import org.jetbrains.kotlin.konan.target.Configurables
 import org.jetbrains.kotlin.konan.target.Family
+import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.target.KonanTarget
 
 /**
  * Renders a CMake toolchain using the same Clang configuration as Kotlin/Native.
  */
-internal class CMakeToolchainGenerator {
+internal class CMakeToolchainGenerator(
+    private val executableSuffix: String = if (HostManager.hostIsMingw) ".exe" else "",
+) {
     fun generate(configurables: Configurables): String {
         val clang = ClangArgs.Native(configurables)
         val cCommand = clang.clangC()
@@ -22,11 +25,11 @@ internal class CMakeToolchainGenerator {
             processor = configurables.targetTriple.architecture,
             sysroot = sysroot,
             findRoots = listOf(sysroot, configurables.absoluteTargetToolchain).distinct(),
-            cCompiler = cCommand.first(),
+            cCompiler = cCommand.first().withExecutableSuffix(),
             cCompilerArguments = cCommand.drop(1),
-            cxxCompiler = cxxCommand.first(),
+            cxxCompiler = cxxCommand.first().withExecutableSuffix(),
             cxxCompilerArguments = cxxCommand.drop(1),
-            archiver = clang.llvmAr().first(),
+            archiver = clang.llvmAr().first().withExecutableSuffix(),
             appleDeploymentTarget = (configurables as? AppleConfigurables)?.osVersionMin,
             appleSdkVersion = (configurables as? AppleConfigurables)?.sdkVersion,
             androidApi = (configurables as? AndroidConfigurables)?.let {
@@ -110,6 +113,10 @@ internal class CMakeToolchainGenerator {
             "\"${normalized.replace("\"", "\\\"")}\""
         }
     }
+
+    private fun String.withExecutableSuffix(): String =
+        takeIf { executableSuffix.isEmpty() || endsWith(executableSuffix, ignoreCase = true) }
+            ?: "$this$executableSuffix"
 
     private fun String.cmakeArgument(): String {
         var separator = "="
