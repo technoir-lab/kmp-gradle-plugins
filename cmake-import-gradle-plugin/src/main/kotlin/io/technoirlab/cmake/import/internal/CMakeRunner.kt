@@ -44,6 +44,7 @@ internal class CMakeRunner(
                 targetName,
                 "--config",
                 buildType,
+                "--parallel",
             )
         }
     }
