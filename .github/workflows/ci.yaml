@@ -30,10 +30,12 @@ jobs:
       checks: write
 
     steps:
-      - name: Configure Git line endings
+      - name: Configure Git
         if: runner.os == 'Windows'
         shell: pwsh
-        run: git config --global core.autocrlf false
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
 
       - name: Checkout
         uses: actions/checkout@v7.0.1
