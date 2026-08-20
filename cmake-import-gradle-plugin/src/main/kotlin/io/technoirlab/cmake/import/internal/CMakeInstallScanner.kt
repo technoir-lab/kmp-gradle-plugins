@@ -12,7 +12,7 @@ internal class CMakeInstallScanner {
         return CMakeInstallOutput(
             includeDirectory = includeDirectory,
             libraryDirectory = libraryDirectory,
-            headers = includeDirectory.regularFiles(),
+            headers = includeDirectory.regularFiles().filter { isHeader(it) },
             archives = libraryDirectory.regularFiles().filter { isStaticArchive(it) },
         )
     }
@@ -23,6 +23,11 @@ internal class CMakeInstallScanner {
         ?.toList()
         .orEmpty()
 
+    private fun isHeader(path: Path): Boolean {
+        val name = path.fileName.toString()
+        return HEADER_EXTENSIONS.any { name.endsWith(".$it", ignoreCase = true) }
+    }
+
     private fun isStaticArchive(path: Path): Boolean {
         val name = path.fileName.toString()
         return name.endsWith(".a") || name.endsWith(".lib", ignoreCase = true)
@@ -31,5 +36,6 @@ internal class CMakeInstallScanner {
     private companion object {
         private const val INCLUDE_DIRECTORY_NAME = "include"
         private const val LIBRARY_DIRECTORY_NAME = "lib"
+        private val HEADER_EXTENSIONS = setOf("h", "hh", "hpp", "hxx")
     }
 }

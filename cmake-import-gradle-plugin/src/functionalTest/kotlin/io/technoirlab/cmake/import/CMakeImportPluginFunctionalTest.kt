@@ -266,13 +266,14 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
-    fun `installed interop surface contains public headers only`() {
+    fun `generated definition contains header files only`() {
         val project = gradleRunner.root.project("kmp-application")
         gradleRunner.build(":kmp-application:cmakeInstall${hostTargetSuffix()}")
 
         val installDirectory = project.buildDir / "outputs/cmake/${hostTargetName()}"
         val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
         assertThat(installDirectory / "include/hello.h").exists()
+        assertThat(installDirectory / "include/hello.c").exists()
         assertThat(installDirectory / "include/hello_impl.h").doesNotExist()
         val archives = (installDirectory / "lib").toFile().walkTopDown().filter { it.isFile }.toList()
         assertThat(archives).hasSize(1)
@@ -281,6 +282,7 @@ class CMakeImportPluginFunctionalTest {
         assertThat(definition)
             .content()
             .contains("hello.h")
+            .doesNotContain("hello.c")
             .doesNotContain("hello_impl.h")
     }
 
@@ -303,7 +305,7 @@ class CMakeImportPluginFunctionalTest {
         )
 
         assertThat(result.output)
-            .contains("CMake project did not install public headers to")
+            .contains("CMake project installed no public headers to")
             .contains("CMake project did not install a static archive to")
     }
 

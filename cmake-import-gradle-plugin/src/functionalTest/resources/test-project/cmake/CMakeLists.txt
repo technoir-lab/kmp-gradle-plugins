@@ -30,3 +30,6 @@ install(TARGETS hello
     ARCHIVE DESTINATION lib COMPONENT third-party-devel
     FILE_SET HEADERS DESTINATION include COMPONENT third-party-devel
 )
+
+# Model projects that install a source file beside public headers.
+install(FILES src/hello.c DESTINATION include COMPONENT third-party-devel)

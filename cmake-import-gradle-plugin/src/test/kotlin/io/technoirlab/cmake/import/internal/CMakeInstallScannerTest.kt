@@ -25,15 +25,35 @@ class CMakeInstallScannerTest {
     }
 
     @Test
-    fun `finds headers recursively`() {
+    fun `finds supported header extensions recursively and case insensitively`() {
         val includeDirectory = (installDirectory / "include").createDirectories()
         val topLevelHeader = (includeDirectory / "hello.h").createFile()
         val nestedDirectory = (includeDirectory / "detail").createDirectories()
-        val nestedHeader = (nestedDirectory / "world.hpp").createFile()
+        val headers = listOf(
+            topLevelHeader,
+            (nestedDirectory / "one.H").createFile(),
+            (nestedDirectory / "two.hh").createFile(),
+            (nestedDirectory / "three.hpp").createFile(),
+            (nestedDirectory / "four.hxx").createFile(),
+        )
 
         val output = scanner.scan(installDirectory)
 
-        assertThat(output.headers).containsExactlyInAnyOrder(topLevelHeader, nestedHeader)
+        assertThat(output.headers).containsExactlyInAnyOrderElementsOf(headers)
+    }
+
+    @Test
+    fun `ignores non-header files in include directory`() {
+        val includeDirectory = (installDirectory / "include").createDirectories()
+        val header = (includeDirectory / "hello.h").createFile()
+        (includeDirectory / "hello.c").createFile()
+        (includeDirectory / "hello.cpp").createFile()
+        (includeDirectory / "hello.h.in").createFile()
+        (includeDirectory / "README").createFile()
+
+        val output = scanner.scan(installDirectory)
+
+        assertThat(output.headers).containsExactly(header)
     }
 
     @Test
