@@ -7,9 +7,16 @@ import org.jetbrains.kotlin.konan.target.Configurables
 import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.jetbrains.kotlin.konan.target.TargetTriple
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
+import java.io.File
+import java.nio.charset.StandardCharsets
+import java.nio.file.Path
+import kotlin.io.path.createDirectories
+import kotlin.io.path.writeText
 
 class CMakeToolchainGeneratorTest {
     private val generator = CMakeToolchainGenerator(executableSuffix = "")
@@ -24,7 +31,11 @@ class CMakeToolchainGeneratorTest {
 
     @Test
     fun `uses target triple Clang commands arguments sysroots and LLVM archiver`() {
-        val toolchain = generator.generate(FakeConfigurables(KonanTarget.LINUX_ARM64))
+        val toolchain = CMakeToolchainGenerator(
+            executableSuffix = "",
+            hostTarget = KonanTarget.MACOS_ARM64,
+            pathSeparator = ":",
+        ).generate(FakeConfigurables(KonanTarget.LINUX_ARM64))
 
         assertThat(toolchain)
             .contains("set(CMAKE_SYSTEM_PROCESSOR [=[aarch64]=])")
@@ -39,6 +50,100 @@ class CMakeToolchainGeneratorTest {
             .contains("set(CMAKE_C_ARCHIVE_FINISH [=[]=])")
             .contains("set(CMAKE_CXX_ARCHIVE_FINISH [=[]=])")
             .contains("set(CMAKE_TRY_COMPILE_TARGET_TYPE [=[STATIC_LIBRARY]=])")
+            .contains("set(ENV{PKG_CONFIG_PATH} [=[]=])")
+            .contains("set(ENV{PKG_CONFIG_SYSROOT_DIR} [=[/target sysroot]=])")
+            .contains(
+                "set(ENV{PKG_CONFIG_LIBDIR} " +
+                    "[=[/target sysroot/usr/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
+                    "/target sysroot/usr/lib/pkgconfig:" +
+                    "/target sysroot/usr/share/pkgconfig:" +
+                    "/target sysroot/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
+                    "/target sysroot/lib/pkgconfig:" +
+                    "/target sysroot/share/pkgconfig:" +
+                    "/target toolchain/usr/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
+                    "/target toolchain/usr/lib/pkgconfig:" +
+                    "/target toolchain/usr/share/pkgconfig:" +
+                    "/target toolchain/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
+                    "/target toolchain/lib/pkgconfig:" +
+                    "/target toolchain/share/pkgconfig]=])",
+            )
+            .contains("set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH [=[FALSE]=])")
+            .contains("set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM [=[NEVER]=])")
+    }
+
+    @Test
+    fun `preserves pkg-config environment for native host targets`() {
+        val toolchain = CMakeToolchainGenerator(
+            executableSuffix = "",
+            hostTarget = KonanTarget.LINUX_ARM64,
+            pathSeparator = ":",
+        ).generate(FakeConfigurables(KonanTarget.LINUX_ARM64))
+
+        assertThat(toolchain)
+            .doesNotContain("PKG_CONFIG_PATH")
+            .doesNotContain("PKG_CONFIG_LIBDIR")
+            .doesNotContain("PKG_CONFIG_SYSROOT_DIR")
+            .doesNotContain("PKG_CONFIG_USE_CMAKE_PREFIX_PATH")
+    }
+
+    @Test
+    fun `isolated pkg-config finds target metadata without inherited host metadata`(@TempDir temporaryDirectory: Path) {
+        assumeTrue(commandSucceeds("cmake", "--version"), "CMake is not available")
+        assumeTrue(commandSucceeds("pkg-config", "--version"), "pkg-config is not available")
+
+        val hostPkgConfigDirectory = temporaryDirectory.resolve("host/lib/pkgconfig").createDirectories()
+        val sysroot = temporaryDirectory.resolve("target sysroot")
+        val targetPkgConfigDirectory = sysroot.resolve("usr/lib/pkgconfig").createDirectories()
+        hostPkgConfigDirectory.resolve("host-only.pc").writeText(pkgConfigFile("host-only"))
+        targetPkgConfigDirectory.resolve("target-only.pc").writeText(pkgConfigFile("target-only"))
+
+        val toolchainFile = temporaryDirectory.resolve("toolchain.cmake")
+        toolchainFile.writeText(
+            CMakeToolchainGenerator(
+                executableSuffix = "",
+                hostTarget = KonanTarget.MACOS_ARM64,
+                pathSeparator = File.pathSeparator,
+            ).generate(
+                CMakeToolchain(
+                    target = KonanTarget.LINUX_X64,
+                    targetTriple = "x86_64-unknown-linux-gnu",
+                    systemName = "Linux",
+                    processor = "x86_64",
+                    sysroot = sysroot.toString(),
+                    findRoots = listOf(sysroot.toString()),
+                    cCompiler = "clang",
+                    cCompilerArguments = emptyList(),
+                    cxxCompiler = "clang++",
+                    cxxCompilerArguments = emptyList(),
+                    archiver = "llvm-ar",
+                ),
+            ),
+        )
+        val script = temporaryDirectory.resolve("verify-pkg-config.cmake")
+        script.writeText(
+            """
+            include(${toolchainFile.cmakeArgument()})
+            find_package(PkgConfig REQUIRED)
+            pkg_check_modules(HOST_ONLY QUIET host-only)
+            if(HOST_ONLY_FOUND)
+                message(FATAL_ERROR "inherited host pkg-config metadata leaked into cross configuration")
+            endif()
+            pkg_check_modules(TARGET_ONLY REQUIRED target-only)
+            if(NOT TARGET_ONLY_INCLUDE_DIRS STREQUAL ${sysroot.resolve("usr/include").cmakeArgument()})
+                message(FATAL_ERROR "unexpected target include directories: ${'$'}{TARGET_ONLY_INCLUDE_DIRS}")
+            endif()
+            """.trimIndent(),
+        )
+
+        val process = ProcessBuilder("cmake", "-P", script.toString())
+            .redirectErrorStream(true)
+            .apply { environment()["PKG_CONFIG_PATH"] = hostPkgConfigDirectory.toString() }
+            .start()
+        val output = process.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
+
+        assertThat(process.waitFor())
+            .describedAs("CMake output:%n%s", output)
+            .isZero()
     }
 
     @Test
@@ -83,6 +188,7 @@ class CMakeToolchainGeneratorTest {
     fun `escapes CMake values and compiler argument lists without changing them`() {
         val toolchain = CMakeToolchain(
             target = KonanTarget.LINUX_X64,
+            targetTriple = "x86_64-unknown-linux-gnu",
             systemName = "Linux",
             processor = "x86_64",
             sysroot = "C:\\SDK;root]=]tail",
@@ -105,6 +211,26 @@ class CMakeToolchainGeneratorTest {
         target.family == Family.ANDROID -> FakeAndroidConfigurables(target)
         else -> FakeConfigurables(target)
     }
+
+    private fun commandSucceeds(vararg command: String): Boolean = runCatching {
+        ProcessBuilder(*command)
+            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .start()
+            .waitFor() == 0
+    }.getOrDefault(false)
+
+    private fun pkgConfigFile(name: String): String = """
+        prefix=/usr
+        includedir=${'$'}{prefix}/include
+
+        Name: $name
+        Description: Test metadata for $name
+        Version: 1.0
+        Cflags: -I${'$'}{includedir}
+    """.trimIndent()
+
+    private fun Path.cmakeArgument(): String = "[=[$this]=]"
 
     private open class FakeConfigurables(
         override val target: KonanTarget,

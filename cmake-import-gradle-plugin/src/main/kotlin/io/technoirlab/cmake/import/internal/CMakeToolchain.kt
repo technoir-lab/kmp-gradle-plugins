@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.konan.target.KonanTarget
  */
 internal data class CMakeToolchain(
     val target: KonanTarget,
+    val targetTriple: String,
     val systemName: String,
     val processor: String,
     val sysroot: String,

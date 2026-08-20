@@ -7,12 +7,16 @@ import org.jetbrains.kotlin.konan.target.Configurables
 import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.target.KonanTarget
+import java.io.File
+import java.nio.file.Path
 
 /**
  * Renders a CMake toolchain using the same Clang configuration as Kotlin/Native.
  */
 internal class CMakeToolchainGenerator(
     private val executableSuffix: String = if (HostManager.hostIsMingw) ".exe" else "",
+    private val hostTarget: KonanTarget = HostManager.host,
+    private val pathSeparator: String = File.pathSeparator,
 ) {
     fun generate(configurables: Configurables): String {
         val clang = ClangArgs.Native(configurables)
@@ -21,6 +25,7 @@ internal class CMakeToolchainGenerator(
         val sysroot = compilerSysroot(cCommand.drop(1)) ?: configurables.absoluteTargetSysRoot
         val toolchain = CMakeToolchain(
             target = configurables.target,
+            targetTriple = configurables.targetTriple.toString(),
             systemName = configurables.target.family.cmakeSystemName,
             processor = configurables.targetTriple.architecture,
             sysroot = sysroot,
@@ -52,6 +57,14 @@ internal class CMakeToolchainGenerator(
         setting("CMAKE_FIND_ROOT_PATH_MODE_INCLUDE", "ONLY")
         setting("CMAKE_FIND_ROOT_PATH_MODE_PACKAGE", "ONLY")
         setting("CMAKE_TRY_COMPILE_TARGET_TYPE", "STATIC_LIBRARY")
+
+        if (toolchain.target != hostTarget) {
+            appendLine()
+            environmentSetting("PKG_CONFIG_PATH", "")
+            environmentSetting("PKG_CONFIG_LIBDIR", toolchain.pkgConfigDirectories().joinToString(pathSeparator))
+            environmentSetting("PKG_CONFIG_SYSROOT_DIR", toolchain.sysroot)
+            setting("PKG_CONFIG_USE_CMAKE_PREFIX_PATH", "FALSE")
+        }
 
         appendLine()
         setting("CMAKE_C_COMPILER", toolchain.cCompiler)
@@ -89,6 +102,10 @@ internal class CMakeToolchainGenerator(
         appendLine("set($name ${value.cmakeArgument()})")
     }
 
+    private fun StringBuilder.environmentSetting(name: String, value: String) {
+        appendLine("set(ENV{$name} ${value.cmakeArgument()})")
+    }
+
     private fun StringBuilder.cacheSetting(name: String, value: String, description: String) {
         appendLine("set($name ${value.cmakeArgument()} CACHE FILEPATH ${description.cmakeArgument()} FORCE)")
     }
@@ -117,6 +134,19 @@ internal class CMakeToolchainGenerator(
     private fun String.withExecutableSuffix(): String =
         takeIf { executableSuffix.isEmpty() || endsWith(executableSuffix, ignoreCase = true) }
             ?: "$this$executableSuffix"
+
+    private fun CMakeToolchain.pkgConfigDirectories(): List<String> = findRoots.flatMap { root ->
+        listOf(
+            "usr/lib/$targetTriple/pkgconfig",
+            "usr/lib/pkgconfig",
+            "usr/share/pkgconfig",
+            "lib/$targetTriple/pkgconfig",
+            "lib/pkgconfig",
+            "share/pkgconfig",
+        ).map { relativePath ->
+            Path.of(root).resolve(relativePath).portablePathString()
+        }
+    }.distinct()
 
     private fun String.cmakeArgument(): String {
         var separator = "="
