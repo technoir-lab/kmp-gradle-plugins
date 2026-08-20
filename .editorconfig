@@ -15,6 +15,7 @@ ij_kotlin_allow_trailing_comma_on_call_site = true
 ij_kotlin_keep_blank_lines_before_right_brace = 0
 ij_kotlin_keep_blank_lines_in_code = 1
 ij_kotlin_keep_blank_lines_in_declarations = 1
+ij_kotlin_line_break_after_multiline_when_entry = false
 ij_kotlin_name_count_to_use_star_import = 2147483647
 ij_kotlin_name_count_to_use_star_import_for_members = 2147483647
 ij_kotlin_packages_to_use_import_on_demand =

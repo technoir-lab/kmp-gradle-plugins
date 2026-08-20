@@ -7,4 +7,5 @@ internal data class CMakeInstallOutput(
     val libraryDirectory: Path,
     val headers: List<Path>,
     val archives: List<Path>,
+    val pkgConfigFiles: List<Path>,
 )

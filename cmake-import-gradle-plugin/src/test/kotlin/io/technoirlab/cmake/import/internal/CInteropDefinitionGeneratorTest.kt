@@ -39,10 +39,12 @@ class CInteropDefinitionGeneratorTest {
         val archive = path("/install/lib/libhello.a")
 
         val definition = generator.generate(
-            packageName = "cmake.hello",
-            headers = listOf(includeDirectory / "hello.h", includeDirectory / "nested/world.h"),
-            includeDirectory = includeDirectory,
-            archive = archive,
+            CInteropDefinition(
+                packageName = "cmake.hello",
+                headers = listOf(includeDirectory / "hello.h", includeDirectory / "nested/world.h"),
+                includeDirectory = includeDirectory,
+                archive = archive,
+            ),
         )
 
         assertThat(definition).isEqualTo(
@@ -62,10 +64,12 @@ class CInteropDefinitionGeneratorTest {
         val archive = path("/project/build/../lib/nested/../libhello.a")
 
         val definition = generator.generate(
-            packageName = "cmake.hello",
-            headers = listOf(includeDirectory / "nested/../hello.h"),
-            includeDirectory = includeDirectory,
-            archive = archive,
+            CInteropDefinition(
+                packageName = "cmake.hello",
+                headers = listOf(includeDirectory / "nested/../hello.h"),
+                includeDirectory = includeDirectory,
+                archive = archive,
+            ),
         )
 
         assertThat(definition).isEqualTo(
@@ -85,10 +89,12 @@ class CInteropDefinitionGeneratorTest {
         val archive = path("/install/lib/libhello.a")
 
         val definition = generator.generate(
-            packageName = "cmake.hello",
-            headers = emptyList(),
-            includeDirectory = includeDirectory,
-            archive = archive,
+            CInteropDefinition(
+                packageName = "cmake.hello",
+                headers = emptyList(),
+                includeDirectory = includeDirectory,
+                archive = archive,
+            ),
         )
 
         assertThat(definition).isEqualTo(
@@ -112,10 +118,12 @@ class CInteropDefinitionGeneratorTest {
     )
     fun `quotes and escapes special package names`(packageName: String, expectedValue: String) {
         val definition = generator.generate(
-            packageName = packageName,
-            headers = emptyList(),
-            includeDirectory = path("/install/include"),
-            archive = path("/install/lib/libhello.a"),
+            CInteropDefinition(
+                packageName = packageName,
+                headers = emptyList(),
+                includeDirectory = path("/install/include"),
+                archive = path("/install/lib/libhello.a"),
+            ),
         )
 
         assertThat(definition.lineSequence().first()).isEqualTo("package = $expectedValue")
@@ -128,10 +136,12 @@ class CInteropDefinitionGeneratorTest {
         val archive = path("/install/library files#1/lib\"hello.a")
 
         val definition = generator.generate(
-            packageName = "cmake.hello",
-            headers = listOf(header),
-            includeDirectory = includeDirectory,
-            archive = archive,
+            CInteropDefinition(
+                packageName = "cmake.hello",
+                headers = listOf(header),
+                includeDirectory = includeDirectory,
+                archive = archive,
+            ),
         )
 
         assertThat(definition).isEqualTo(
@@ -145,15 +155,40 @@ class CInteropDefinitionGeneratorTest {
         )
     }
 
+    @Test
+    fun `generates and escapes linker options`() {
+        val definition = generator.generate(
+            CInteropDefinition(
+                packageName = "cmake.hello",
+                headers = emptyList(),
+                includeDirectory = path("/install/include"),
+                archive = path("/install/lib/libhello.a"),
+                linkerOptions = listOf("-lm", "-L/library files", "-Wl,-framework,Cocoa"),
+            ),
+        )
+
+        assertThat(definition).isEqualTo(
+            """
+            package = cmake.hello
+            compilerOpts = -I/install/include
+            linkerOpts = -lm "-L/library files" -Wl,-framework,Cocoa
+            staticLibraries = libhello.a
+            libraryPaths = /install/lib
+            """.trimIndent() + "\n",
+        )
+    }
+
     @ParameterizedTest
     @ValueSource(strings = ["", " \t\n"])
     fun `rejects blank package names`(packageName: String) {
         assertThatThrownBy {
             generator.generate(
-                packageName = packageName,
-                headers = emptyList(),
-                includeDirectory = path("/install/include"),
-                archive = path("/install/lib/libhello.a"),
+                CInteropDefinition(
+                    packageName = packageName,
+                    headers = emptyList(),
+                    includeDirectory = path("/install/include"),
+                    archive = path("/install/lib/libhello.a"),
+                ),
             )
         }
             .isInstanceOf(IllegalArgumentException::class.java)

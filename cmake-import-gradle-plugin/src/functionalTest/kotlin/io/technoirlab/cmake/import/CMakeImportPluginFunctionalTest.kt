@@ -48,7 +48,7 @@ class CMakeImportPluginFunctionalTest {
         gradleRunner.root.project("kmp-application").appendBuildScript(
             """
             cmakeImport {
-                installComponent = "third-party-devel"
+                installComponent = "hello-static"
             }
             """.trimIndent(),
         )
@@ -275,13 +275,18 @@ class CMakeImportPluginFunctionalTest {
         assertThat(installDirectory / "include/hello.h").exists()
         assertThat(installDirectory / "include/hello.c").exists()
         assertThat(installDirectory / "include/hello_impl.h").doesNotExist()
-        val archives = (installDirectory / "lib").toFile().walkTopDown().filter { it.isFile }.toList()
+        val archives = (installDirectory / "lib")
+            .toFile()
+            .walkTopDown()
+            .filter { it.isFile && (it.extension == "a" || it.extension.equals("lib", ignoreCase = true)) }
+            .toList()
         assertThat(archives).hasSize(1)
         val archiveName = archives.single().name
         assertThat(archiveName.endsWith(".a") || archiveName.endsWith(".lib", ignoreCase = true)).isTrue()
         assertThat(definition)
             .content()
             .contains("headers = hello.h")
+            .contains("linkerOpts = -L/configured/prefix/lib -lm")
             .doesNotContain("hello.c")
             .doesNotContain("hello_impl.h")
     }
@@ -292,11 +297,15 @@ class CMakeImportPluginFunctionalTest {
         cmakeLists.replaceText(
             """
             install(TARGETS hello
-                ARCHIVE DESTINATION lib COMPONENT third-party-devel
-                FILE_SET HEADERS DESTINATION include COMPONENT third-party-devel
+                ARCHIVE DESTINATION lib COMPONENT hello-static
+                FILE_SET HEADERS DESTINATION include COMPONENT hello-static
             )
             """.trimIndent(),
             "install(FILES src/hello_impl.h DESTINATION unexpected)",
+        )
+        cmakeLists.replaceText(
+            "install(FILES hello.pc DESTINATION lib/pkgconfig COMPONENT hello-static)",
+            "",
         )
 
         val result = gradleRunner.build(
@@ -339,13 +348,10 @@ class CMakeImportPluginFunctionalTest {
         val hostTarget: HostTarget? = when {
             System.getProperty("os.name").startsWith("Mac", ignoreCase = true) &&
                 System.getProperty("os.arch") in setOf("aarch64", "arm64") -> HostTarget("macosArm64", "MacosArm64")
-
             System.getProperty("os.name").startsWith("Linux", ignoreCase = true) &&
                 System.getProperty("os.arch") in setOf("amd64", "x86_64") -> HostTarget("linuxX64", "LinuxX64")
-
             System.getProperty("os.name").startsWith("Windows", ignoreCase = true) &&
                 System.getProperty("os.arch") in setOf("amd64", "x86_64") -> HostTarget("mingwX64", "MingwX64")
-
             else -> null
         }
     }

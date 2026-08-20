@@ -22,6 +22,7 @@ class CMakeInstallScannerTest {
         assertThat(output.libraryDirectory).isEqualTo(installDirectory / "lib")
         assertThat(output.headers).isEmpty()
         assertThat(output.archives).isEmpty()
+        assertThat(output.pkgConfigFiles).isEmpty()
     }
 
     @Test
@@ -72,6 +73,21 @@ class CMakeInstallScannerTest {
     }
 
     @Test
+    fun `finds pkg-config files recursively and case insensitively`() {
+        val libraryDirectory = (installDirectory / "lib").createDirectories()
+        val pkgConfigDirectory = (libraryDirectory / "pkgconfig").createDirectories()
+        val pkgConfigFiles = listOf(
+            (pkgConfigDirectory / "hello.pc").createFile(),
+            (pkgConfigDirectory / "world.PC").createFile(),
+        )
+        (pkgConfigDirectory / "README").createFile()
+
+        val output = scanner.scan(installDirectory)
+
+        assertThat(output.pkgConfigFiles).containsExactlyInAnyOrderElementsOf(pkgConfigFiles)
+    }
+
+    @Test
     fun `ignores conventional paths that are not directories`() {
         (installDirectory / "include").createFile()
         (installDirectory / "lib").createFile()
@@ -80,5 +96,6 @@ class CMakeInstallScannerTest {
 
         assertThat(output.headers).isEmpty()
         assertThat(output.archives).isEmpty()
+        assertThat(output.pkgConfigFiles).isEmpty()
     }
 }

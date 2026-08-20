@@ -1,10 +1,12 @@
 package io.technoirlab.cmake.import.tasks
 
 import io.technoirlab.cmake.import.CMakeImportPlugin.Companion.PROBLEM_GROUP
+import io.technoirlab.cmake.import.internal.CInteropDefinition
 import io.technoirlab.cmake.import.internal.CInteropDefinitionGenerator
 import io.technoirlab.cmake.import.internal.CMakeInstallOutput
 import io.technoirlab.cmake.import.internal.CMakeInstallScanner
 import io.technoirlab.cmake.import.internal.CMakeRunner
+import io.technoirlab.cmake.import.internal.PkgConfigLinkerOptionsResolver
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations
@@ -89,14 +91,19 @@ internal abstract class CMakeInstallTask @Inject constructor(
 
         val output = CMakeInstallScanner().scan(installDirectory)
         output.validate(installComponent)
+        val archive = output.archives.single()
 
         val definitionFile = definitionFile.get().asFile.toPath().createParentDirectories()
+        val pkgConfigLinkerOptionsResolver = PkgConfigLinkerOptionsResolver()
         definitionFile.writeText(
             CInteropDefinitionGenerator().generate(
-                packageName = packageName,
-                headers = output.headers,
-                includeDirectory = output.includeDirectory,
-                archive = output.archives.single(),
+                CInteropDefinition(
+                    packageName = packageName,
+                    headers = output.headers,
+                    includeDirectory = output.includeDirectory,
+                    archive = archive,
+                    linkerOptions = pkgConfigLinkerOptionsResolver.resolve(archive, output.pkgConfigFiles),
+                ),
             ),
             StandardCharsets.UTF_8,
         )

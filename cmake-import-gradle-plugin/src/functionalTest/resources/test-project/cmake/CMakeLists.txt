@@ -27,9 +27,11 @@ target_compile_definitions(hello PRIVATE
 )
 
 install(TARGETS hello
-    ARCHIVE DESTINATION lib COMPONENT third-party-devel
-    FILE_SET HEADERS DESTINATION include COMPONENT third-party-devel
+    ARCHIVE DESTINATION lib COMPONENT hello-static
+    FILE_SET HEADERS DESTINATION include COMPONENT hello-static
 )
 
+install(FILES hello.pc DESTINATION lib/pkgconfig COMPONENT hello-static)
+
 # Model projects that install a source file beside public headers.
-install(FILES src/hello.c DESTINATION include COMPONENT third-party-devel)
+install(FILES src/hello.c DESTINATION include COMPONENT hello-static)

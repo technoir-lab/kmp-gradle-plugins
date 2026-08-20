@@ -14,6 +14,7 @@ internal class CMakeInstallScanner {
             libraryDirectory = libraryDirectory,
             headers = includeDirectory.regularFiles().filter { isHeader(it) },
             archives = libraryDirectory.regularFiles().filter { isStaticArchive(it) },
+            pkgConfigFiles = libraryDirectory.regularFiles().filter { isPkgConfigFile(it) },
         )
     }
 
@@ -32,6 +33,8 @@ internal class CMakeInstallScanner {
         val name = path.fileName.toString()
         return name.endsWith(".a") || name.endsWith(".lib", ignoreCase = true)
     }
+
+    private fun isPkgConfigFile(path: Path): Boolean = path.fileName.toString().endsWith(".pc", ignoreCase = true)
 
     private companion object {
         private const val INCLUDE_DIRECTORY_NAME = "include"
