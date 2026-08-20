@@ -48,7 +48,7 @@ class CInteropDefinitionGeneratorTest {
         assertThat(definition).isEqualTo(
             """
             package = cmake.hello
-            headers = /install/include/hello.h /install/include/nested/world.h
+            headers = hello.h nested/world.h
             compilerOpts = -I/install/include
             staticLibraries = libhello.a
             libraryPaths = /install/lib
@@ -71,7 +71,7 @@ class CInteropDefinitionGeneratorTest {
         assertThat(definition).isEqualTo(
             """
             package = cmake.hello
-            headers = /project/include/hello.h
+            headers = hello.h
             compilerOpts = -I/project/include
             staticLibraries = libhello.a
             libraryPaths = /project/lib
@@ -137,7 +137,7 @@ class CInteropDefinitionGeneratorTest {
         assertThat(definition).isEqualTo(
             """
             package = cmake.hello
-            headers = "/install/include files#1/hello\"world.h"
+            headers = "hello\"world.h"
             compilerOpts = "-I/install/include files#1"
             staticLibraries = "lib\"hello.a"
             libraryPaths = "/install/library files#1"

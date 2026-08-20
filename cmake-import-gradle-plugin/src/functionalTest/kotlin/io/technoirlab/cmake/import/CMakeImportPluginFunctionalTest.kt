@@ -281,7 +281,7 @@ class CMakeImportPluginFunctionalTest {
         assertThat(archiveName.endsWith(".a") || archiveName.endsWith(".lib", ignoreCase = true)).isTrue()
         assertThat(definition)
             .content()
-            .contains("hello.h")
+            .contains("headers = hello.h")
             .doesNotContain("hello.c")
             .doesNotContain("hello_impl.h")
     }

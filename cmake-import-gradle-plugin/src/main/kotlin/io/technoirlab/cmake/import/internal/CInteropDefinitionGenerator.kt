@@ -11,15 +11,15 @@ internal class CInteropDefinitionGenerator {
         return buildString {
             appendLine("package = ${packageName.definitionValue()}")
             if (headers.isNotEmpty()) {
-                appendLine("headers = ${headers.joinToString(" "){ it.normalizedPathString().definitionValue() }}")
+                appendLine(
+                    "headers = ${headers.joinToString(" ") { it.relativePathString(includeDirectory).definitionValue() }}",
+                )
             }
             appendLine("compilerOpts = ${"-I${includeDirectory.normalizedPathString()}".definitionValue()}")
             appendLine("staticLibraries = ${archive.fileName.toString().definitionValue()}")
             appendLine("libraryPaths = ${archive.parent.normalizedPathString().definitionValue()}")
         }
     }
-
-    private fun Path.normalizedPathString(): String = toAbsolutePath().normalize().toString().replace('\\', '/')
 
     private fun String.definitionValue(): String {
         if (isNotEmpty() && all { !it.isWhitespace() && it != '#' && it != '"' }) {
