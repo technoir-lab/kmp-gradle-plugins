@@ -149,6 +149,13 @@ class CMakeImportPluginFunctionalTest {
 
     @Test
     fun `published library carries the CMake archive to a consumer`() {
+        gradleRunner.root.project("kmp-library").appendBuildScript(
+            """
+            // Keep cross-linker inputs below the Windows MAX_PATH limit in the deeply nested TestKit project.
+            layout.buildDirectory = layout.projectDirectory.dir("../b")
+            """.trimIndent(),
+        )
+
         gradleRunner.build(
             ":kmp-library:publishKotlinMultiplatformPublicationToTestRepository",
             ":kmp-library:publish${hostTargetSuffix()}PublicationToTestRepository",
