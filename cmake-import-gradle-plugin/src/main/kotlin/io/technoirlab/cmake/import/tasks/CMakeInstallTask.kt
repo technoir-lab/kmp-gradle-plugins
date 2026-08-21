@@ -107,6 +107,7 @@ internal abstract class CMakeInstallTask @Inject constructor(
                 CInteropDefinition(
                     packageName = packageName,
                     headers = filterHeaders(output.headers, includedHeaders),
+                    headerFilter = output.headers,
                     includeDirectory = output.includeDirectory,
                     archive = archive,
                     linkerOptions = pkgConfigLinkerOptionsResolver.resolve(archive, output.pkgConfigFiles),
