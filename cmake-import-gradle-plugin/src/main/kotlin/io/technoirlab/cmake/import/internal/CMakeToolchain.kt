@@ -17,6 +17,7 @@ internal data class CMakeToolchain(
     val cxxCompiler: String,
     val cxxCompilerArguments: List<String>,
     val archiver: String,
+    val compilerDriverLinker: String? = null,
     val appleDeploymentTarget: String? = null,
     val appleSdkVersion: String? = null,
     val androidApi: String? = null,

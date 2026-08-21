@@ -1,6 +1,7 @@
 package io.technoirlab.cmake.import.internal
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.jetbrains.kotlin.konan.target.AndroidConfigurables
 import org.jetbrains.kotlin.konan.target.AppleConfigurables
 import org.jetbrains.kotlin.konan.target.Configurables
@@ -19,7 +20,7 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 
 class CMakeToolchainGeneratorTest {
-    private val generator = CMakeToolchainGenerator(executableSuffix = "")
+    private val generator = CMakeToolchainGenerator(executableSuffix = "", pathExists = { true })
 
     @ParameterizedTest
     @MethodSource("systemNames")
@@ -35,6 +36,7 @@ class CMakeToolchainGeneratorTest {
             executableSuffix = "",
             hostTarget = KonanTarget.MACOS_ARM64,
             pathSeparator = ":",
+            pathExists = { true },
         ).generate(FakeConfigurables(KonanTarget.LINUX_ARM64))
 
         assertThat(toolchain)
@@ -49,7 +51,12 @@ class CMakeToolchainGeneratorTest {
             .contains("set(CMAKE_RANLIB [=[:]=] CACHE FILEPATH")
             .contains("set(CMAKE_C_ARCHIVE_FINISH [=[]=])")
             .contains("set(CMAKE_CXX_ARCHIVE_FINISH [=[]=])")
-            .contains("set(CMAKE_TRY_COMPILE_TARGET_TYPE [=[STATIC_LIBRARY]=])")
+            .contains("if(NOT DEFINED CMAKE_LINKER_TYPE)")
+            .contains("set(CMAKE_LINKER_TYPE [=[kotlin_native]=])")
+            .contains("if(CMAKE_LINKER_TYPE STREQUAL [=[kotlin_native]=])")
+            .contains("set(CMAKE_C_USING_LINKER_kotlin_native [=[--ld-path=/host-linker]=])")
+            .contains("set(CMAKE_CXX_USING_LINKER_kotlin_native [=[--ld-path=/host-linker]=])")
+            .doesNotContain("CMAKE_TRY_COMPILE_TARGET_TYPE")
             .contains("set(ENV{PKG_CONFIG_PATH} [=[]=])")
             .contains("set(ENV{PKG_CONFIG_SYSROOT_DIR} [=[/target-sysroot]=])")
             .contains(
@@ -77,6 +84,7 @@ class CMakeToolchainGeneratorTest {
             executableSuffix = "",
             hostTarget = KonanTarget.LINUX_ARM64,
             pathSeparator = ":",
+            pathExists = { true },
         ).generate(FakeConfigurables(KonanTarget.LINUX_ARM64))
 
         assertThat(toolchain)
@@ -103,6 +111,7 @@ class CMakeToolchainGeneratorTest {
                 executableSuffix = "",
                 hostTarget = KonanTarget.MACOS_ARM64,
                 pathSeparator = File.pathSeparator,
+                pathExists = { true },
             ).generate(
                 CMakeToolchain(
                     target = KonanTarget.LINUX_X64,
@@ -147,14 +156,66 @@ class CMakeToolchainGeneratorTest {
     }
 
     @Test
-    fun `uses Windows executable suffix for Kotlin Native tools on Windows hosts`() {
-        val toolchain = CMakeToolchainGenerator(executableSuffix = ".exe")
-            .generate(FakeConfigurables(KonanTarget.MINGW_X64))
+    fun `preserves a user selected CMake linker type`(@TempDir temporaryDirectory: Path) {
+        assumeTrue(commandSucceeds("cmake", "--version"), "CMake is not available")
+        val toolchainFile = temporaryDirectory.resolve("toolchain.cmake")
+        toolchainFile.writeText(
+            generator.generate(
+                CMakeToolchain(
+                    target = KonanTarget.LINUX_X64,
+                    targetTriple = "x86_64-unknown-linux-gnu",
+                    systemName = "Linux",
+                    processor = "x86_64",
+                    sysroot = "/target-sysroot",
+                    findRoots = listOf("/target-sysroot"),
+                    cCompiler = "clang",
+                    cCompilerArguments = emptyList(),
+                    cxxCompiler = "clang++",
+                    cxxCompilerArguments = emptyList(),
+                    archiver = "llvm-ar",
+                    compilerDriverLinker = "/host-linker",
+                ),
+            ),
+        )
+        val script = temporaryDirectory.resolve("verify-linker-override.cmake")
+        script.writeText(
+            $$"""
+            set(CMAKE_LINKER_TYPE user_selected)
+            include($${toolchainFile.cmakeArgument()})
+            if(NOT CMAKE_LINKER_TYPE STREQUAL user_selected)
+                message(FATAL_ERROR "toolchain replaced user linker type: ${CMAKE_LINKER_TYPE}")
+            endif()
+            if(DEFINED CMAKE_C_USING_LINKER_kotlin_native)
+                message(FATAL_ERROR "toolchain configured its linker flags for a user-selected type")
+            endif()
+            """.trimIndent(),
+        )
+
+        val process = ProcessBuilder("cmake", "-P", script.toString())
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
+
+        assertThat(process.waitFor())
+            .describedAs("CMake output:%n%s", output)
+            .isZero()
+    }
+
+    @Test
+    fun `uses Windows executable suffix for Kotlin Native tools and linker before validation`() {
+        val toolchain = CMakeToolchainGenerator(
+            executableSuffix = ".exe",
+            pathExists = { it.endsWith(".exe") },
+        ).generate(FakeConfigurables(KonanTarget.LINUX_X64, linker = "/llvm-home/bin/ld.gold"))
 
         assertThat(toolchain)
             .contains("set(CMAKE_C_COMPILER [=[/llvm-home/bin/clang.exe]=])")
             .contains("set(CMAKE_CXX_COMPILER [=[/llvm-home/bin/clang++.exe]=])")
             .contains("set(CMAKE_AR [=[/llvm-home/bin/llvm-ar.exe]=] CACHE FILEPATH")
+            .contains(
+                "set(CMAKE_C_USING_LINKER_kotlin_native " +
+                    "[=[--ld-path=/llvm-home/bin/ld.gold.exe]=])",
+            )
     }
 
     @Test
@@ -169,6 +230,8 @@ class CMakeToolchainGeneratorTest {
             .contains("set(CMAKE_SYSTEM_VERSION [=[17.4]=])")
             .contains("-target arm64-apple-ios13.2-simulator")
             .contains("-stdlib=libc++")
+            .doesNotContain("CMAKE_LINKER_TYPE")
+            .doesNotContain("CMAKE_TRY_COMPILE_TARGET_TYPE")
     }
 
     @ParameterizedTest
@@ -182,6 +245,9 @@ class CMakeToolchainGeneratorTest {
             .contains("set(CMAKE_ANDROID_API [=[21]=])")
             .contains("set(CMAKE_ANDROID_ARCH_ABI [=[$expectedAbi]=])")
             .contains("-D__ANDROID_API__=21")
+            .contains("if(NOT DEFINED CMAKE_TRY_COMPILE_TARGET_TYPE)")
+            .contains("set(CMAKE_TRY_COMPILE_TARGET_TYPE [=[STATIC_LIBRARY]=])")
+            .doesNotContain("CMAKE_LINKER_TYPE")
     }
 
     @Test
@@ -198,12 +264,39 @@ class CMakeToolchainGeneratorTest {
             cxxCompiler = "C:\\LLVM folder\\clang++.exe",
             cxxCompilerArguments = emptyList(),
             archiver = "C:\\LLVM folder\\llvm-ar.exe",
+            compilerDriverLinker = "C:\\LLVM folder\\ld.lld.exe",
         )
 
         assertThat(generator.generate(toolchain))
             .contains("set(CMAKE_SYSROOT [==[C:\\SDK;root]=]tail]==])")
             .contains("set(CMAKE_C_COMPILER [=[C:\\LLVM folder\\clang.exe]=])")
             .contains("[=[\"-DVALUE=a;b\" \"C:/include folder\" \"-DQUOTE=\\\"yes\\\"\"]=]")
+            .contains(
+                "set(CMAKE_C_USING_LINKER_kotlin_native " +
+                    "[=[--ld-path=C:/LLVM folder/ld.lld.exe]=])",
+            )
+    }
+
+    @Test
+    fun `reports a missing Kotlin Native linker`() {
+        assertThatThrownBy {
+            CMakeToolchainGenerator(executableSuffix = "", pathExists = { true })
+                .generate(FakeConfigurables(KonanTarget.LINUX_X64, linker = null))
+        }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessage("Kotlin/Native did not configure a linker for target linux_x64")
+    }
+
+    @Test
+    fun `reports a nonexistent Kotlin Native linker`() {
+        assertThatThrownBy {
+            CMakeToolchainGenerator(executableSuffix = "", pathExists = { false })
+                .generate(FakeConfigurables(KonanTarget.MINGW_X64, linker = "/missing/ld.lld"))
+        }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessage(
+                "Kotlin/Native linker for target mingw_x64 does not exist at /missing/ld.lld",
+            )
     }
 
     private fun configurables(target: KonanTarget): Configurables = when {
@@ -234,6 +327,7 @@ class CMakeToolchainGeneratorTest {
 
     private open class FakeConfigurables(
         override val target: KonanTarget,
+        private val linker: String? = "/host-linker",
     ) : Configurables {
         override val targetTriple: TargetTriple = triples.getValue(target)
         override val absoluteTargetSysRoot: String = "/target-sysroot"
@@ -245,7 +339,7 @@ class CMakeToolchainGeneratorTest {
         override fun targetList(key: String): List<String> = emptyList()
         override fun hostString(key: String): String? = null
         override fun hostList(key: String): List<String> = emptyList()
-        override fun hostTargetString(key: String): String? = null
+        override fun hostTargetString(key: String): String? = linker.takeIf { key == "linker" }
         override fun hostTargetList(key: String): List<String> = emptyList()
         override fun absolute(value: String?): String = requireNotNull(value)
         override fun downloadDependencies() = Unit
