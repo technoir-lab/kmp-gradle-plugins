@@ -33,7 +33,6 @@ class PkgConfigLinkerOptionsResolverTest {
         val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
 
         assertThat(options).containsExactly(
-            "-L/usr/local/lib",
             "-framework",
             "CoreMedia",
             "-weak_framework",
@@ -57,7 +56,7 @@ class PkgConfigLinkerOptionsResolverTest {
 
         val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
 
-        assertThat(options).containsExactly("-L", "/usr/local/lib", "-lpthread", "-lm", "-ldl")
+        assertThat(options).containsExactly("-lpthread", "-lm", "-ldl")
     }
 
     @Test
@@ -140,7 +139,6 @@ class PkgConfigLinkerOptionsResolverTest {
         val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
 
         assertThat(options).containsExactly(
-            "-LC:/hello/lib",
             "-mwindows",
             "-lm",
             "-lkernel32",
@@ -166,7 +164,6 @@ class PkgConfigLinkerOptionsResolverTest {
         val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
 
         assertThat(options).containsExactly(
-            "-L/installation/lib",
             "-L/installation/dependencies",
             "-ldependency",
         )
@@ -193,7 +190,7 @@ class PkgConfigLinkerOptionsResolverTest {
 
         val options = resolver.resolve(archive("hello.LIB"), listOf(unrelated, matching))
 
-        assertThat(options).containsExactly("-L/install/lib", "-lm")
+        assertThat(options).containsExactly("-lm")
     }
 
     @Test
@@ -258,19 +255,55 @@ class PkgConfigLinkerOptionsResolverTest {
     }
 
     @Test
-    fun `preserves search path used by remaining libraries`() {
+    fun `strips logical library directory while preserving external search paths`() {
         val pkgConfigFile = pkgConfigFile(
             "foo.pc",
             $$"""
-            libdir=/install/lib
+            prefix=/install
+            libdir=${prefix}/lib
+            dependency_libdir=${prefix}/dependencies/lib
             Name: foo
-            Libs: -L${libdir} -lfoo -lbar
+            Libs: -L${libdir}/ -lfoo -L ${dependency_libdir} -lbar
             """.trimIndent(),
         )
 
         val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile))
 
-        assertThat(options).containsExactly("-L/install/lib", "-lbar")
+        assertThat(options).containsExactly("-L", "/install/dependencies/lib", "-lbar")
+    }
+
+    @Test
+    fun `preserves libdir option when metadata is not installed beside the archive`() {
+        val pkgConfigFile = pkgConfigFile(
+            "share/pkgconfig/foo.pc",
+            $$"""
+            libdir=/install/lib
+            Name: foo
+            Libs: -L${libdir} -lfoo -lm
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile))
+
+        assertThat(options).containsExactly("-L/install/lib", "-lm")
+    }
+
+    @Test
+    fun `strips portable logical libdir when staged install path contains spaces`() {
+        installDirectory = installDirectory.resolve("staged install")
+        val pkgConfigFile = pkgConfigFile(
+            "foo.pc",
+            $$"""
+            prefix=C:/Foo
+            libdir=${prefix}/lib
+            Name: foo
+            Libs: -L${libdir}/ -lfoo -lm
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("foo.lib"), listOf(pkgConfigFile))
+
+        assertThat(options).containsExactly("-lm")
     }
 
     @Test

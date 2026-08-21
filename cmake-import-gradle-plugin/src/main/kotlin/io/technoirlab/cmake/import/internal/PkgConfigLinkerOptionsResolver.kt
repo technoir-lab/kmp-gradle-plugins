@@ -29,11 +29,12 @@ internal class PkgConfigLinkerOptionsResolver(
 
         val options = candidate.publicOptions ?: return emptyList()
         val privateOptions = parsed.expandedFieldTokens("Libs.private") ?: return emptyList()
+        val logicalLibraryDirectory = candidate.logicalLibraryDirectory(archive, library)
         return options
-            .withoutImportedLibrary(library)
+            .withoutImportedLibrary(library, logicalLibraryDirectory)
             .toDirectLinkerOptions(candidate.path, "Libs") +
             privateOptions
-                .withoutImportedLibrary(library)
+                .withoutImportedLibrary(library, logicalLibraryDirectory)
                 .toDirectLinkerOptions(candidate.path, "Libs.private")
     }
 
@@ -64,16 +65,23 @@ internal class PkgConfigLinkerOptionsResolver(
     private fun List<String>.containsImportedLibrary(library: Library): Boolean =
         indices.any { importedLibraryOptionLength(it, library) != null }
 
-    private fun List<String>.withoutImportedLibrary(library: Library): List<String> {
+    private fun ParsedPkgConfig.logicalLibraryDirectory(archive: Path, library: Library): String? {
+        if (publicOptions?.containsImportedLibrary(library) != true) return null
+        if (path.parent?.parent?.normalize() != archive.parent?.normalize()) return null
+        return metadata.expandedVariable("libdir")
+    }
+
+    private fun List<String>.withoutImportedLibrary(library: Library, logicalLibraryDirectory: String?): List<String> {
         val result = mutableListOf<String>()
         var index = 0
         while (index < size) {
             val importedLibraryOptionLength = importedLibraryOptionLength(index, library)
-            if (importedLibraryOptionLength != null) {
-                index += importedLibraryOptionLength
-            } else {
-                result += this[index]
-                index++
+            val importedLibraryDirectoryOptionLength =
+                importedLibraryDirectoryOptionLength(index, logicalLibraryDirectory)
+            when {
+                importedLibraryOptionLength != null -> index += importedLibraryOptionLength
+                importedLibraryDirectoryOptionLength != null -> index += importedLibraryDirectoryOptionLength
+                else -> result += this[index++]
             }
         }
         return result
@@ -98,6 +106,16 @@ internal class PkgConfigLinkerOptionsResolver(
         return result
     }
 
+    private fun List<String>.importedLibraryDirectoryOptionLength(index: Int, directory: String?): Int? {
+        if (directory == null) return null
+        val option = this[index]
+        return when {
+            option == "-L" && getOrNull(index + 1)?.samePkgConfigPath(directory) == true -> 2
+            option.startsWith("-L") && option.drop(2).samePkgConfigPath(directory) -> 1
+            else -> null
+        }
+    }
+
     private fun List<String>.importedLibraryOptionLength(index: Int, library: Library): Int? {
         val option = this[index]
         return when {
@@ -110,6 +128,9 @@ internal class PkgConfigLinkerOptionsResolver(
     }
 
     private fun String.fileName(): String = substringAfterLast('/').substringAfterLast('\\')
+
+    private fun String.samePkgConfigPath(other: String): Boolean = replace('\\', '/').trimEnd('/') ==
+        other.replace('\\', '/').trimEnd('/')
 
     private data class Library(
         val linkerName: String,

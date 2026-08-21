@@ -292,7 +292,7 @@ class CMakeImportPluginFunctionalTest {
         assertThat(definition)
             .content()
             .contains("\nheaderFilter = hello.h nested/world.h\n")
-            .contains("linkerOpts = -L/configured/prefix/lib -lm")
+            .contains("linkerOpts = -lm")
             .doesNotContain("hello.c")
             .doesNotContain("hello_impl.h")
     }
