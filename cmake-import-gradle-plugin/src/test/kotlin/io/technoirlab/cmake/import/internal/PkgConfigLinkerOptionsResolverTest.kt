@@ -18,13 +18,13 @@ class PkgConfigLinkerOptionsResolverTest {
     fun `resolves macOS linker options`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
-            """
+            $$"""
             prefix=/usr/local
-            exec_prefix=${'$'}{prefix}
-            libdir=${'$'}{exec_prefix}/lib
+            exec_prefix=${prefix}
+            libdir=${exec_prefix}/lib
 
             Name: hello
-            Libs: -L${'$'}{libdir} -lhello -Wl,-framework,CoreMedia -Wl,-weak_framework,CoreHaptics -lpthread -lm
+            Libs: -L${libdir} -lhello -Wl,-framework,CoreMedia -Wl,-weak_framework,CoreHaptics -lpthread -lm
             Libs.private:
             """.trimIndent(),
         )
@@ -44,10 +44,10 @@ class PkgConfigLinkerOptionsResolverTest {
     fun `combines Linux public and private linker options`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
-            """
+            $$"""
             libdir=/usr/local/lib
             Name: hello
-            Libs: -L ${'$'}{libdir} -lhello -pthread -lm
+            Libs: -L ${libdir} -lhello -pthread -lm
             Libs.private: -ldl
             """.trimIndent(),
         )
@@ -61,11 +61,11 @@ class PkgConfigLinkerOptionsResolverTest {
     fun `resolves MinGW system libraries`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
-            """
+            $$"""
             prefix=C:/hello
-            libdir=${'$'}{prefix}/lib
+            libdir=${prefix}/lib
             Name: hello
-            Libs: -L${'$'}{libdir} -lhello -mwindows -lm -lkernel32 -luser32 -lgdi32 -lwinmm
+            Libs: -L${libdir} -lhello -mwindows -lm -lkernel32 -luser32 -lgdi32 -lwinmm
             """.trimIndent(),
         )
 
@@ -86,12 +86,12 @@ class PkgConfigLinkerOptionsResolverTest {
     fun `expands recursive variables`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
-            """
+            $$"""
             prefix=/installation
-            libdir=${'$'}{prefix}/lib
-            dependency_dir=${'$'}{prefix}/dependencies
+            libdir=${prefix}/lib
+            dependency_dir=${prefix}/dependencies
             Name: hello
-            Libs: -L${'$'}{libdir} -lhello -L${'$'}{dependency_dir} -ldependency
+            Libs: -L${libdir} -lhello -L${dependency_dir} -ldependency
             """.trimIndent(),
         )
 
@@ -108,18 +108,18 @@ class PkgConfigLinkerOptionsResolverTest {
     fun `selects pkg-config file by archive name case insensitively`() {
         val matching = pkgConfigFile(
             "HELLO.PC",
-            """
+            $$"""
             libdir=/install/lib
             Name: hello
-            Libs: -L${'$'}{libdir} -lhello -lm
+            Libs: -L${libdir} -lhello -lm
             """.trimIndent(),
         )
         val unrelated = pkgConfigFile(
             "other.pc",
-            """
+            $$"""
             libdir=/install/lib
             Name: other
-            Libs: -L${'$'}{libdir} -lother -ldl
+            Libs: -L${libdir} -lother -ldl
             """.trimIndent(),
         )
 
@@ -162,10 +162,10 @@ class PkgConfigLinkerOptionsResolverTest {
     fun `expands variables before splitting linker options`() {
         val pkgConfigFile = pkgConfigFile(
             "foo.pc",
-            """
+            $$"""
             deps=-lm -ldl
             Name: foo
-            Libs: -lfoo ${'$'}{deps}
+            Libs: -lfoo ${deps}
             """.trimIndent(),
         )
 
@@ -193,10 +193,10 @@ class PkgConfigLinkerOptionsResolverTest {
     fun `preserves search path used by remaining libraries`() {
         val pkgConfigFile = pkgConfigFile(
             "foo.pc",
-            """
+            $$"""
             libdir=/install/lib
             Name: foo
-            Libs: -L${'$'}{libdir} -lfoo -lbar
+            Libs: -L${libdir} -lfoo -lbar
             """.trimIndent(),
         )
 
@@ -219,11 +219,11 @@ class PkgConfigLinkerOptionsResolverTest {
     fun `returns no options when dependency requirements are present`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
-            """
+            $$"""
             libdir=/install/lib
             Name: hello
             Requires.private: dependency >= 1.0
-            Libs: -L${'$'}{libdir} -lhello -lm
+            Libs: -L${libdir} -lhello -lm
             """.trimIndent(),
         )
 
@@ -236,10 +236,10 @@ class PkgConfigLinkerOptionsResolverTest {
     fun `returns no options for unsupported quoting`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
-            """
+            $$"""
             libdir=/install/lib
             Name: hello
-            Libs: -L${'$'}{libdir} -lhello "-framework Cocoa"
+            Libs: -L${libdir} -lhello "-framework Cocoa"
             """.trimIndent(),
         )
 
@@ -252,10 +252,10 @@ class PkgConfigLinkerOptionsResolverTest {
     fun `returns no options for unresolved variables`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
-            """
+            $$"""
             libdir=/install/lib
             Name: hello
-            Libs: -L${'$'}{libdir} -lhello -L${'$'}{missing}
+            Libs: -L${libdir} -lhello -L${missing}
             """.trimIndent(),
         )
 
@@ -264,10 +264,10 @@ class PkgConfigLinkerOptionsResolverTest {
         assertThat(options).isEmpty()
     }
 
-    private fun validHelloPkgConfig(transitiveOption: String): String = """
+    private fun validHelloPkgConfig(transitiveOption: String): String = $$"""
         libdir=/install/lib
         Name: hello
-        Libs: -L${'$'}{libdir} -lhello $transitiveOption
+        Libs: -L${libdir} -lhello $$transitiveOption
     """.trimIndent()
 
     private fun archive(name: String): Path {

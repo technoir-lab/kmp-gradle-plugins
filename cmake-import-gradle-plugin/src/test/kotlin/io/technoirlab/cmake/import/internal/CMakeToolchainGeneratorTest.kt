@@ -121,16 +121,16 @@ class CMakeToolchainGeneratorTest {
         )
         val script = temporaryDirectory.resolve("verify-pkg-config.cmake")
         script.writeText(
-            """
-            include(${toolchainFile.cmakeArgument()})
+            $$"""
+            include($${toolchainFile.cmakeArgument()})
             find_package(PkgConfig REQUIRED)
             pkg_check_modules(HOST_ONLY QUIET host-only)
             if(HOST_ONLY_FOUND)
                 message(FATAL_ERROR "inherited host pkg-config metadata leaked into cross configuration")
             endif()
             pkg_check_modules(TARGET_ONLY REQUIRED target-only)
-            if(NOT TARGET_ONLY_INCLUDE_DIRS STREQUAL ${sysroot.resolve("usr/include").cmakeArgument()})
-                message(FATAL_ERROR "unexpected target include directories: ${'$'}{TARGET_ONLY_INCLUDE_DIRS}")
+            if(NOT TARGET_ONLY_INCLUDE_DIRS STREQUAL $${sysroot.resolve("usr/include").cmakeArgument()})
+                message(FATAL_ERROR "unexpected target include directories: ${TARGET_ONLY_INCLUDE_DIRS}")
             endif()
             """.trimIndent(),
         )
@@ -220,14 +220,14 @@ class CMakeToolchainGeneratorTest {
             .waitFor() == 0
     }.getOrDefault(false)
 
-    private fun pkgConfigFile(name: String): String = """
+    private fun pkgConfigFile(name: String): String = $$"""
         prefix=/usr
-        includedir=${'$'}{prefix}/include
+        includedir=${prefix}/include
 
-        Name: $name
-        Description: Test metadata for $name
+        Name: $$name
+        Description: Test metadata for $$name
         Version: 1.0
-        Cflags: -I${'$'}{includedir}
+        Cflags: -I${includedir}
     """.trimIndent()
 
     private fun Path.cmakeArgument(): String = "[=[$this]=]"
