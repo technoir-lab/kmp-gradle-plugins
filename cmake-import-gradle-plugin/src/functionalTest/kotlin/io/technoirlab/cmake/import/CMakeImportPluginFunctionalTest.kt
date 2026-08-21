@@ -273,6 +273,7 @@ class CMakeImportPluginFunctionalTest {
         val installDirectory = project.buildDir / "outputs/cmake/${hostTargetName()}"
         val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
         assertThat(installDirectory / "include/hello.h").exists()
+        assertThat(installDirectory / "include/nested/world.h").exists()
         assertThat(installDirectory / "include/hello.c").exists()
         assertThat(installDirectory / "include/hello_impl.h").doesNotExist()
         val archives = (installDirectory / "lib")
@@ -283,12 +284,78 @@ class CMakeImportPluginFunctionalTest {
         assertThat(archives).hasSize(1)
         val archiveName = archives.single().name
         assertThat(archiveName.endsWith(".a") || archiveName.endsWith(".lib", ignoreCase = true)).isTrue()
+        val headerEntries = definition.toFile().readLines()
+            .single { it.startsWith("headers = ") }
+            .removePrefix("headers = ")
+            .split(' ')
+        assertThat(headerEntries).containsExactly("hello.h", "nested/world.h")
         assertThat(definition)
             .content()
-            .contains("headers = hello.h")
             .contains("linkerOpts = -L/configured/prefix/lib -lm")
             .doesNotContain("hello.c")
             .doesNotContain("hello_impl.h")
+    }
+
+    @Test
+    fun `configured nested header excludes other installed headers`() {
+        val project = gradleRunner.root.project("kmp-application")
+        project.appendBuildScript(
+            """
+            cmakeImport {
+                headers.add("nested/world.h")
+            }
+            """.trimIndent(),
+        )
+
+        gradleRunner.build(":kmp-application:cmakeInstall${hostTargetSuffix()}")
+
+        val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
+        assertThat(definition)
+            .content()
+            .contains("\nheaders = nested/world.h\n")
+            .doesNotContain("hello.h")
+    }
+
+    @Test
+    fun `configured headers retain exact path form and are sorted`() {
+        val project = gradleRunner.root.project("kmp-application")
+        project.appendBuildScript(
+            """
+            cmakeImport {
+                headers.add("nested/world.h")
+                headers.add("hello.h")
+            }
+            """.trimIndent(),
+        )
+
+        gradleRunner.build(":kmp-application:cmakeInstall${hostTargetSuffix()}")
+
+        val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
+        assertThat(definition)
+            .content()
+            .contains("\nheaders = hello.h nested/world.h\n")
+    }
+
+    @Test
+    fun `install reports configured public headers missing from the selected component`() {
+        gradleRunner.root.project("kmp-application").appendBuildScript(
+            """
+            cmakeImport {
+                installComponent = "hello-static"
+                headers.add("nested/missing.h")
+            }
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner.build(
+            ":kmp-application:cmakeInstall${hostTargetSuffix()}",
+            expectFailure = true,
+        )
+
+        assertThat(result.output)
+            .contains("CMake component 'hello-static' did not install configured public header(s) nested/missing.h")
+            .contains("at the expected include-relative path(s)")
+            .contains("installation include directory")
     }
 
     @Test

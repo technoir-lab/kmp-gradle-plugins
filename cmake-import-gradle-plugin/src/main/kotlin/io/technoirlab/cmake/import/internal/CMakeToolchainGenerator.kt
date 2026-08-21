@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import java.io.File
-import java.nio.file.Path
+import kotlin.io.path.Path
 
 /**
  * Renders a CMake toolchain using the same Clang configuration as Kotlin/Native.
@@ -144,7 +144,7 @@ internal class CMakeToolchainGenerator(
             "lib/pkgconfig",
             "share/pkgconfig",
         ).map { relativePath ->
-            Path.of(root).resolve(relativePath).portablePathString()
+            Path(root).resolve(relativePath).portablePathString()
         }
     }.distinct()
 

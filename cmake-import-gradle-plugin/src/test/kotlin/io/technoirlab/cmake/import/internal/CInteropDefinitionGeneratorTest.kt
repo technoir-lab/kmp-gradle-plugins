@@ -13,7 +13,6 @@ import java.net.URI
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
 import java.nio.file.Path
-import kotlin.io.path.div
 
 class CInteropDefinitionGeneratorTest {
     private val generator = CInteropDefinitionGenerator()
@@ -34,14 +33,14 @@ class CInteropDefinitionGeneratorTest {
     }
 
     @Test
-    fun `generates all definition properties in order`() {
+    fun `sorts headers and generates all definition properties in order`() {
         val includeDirectory = path("/install/include")
         val archive = path("/install/lib/libhello.a")
 
         val definition = generator.generate(
             CInteropDefinition(
                 packageName = "cmake.hello",
-                headers = listOf(includeDirectory / "hello.h", includeDirectory / "nested/world.h"),
+                headers = listOf(path("nested/world.h"), path("hello.h")),
                 includeDirectory = includeDirectory,
                 archive = archive,
             ),
@@ -59,14 +58,14 @@ class CInteropDefinitionGeneratorTest {
     }
 
     @Test
-    fun `normalizes paths`() {
+    fun `normalizes installation paths`() {
         val includeDirectory = path("/project/build/../include")
         val archive = path("/project/build/../lib/nested/../libhello.a")
 
         val definition = generator.generate(
             CInteropDefinition(
                 packageName = "cmake.hello",
-                headers = listOf(includeDirectory / "nested/../hello.h"),
+                headers = listOf(path("nested/hello.h")),
                 includeDirectory = includeDirectory,
                 archive = archive,
             ),
@@ -75,7 +74,7 @@ class CInteropDefinitionGeneratorTest {
         assertThat(definition).isEqualTo(
             """
             package = cmake.hello
-            headers = hello.h
+            headers = nested/hello.h
             compilerOpts = -I/project/include
             staticLibraries = libhello.a
             libraryPaths = /project/lib
@@ -132,13 +131,12 @@ class CInteropDefinitionGeneratorTest {
     @Test
     fun `quotes special characters in every path property`() {
         val includeDirectory = path("/install/include files#1")
-        val header = includeDirectory / "hello\"world.h"
         val archive = path("/install/library files#1/lib\"hello.a")
 
         val definition = generator.generate(
             CInteropDefinition(
                 packageName = "cmake.hello",
-                headers = listOf(header),
+                headers = listOf(path("hello\"world.h")),
                 includeDirectory = includeDirectory,
                 archive = archive,
             ),

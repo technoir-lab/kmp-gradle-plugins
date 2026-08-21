@@ -50,12 +50,14 @@ cmakeImport {
     targetName = "hello"
     // CMake configuration. Defaults to Release
     buildType = "Debug"
-    // Passed to CMake as -DBUILD_SHARED_LIBS=OFF
-    defines.put("BUILD_SHARED_LIBS", "OFF")
     // Optional; omit to run the full project install
     installComponent = "Development"
     // The package name for the generated bindings
     packageName = "com.example.hello"
+    // Passed to CMake as -DBUILD_SHARED_LIBS=OFF
+    defines.put("BUILD_SHARED_LIBS", "OFF")
+    // Optional include-directory-relative headers. Empty (the default) exposes every installed header.
+    headers.add("hello.h")
 }
 ```
 

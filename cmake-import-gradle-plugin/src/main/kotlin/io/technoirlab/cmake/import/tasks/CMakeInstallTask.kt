@@ -7,6 +7,7 @@ import io.technoirlab.cmake.import.internal.CMakeInstallOutput
 import io.technoirlab.cmake.import.internal.CMakeInstallScanner
 import io.technoirlab.cmake.import.internal.CMakeRunner
 import io.technoirlab.cmake.import.internal.PkgConfigLinkerOptionsResolver
+import io.technoirlab.cmake.import.internal.portablePathString
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations
@@ -15,6 +16,7 @@ import org.gradle.api.problems.Problem
 import org.gradle.api.problems.ProblemId
 import org.gradle.api.problems.Problems
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.LocalState
@@ -27,6 +29,7 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 import org.gradle.work.DisableCachingByDefault
 import java.nio.charset.StandardCharsets
+import java.nio.file.Path
 import javax.inject.Inject
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.isDirectory
@@ -52,6 +55,9 @@ internal abstract class CMakeInstallTask @Inject constructor(
 
     @get:Input
     abstract val packageName: Property<String>
+
+    @get:Input
+    abstract val headers: SetProperty<String>
 
     @get:Input
     abstract val buildType: Property<String>
@@ -89,17 +95,18 @@ internal abstract class CMakeInstallTask @Inject constructor(
         val cmakeRunner = CMakeRunner(execOperations)
         cmakeRunner.install(configureDirectory, installDirectory, buildType, installComponent)
 
+        val includedHeaders = headers.get()
         val output = CMakeInstallScanner().scan(installDirectory)
-        output.validate(installComponent)
-        val archive = output.archives.single()
+        output.validate(installComponent, includedHeaders)
 
+        val archive = output.archives.single()
         val definitionFile = definitionFile.get().asFile.toPath().createParentDirectories()
         val pkgConfigLinkerOptionsResolver = PkgConfigLinkerOptionsResolver()
         definitionFile.writeText(
             CInteropDefinitionGenerator().generate(
                 CInteropDefinition(
                     packageName = packageName,
-                    headers = output.headers,
+                    headers = filterHeaders(output.headers, includedHeaders),
                     includeDirectory = output.includeDirectory,
                     archive = archive,
                     linkerOptions = pkgConfigLinkerOptionsResolver.resolve(archive, output.pkgConfigFiles),
@@ -109,7 +116,7 @@ internal abstract class CMakeInstallTask @Inject constructor(
         )
     }
 
-    private fun CMakeInstallOutput.validate(component: String?) {
+    private fun CMakeInstallOutput.validate(component: String?, includedHeaders: Set<String>) {
         val foundProblems = mutableListOf<Problem>()
         val componentDescription = component?.let { "component '$it'" } ?: "project"
         if (!includeDirectory.isDirectory()) {
@@ -119,6 +126,17 @@ internal abstract class CMakeInstallTask @Inject constructor(
         } else if (headers.isEmpty()) {
             foundProblems += problems.reporter.create(NO_PUBLIC_HEADERS_INSTALLED) {
                 contextualLabel("CMake $componentDescription installed no public headers to $includeDirectory")
+            }
+        }
+
+        val missingHeaders = (includedHeaders - headers.map { it.portablePathString() }.toSet()).sorted()
+        if (missingHeaders.isNotEmpty()) {
+            foundProblems += problems.reporter.create(CONFIGURED_PUBLIC_HEADERS_NOT_INSTALLED) {
+                contextualLabel(
+                    "CMake $componentDescription did not install configured public header(s) " +
+                        "${missingHeaders.joinToString()} at the expected include-relative path(s) " +
+                        "under installation include directory $includeDirectory",
+                )
             }
         }
         if (!libraryDirectory.isDirectory()) {
@@ -142,12 +160,21 @@ internal abstract class CMakeInstallTask @Inject constructor(
         }
     }
 
+    private fun filterHeaders(headers: List<Path>, includedHeaders: Set<String>): List<Path> = if (includedHeaders.isNotEmpty()) {
+        headers.filter { it.portablePathString() in includedHeaders }
+    } else {
+        headers
+    }
+
     private companion object {
         val PUBLIC_HEADERS_DIRECTORY_NOT_INSTALLED =
             ProblemId.create("public-headers-directory-not-installed", "Public headers directory was not installed", PROBLEM_GROUP)
 
         val NO_PUBLIC_HEADERS_INSTALLED =
             ProblemId.create("no-public-headers-installed", "No public headers were installed", PROBLEM_GROUP)
+
+        val CONFIGURED_PUBLIC_HEADERS_NOT_INSTALLED =
+            ProblemId.create("configured-public-headers-not-installed", "Configured public headers were not installed", PROBLEM_GROUP)
 
         val STATIC_ARCHIVE_DIRECTORY_NOT_INSTALLED =
             ProblemId.create("static-archive-directory-not-installed", "Static archive directory was not installed", PROBLEM_GROUP)

@@ -4,6 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
+import kotlin.io.path.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.createFile
 import kotlin.io.path.div
@@ -28,15 +29,19 @@ class CMakeInstallScannerTest {
     @Test
     fun `finds supported header extensions recursively and case insensitively`() {
         val includeDirectory = (installDirectory / "include").createDirectories()
-        val topLevelHeader = (includeDirectory / "hello.h").createFile()
+        (includeDirectory / "hello.h").createFile()
         val nestedDirectory = (includeDirectory / "detail").createDirectories()
         val headers = listOf(
-            topLevelHeader,
-            (nestedDirectory / "one.H").createFile(),
-            (nestedDirectory / "two.hh").createFile(),
-            (nestedDirectory / "three.hpp").createFile(),
-            (nestedDirectory / "four.hxx").createFile(),
+            Path("hello.h"),
+            Path("detail/one.H"),
+            Path("detail/two.hh"),
+            Path("detail/three.hpp"),
+            Path("detail/four.hxx"),
         )
+        (nestedDirectory / "one.H").createFile()
+        (nestedDirectory / "two.hh").createFile()
+        (nestedDirectory / "three.hpp").createFile()
+        (nestedDirectory / "four.hxx").createFile()
 
         val output = scanner.scan(installDirectory)
 
@@ -46,7 +51,7 @@ class CMakeInstallScannerTest {
     @Test
     fun `ignores non-header files in include directory`() {
         val includeDirectory = (installDirectory / "include").createDirectories()
-        val header = (includeDirectory / "hello.h").createFile()
+        (includeDirectory / "hello.h").createFile()
         (includeDirectory / "hello.c").createFile()
         (includeDirectory / "hello.cpp").createFile()
         (includeDirectory / "hello.h.in").createFile()
@@ -54,7 +59,7 @@ class CMakeInstallScannerTest {
 
         val output = scanner.scan(installDirectory)
 
-        assertThat(output.headers).containsExactly(header)
+        assertThat(output.headers).containsExactly(Path("hello.h"))
     }
 
     @Test
