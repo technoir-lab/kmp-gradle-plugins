@@ -298,6 +298,25 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
+    fun `generated definition contains direct linker options`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val pkgConfigFile = gradleRunner.root.dir / "cmake/hello.pc"
+        pkgConfigFile.replaceText(
+            "-lm",
+            "-Wl,-framework,CoreMedia -Wl,-weak_framework,UniformTypeIdentifiers -pthread -lm",
+        )
+
+        gradleRunner.build(":kmp-application:cmakeInstall${hostTargetSuffix()}")
+
+        val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
+        assertThat(definition)
+            .content()
+            .contains(
+                "-framework CoreMedia -weak_framework UniformTypeIdentifiers -lpthread -lm",
+            )
+    }
+
+    @Test
     fun `configured nested header excludes other installed headers`() {
         val project = gradleRunner.root.project("kmp-application")
         project.appendBuildScript(

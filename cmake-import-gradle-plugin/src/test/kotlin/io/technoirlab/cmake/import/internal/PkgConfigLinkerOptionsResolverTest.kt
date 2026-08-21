@@ -1,6 +1,7 @@
 package io.technoirlab.cmake.import.internal
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
@@ -15,7 +16,7 @@ class PkgConfigLinkerOptionsResolverTest {
     private lateinit var installDirectory: Path
 
     @Test
-    fun `resolves macOS linker options`() {
+    fun `normalizes macOS compiler-driver options for the direct linker`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
             $$"""
@@ -33,8 +34,10 @@ class PkgConfigLinkerOptionsResolverTest {
 
         assertThat(options).containsExactly(
             "-L/usr/local/lib",
-            "-Wl,-framework,CoreMedia",
-            "-Wl,-weak_framework,CoreHaptics",
+            "-framework",
+            "CoreMedia",
+            "-weak_framework",
+            "CoreHaptics",
             "-lpthread",
             "-lm",
         )
@@ -54,7 +57,72 @@ class PkgConfigLinkerOptionsResolverTest {
 
         val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
 
-        assertThat(options).containsExactly("-L", "/usr/local/lib", "-pthread", "-lm", "-ldl")
+        assertThat(options).containsExactly("-L", "/usr/local/lib", "-lpthread", "-lm", "-ldl")
+    }
+
+    @Test
+    fun `expands wrapped linker options in place`() {
+        val pkgConfigFile = pkgConfigFile(
+            "hello.pc",
+            """
+            Name: hello
+            Libs: -Wl,--as-needed,-z,defs -lhello -Wl,--no-as-needed
+            Libs.private: -Wl,-rpath,/opt/hello/lib -ldl
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
+
+        assertThat(options).containsExactly(
+            "--as-needed",
+            "-z",
+            "defs",
+            "--no-as-needed",
+            "-rpath",
+            "/opt/hello/lib",
+            "-ldl",
+        )
+    }
+
+    @Test
+    fun `fails explicitly for malformed wrapped public linker option`() {
+        val pkgConfigFile = pkgConfigFile(
+            "hello.pc",
+            """
+            Name: hello
+            Libs: -lhello -Wl,-z,,defs -lm
+            """.trimIndent(),
+        )
+
+        assertThatThrownBy {
+            resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
+        }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessage(
+                "Malformed compiler-driver linker option '-Wl,-z,,defs' in field 'Libs' " +
+                    "of pkg-config file '$pkgConfigFile': linker arguments must not be empty",
+            )
+    }
+
+    @Test
+    fun `fails explicitly for malformed wrapped private linker option`() {
+        val pkgConfigFile = pkgConfigFile(
+            "nested/hello.pc",
+            """
+            Name: hello
+            Libs: -lhello -lm
+            Libs.private: -ldl -Wl,
+            """.trimIndent(),
+        )
+
+        assertThatThrownBy {
+            resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
+        }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessage(
+                "Malformed compiler-driver linker option '-Wl,' in field 'Libs.private' " +
+                    "of pkg-config file '$pkgConfigFile': linker arguments must not be empty",
+            )
     }
 
     @Test

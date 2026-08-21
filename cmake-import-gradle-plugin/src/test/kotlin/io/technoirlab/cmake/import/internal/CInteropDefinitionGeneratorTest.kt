@@ -175,7 +175,7 @@ class CInteropDefinitionGeneratorTest {
                 headerFilter = emptyList(),
                 includeDirectory = path("/install/include"),
                 archive = path("/install/lib/libhello.a"),
-                linkerOptions = listOf("-lm", "-L/library files", "-Wl,-framework,Cocoa"),
+                linkerOptions = listOf("-lm", "-rpath", "/library files", "-framework", "Cocoa"),
             ),
         )
 
@@ -183,7 +183,7 @@ class CInteropDefinitionGeneratorTest {
             """
             package = cmake.hello
             compilerOpts = -I/install/include
-            linkerOpts = -lm "-L/library files" -Wl,-framework,Cocoa
+            linkerOpts = -lm -rpath "/library files" -framework Cocoa
             staticLibraries = libhello.a
             libraryPaths = /install/lib
             """.trimIndent() + "\n",

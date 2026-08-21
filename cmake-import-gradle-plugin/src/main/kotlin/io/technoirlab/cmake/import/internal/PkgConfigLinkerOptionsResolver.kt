@@ -29,7 +29,12 @@ internal class PkgConfigLinkerOptionsResolver(
 
         val options = candidate.publicOptions ?: return emptyList()
         val privateOptions = parsed.expandedFieldTokens("Libs.private") ?: return emptyList()
-        return (options + privateOptions).withoutImportedLibrary(library)
+        return options
+            .withoutImportedLibrary(library)
+            .toDirectLinkerOptions(candidate.path, "Libs") +
+            privateOptions
+                .withoutImportedLibrary(library)
+                .toDirectLinkerOptions(candidate.path, "Libs.private")
     }
 
     private fun Path.parse(): ParsedPkgConfig? = runCatching {
@@ -74,6 +79,25 @@ internal class PkgConfigLinkerOptionsResolver(
         return result
     }
 
+    private fun List<String>.toDirectLinkerOptions(pkgConfigFile: Path, fieldName: String): List<String> {
+        val result = mutableListOf<String>()
+        for (option in this) {
+            when {
+                option == "-pthread" -> result += "-lpthread"
+                option.startsWith(LINKER_OPTION_PREFIX) -> {
+                    val linkerOptions = option.removePrefix(LINKER_OPTION_PREFIX).split(',')
+                    require(linkerOptions.none { it.isEmpty() }) {
+                        "Malformed compiler-driver linker option '$option' in field '$fieldName' " +
+                            "of pkg-config file '$pkgConfigFile': linker arguments must not be empty"
+                    }
+                    result += linkerOptions
+                }
+                else -> result += option
+            }
+        }
+        return result
+    }
+
     private fun List<String>.importedLibraryOptionLength(index: Int, library: Library): Int? {
         val option = this[index]
         return when {
@@ -97,4 +121,8 @@ internal class PkgConfigLinkerOptionsResolver(
         val metadata: PkgConfigMetadata,
         val publicOptions: List<String>?,
     )
+
+    private companion object {
+        const val LINKER_OPTION_PREFIX = "-Wl,"
+    }
 }
