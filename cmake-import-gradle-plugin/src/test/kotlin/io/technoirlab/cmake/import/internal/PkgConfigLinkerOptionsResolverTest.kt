@@ -15,21 +15,21 @@ class PkgConfigLinkerOptionsResolverTest {
     private lateinit var installDirectory: Path
 
     @Test
-    fun `resolves SDL-like macOS linker options`() {
+    fun `resolves macOS linker options`() {
         val pkgConfigFile = pkgConfigFile(
-            "sdl3.pc",
+            "hello.pc",
             """
             prefix=/usr/local
             exec_prefix=${'$'}{prefix}
             libdir=${'$'}{exec_prefix}/lib
 
-            Name: sdl3
-            Libs: -L${'$'}{libdir} -lSDL3 -Wl,-framework,CoreMedia -Wl,-weak_framework,CoreHaptics -lpthread -lm
+            Name: hello
+            Libs: -L${'$'}{libdir} -lhello -Wl,-framework,CoreMedia -Wl,-weak_framework,CoreHaptics -lpthread -lm
             Libs.private:
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libSDL3.a"), listOf(pkgConfigFile))
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
 
         assertThat(options).containsExactly(
             "-L/usr/local/lib",
@@ -41,38 +41,38 @@ class PkgConfigLinkerOptionsResolverTest {
     }
 
     @Test
-    fun `combines SDL-like Linux public and private linker options`() {
+    fun `combines Linux public and private linker options`() {
         val pkgConfigFile = pkgConfigFile(
-            "sdl3.pc",
+            "hello.pc",
             """
             libdir=/usr/local/lib
-            Name: sdl3
-            Libs: -L ${'$'}{libdir} -lSDL3 -pthread -lm
+            Name: hello
+            Libs: -L ${'$'}{libdir} -lhello -pthread -lm
             Libs.private: -ldl
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libSDL3.a"), listOf(pkgConfigFile))
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
 
         assertThat(options).containsExactly("-L", "/usr/local/lib", "-pthread", "-lm", "-ldl")
     }
 
     @Test
-    fun `resolves SDL-like MinGW system libraries`() {
+    fun `resolves MinGW system libraries`() {
         val pkgConfigFile = pkgConfigFile(
-            "sdl3.pc",
+            "hello.pc",
             """
-            prefix=C:/SDL
+            prefix=C:/hello
             libdir=${'$'}{prefix}/lib
-            Name: sdl3
-            Libs: -L${'$'}{libdir} -lSDL3 -mwindows -lm -lkernel32 -luser32 -lgdi32 -lwinmm
+            Name: hello
+            Libs: -L${'$'}{libdir} -lhello -mwindows -lm -lkernel32 -luser32 -lgdi32 -lwinmm
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libSDL3.a"), listOf(pkgConfigFile))
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
 
         assertThat(options).containsExactly(
-            "-LC:/SDL/lib",
+            "-LC:/hello/lib",
             "-mwindows",
             "-lm",
             "-lkernel32",

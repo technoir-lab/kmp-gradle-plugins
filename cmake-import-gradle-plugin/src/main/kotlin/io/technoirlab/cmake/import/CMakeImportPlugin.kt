@@ -162,6 +162,7 @@ class CMakeImportPlugin : Plugin<Project> {
         projectDirectory.set(extension.sourceDirectory)
         targetName.set(extension.targetName)
         packageName.set(extension.packageName)
+        headers.set(extension.headers)
         buildType.set(extension.buildType)
         installComponent.set(extension.installComponent)
         configureDirectory.set(cmakeBuildDirectory)

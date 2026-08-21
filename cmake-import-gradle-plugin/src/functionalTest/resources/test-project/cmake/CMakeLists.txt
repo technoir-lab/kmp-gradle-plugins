@@ -17,7 +17,9 @@ target_sources(hello
     PUBLIC
         FILE_SET HEADERS
         BASE_DIRS include
-        FILES include/hello.h
+        FILES
+            include/hello.h
+            include/nested/world.h
     PRIVATE
         src/hello_impl.h
 )

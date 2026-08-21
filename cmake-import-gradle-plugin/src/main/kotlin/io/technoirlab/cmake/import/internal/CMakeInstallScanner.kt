@@ -12,7 +12,9 @@ internal class CMakeInstallScanner {
         return CMakeInstallOutput(
             includeDirectory = includeDirectory,
             libraryDirectory = libraryDirectory,
-            headers = includeDirectory.regularFiles().filter { isHeader(it) },
+            headers = includeDirectory.regularFiles()
+                .filter { isHeader(it) }
+                .map { it.relativePath(includeDirectory) },
             archives = libraryDirectory.regularFiles().filter { isStaticArchive(it) },
             pkgConfigFiles = libraryDirectory.regularFiles().filter { isPkgConfigFile(it) },
         )

@@ -3,6 +3,7 @@ package io.technoirlab.cmake.import.api
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.SetProperty
 
 /**
  * Configuration for a CMake target used by the Kotlin Multiplatform CMake integration.
@@ -33,6 +34,12 @@ interface CMakeImportExtension {
      * The package name for the generated bindings.
      */
     val packageName: Property<String>
+
+    /**
+     * Public headers to expose to Kotlin/Native, as paths relative to the installed `include/` directory.
+     * When empty, every installed public header is exposed.
+     */
+    val headers: SetProperty<String>
 
     /**
      * Cache definitions passed to CMake as `-D<name>=<value>` arguments during configuration.
