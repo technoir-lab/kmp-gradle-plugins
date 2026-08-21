@@ -33,7 +33,7 @@ class CInteropDefinitionGeneratorTest {
     }
 
     @Test
-    fun `sorts headers and generates all definition properties in order`() {
+    fun `sorts and deduplicates exact header filters`() {
         val includeDirectory = path("/install/include")
         val archive = path("/install/lib/libhello.a")
 
@@ -41,6 +41,12 @@ class CInteropDefinitionGeneratorTest {
             CInteropDefinition(
                 packageName = "cmake.hello",
                 headers = listOf(path("nested/world.h"), path("hello.h")),
+                headerFilter = listOf(
+                    path("nested/world.h"),
+                    path("detail/internal.hpp"),
+                    path("hello.h"),
+                    path("nested/world.h"),
+                ),
                 includeDirectory = includeDirectory,
                 archive = archive,
             ),
@@ -50,6 +56,7 @@ class CInteropDefinitionGeneratorTest {
             """
             package = cmake.hello
             headers = hello.h nested/world.h
+            headerFilter = detail/internal.hpp hello.h nested/world.h
             compilerOpts = -I/install/include
             staticLibraries = libhello.a
             libraryPaths = /install/lib
@@ -66,6 +73,7 @@ class CInteropDefinitionGeneratorTest {
             CInteropDefinition(
                 packageName = "cmake.hello",
                 headers = listOf(path("nested/hello.h")),
+                headerFilter = listOf(path("nested/hello.h")),
                 includeDirectory = includeDirectory,
                 archive = archive,
             ),
@@ -75,6 +83,7 @@ class CInteropDefinitionGeneratorTest {
             """
             package = cmake.hello
             headers = nested/hello.h
+            headerFilter = nested/hello.h
             compilerOpts = -I/project/include
             staticLibraries = libhello.a
             libraryPaths = /project/lib
@@ -91,6 +100,7 @@ class CInteropDefinitionGeneratorTest {
             CInteropDefinition(
                 packageName = "cmake.hello",
                 headers = emptyList(),
+                headerFilter = emptyList(),
                 includeDirectory = includeDirectory,
                 archive = archive,
             ),
@@ -120,6 +130,7 @@ class CInteropDefinitionGeneratorTest {
             CInteropDefinition(
                 packageName = packageName,
                 headers = emptyList(),
+                headerFilter = emptyList(),
                 includeDirectory = path("/install/include"),
                 archive = path("/install/lib/libhello.a"),
             ),
@@ -137,6 +148,7 @@ class CInteropDefinitionGeneratorTest {
             CInteropDefinition(
                 packageName = "cmake.hello",
                 headers = listOf(path("hello\"world.h")),
+                headerFilter = listOf(path("hello\"world.h")),
                 includeDirectory = includeDirectory,
                 archive = archive,
             ),
@@ -146,6 +158,7 @@ class CInteropDefinitionGeneratorTest {
             """
             package = cmake.hello
             headers = "hello\"world.h"
+            headerFilter = "hello\"world.h"
             compilerOpts = "-I/install/include files#1"
             staticLibraries = "lib\"hello.a"
             libraryPaths = "/install/library files#1"
@@ -159,6 +172,7 @@ class CInteropDefinitionGeneratorTest {
             CInteropDefinition(
                 packageName = "cmake.hello",
                 headers = emptyList(),
+                headerFilter = emptyList(),
                 includeDirectory = path("/install/include"),
                 archive = path("/install/lib/libhello.a"),
                 linkerOptions = listOf("-lm", "-L/library files", "-Wl,-framework,Cocoa"),
@@ -184,6 +198,7 @@ class CInteropDefinitionGeneratorTest {
                 CInteropDefinition(
                     packageName = packageName,
                     headers = emptyList(),
+                    headerFilter = emptyList(),
                     includeDirectory = path("/install/include"),
                     archive = path("/install/lib/libhello.a"),
                 ),

@@ -14,6 +14,15 @@ internal class CInteropDefinitionGenerator {
                     "headers = ${headerValues.joinToString(" ") { it.definitionValue() }}",
                 )
             }
+            if (headerFilter.isNotEmpty()) {
+                val headerFilterValues = headerFilter
+                    .map { it.portablePathString() }
+                    .distinct()
+                    .sorted()
+                appendLine(
+                    "headerFilter = ${headerFilterValues.joinToString(" ") { it.definitionValue() }}",
+                )
+            }
             appendLine("compilerOpts = ${"-I${includeDirectory.normalizedPathString()}".definitionValue()}")
             if (linkerOptions.isNotEmpty()) {
                 appendLine("linkerOpts = ${linkerOptions.joinToString(" ") { it.definitionValue() }}")
