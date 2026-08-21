@@ -39,33 +39,33 @@ class CMakeToolchainGeneratorTest {
 
         assertThat(toolchain)
             .contains("set(CMAKE_SYSTEM_PROCESSOR [=[aarch64]=])")
-            .contains("set(CMAKE_SYSROOT [=[/target sysroot]=])")
-            .contains("set(CMAKE_FIND_ROOT_PATH [=[/target sysroot;/target toolchain]=])")
-            .contains("set(CMAKE_C_COMPILER [=[/llvm home/bin/clang]=])")
-            .contains("set(CMAKE_CXX_COMPILER [=[/llvm home/bin/clang++]=])")
+            .contains("set(CMAKE_SYSROOT [=[/target-sysroot]=])")
+            .contains("set(CMAKE_FIND_ROOT_PATH [=[/target-sysroot;/target-toolchain]=])")
+            .contains("set(CMAKE_C_COMPILER [=[/llvm-home/bin/clang]=])")
+            .contains("set(CMAKE_CXX_COMPILER [=[/llvm-home/bin/clang++]=])")
             .contains("-target aarch64-unknown-linux-gnu")
-            .contains("\"--sysroot=/target sysroot\"")
-            .contains("set(CMAKE_AR [=[/llvm home/bin/llvm-ar]=] CACHE FILEPATH")
+            .contains("--sysroot=/target-sysroot")
+            .contains("set(CMAKE_AR [=[/llvm-home/bin/llvm-ar]=] CACHE FILEPATH")
             .contains("set(CMAKE_RANLIB [=[:]=] CACHE FILEPATH")
             .contains("set(CMAKE_C_ARCHIVE_FINISH [=[]=])")
             .contains("set(CMAKE_CXX_ARCHIVE_FINISH [=[]=])")
             .contains("set(CMAKE_TRY_COMPILE_TARGET_TYPE [=[STATIC_LIBRARY]=])")
             .contains("set(ENV{PKG_CONFIG_PATH} [=[]=])")
-            .contains("set(ENV{PKG_CONFIG_SYSROOT_DIR} [=[/target sysroot]=])")
+            .contains("set(ENV{PKG_CONFIG_SYSROOT_DIR} [=[/target-sysroot]=])")
             .contains(
                 "set(ENV{PKG_CONFIG_LIBDIR} " +
-                    "[=[/target sysroot/usr/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
-                    "/target sysroot/usr/lib/pkgconfig:" +
-                    "/target sysroot/usr/share/pkgconfig:" +
-                    "/target sysroot/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
-                    "/target sysroot/lib/pkgconfig:" +
-                    "/target sysroot/share/pkgconfig:" +
-                    "/target toolchain/usr/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
-                    "/target toolchain/usr/lib/pkgconfig:" +
-                    "/target toolchain/usr/share/pkgconfig:" +
-                    "/target toolchain/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
-                    "/target toolchain/lib/pkgconfig:" +
-                    "/target toolchain/share/pkgconfig]=])",
+                    "[=[/target-sysroot/usr/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
+                    "/target-sysroot/usr/lib/pkgconfig:" +
+                    "/target-sysroot/usr/share/pkgconfig:" +
+                    "/target-sysroot/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
+                    "/target-sysroot/lib/pkgconfig:" +
+                    "/target-sysroot/share/pkgconfig:" +
+                    "/target-toolchain/usr/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
+                    "/target-toolchain/usr/lib/pkgconfig:" +
+                    "/target-toolchain/usr/share/pkgconfig:" +
+                    "/target-toolchain/lib/aarch64-unknown-linux-gnu/pkgconfig:" +
+                    "/target-toolchain/lib/pkgconfig:" +
+                    "/target-toolchain/share/pkgconfig]=])",
             )
             .contains("set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH [=[FALSE]=])")
             .contains("set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM [=[NEVER]=])")
@@ -92,7 +92,7 @@ class CMakeToolchainGeneratorTest {
         assumeTrue(commandSucceeds("pkg-config", "--version"), "pkg-config is not available")
 
         val hostPkgConfigDirectory = temporaryDirectory.resolve("host/lib/pkgconfig").createDirectories()
-        val sysroot = temporaryDirectory.resolve("target sysroot")
+        val sysroot = temporaryDirectory.resolve("target-sysroot")
         val targetPkgConfigDirectory = sysroot.resolve("usr/lib/pkgconfig").createDirectories()
         hostPkgConfigDirectory.resolve("host-only.pc").writeText(pkgConfigFile("host-only"))
         targetPkgConfigDirectory.resolve("target-only.pc").writeText(pkgConfigFile("target-only"))
@@ -152,9 +152,9 @@ class CMakeToolchainGeneratorTest {
             .generate(FakeConfigurables(KonanTarget.MINGW_X64))
 
         assertThat(toolchain)
-            .contains("set(CMAKE_C_COMPILER [=[/llvm home/bin/clang.exe]=])")
-            .contains("set(CMAKE_CXX_COMPILER [=[/llvm home/bin/clang++.exe]=])")
-            .contains("set(CMAKE_AR [=[/llvm home/bin/llvm-ar.exe]=] CACHE FILEPATH")
+            .contains("set(CMAKE_C_COMPILER [=[/llvm-home/bin/clang.exe]=])")
+            .contains("set(CMAKE_CXX_COMPILER [=[/llvm-home/bin/clang++.exe]=])")
+            .contains("set(CMAKE_AR [=[/llvm-home/bin/llvm-ar.exe]=] CACHE FILEPATH")
     }
 
     @Test
@@ -164,7 +164,7 @@ class CMakeToolchainGeneratorTest {
         assertThat(toolchain)
             .contains("set(CMAKE_SYSTEM_NAME [=[iOS]=])")
             .contains("set(CMAKE_OSX_ARCHITECTURES [=[arm64]=])")
-            .contains("set(CMAKE_OSX_SYSROOT [=[/target sysroot]=])")
+            .contains("set(CMAKE_OSX_SYSROOT [=[/target-sysroot]=])")
             .contains("set(CMAKE_OSX_DEPLOYMENT_TARGET [=[13.2]=])")
             .contains("set(CMAKE_SYSTEM_VERSION [=[17.4]=])")
             .contains("-target arm64-apple-ios13.2-simulator")
@@ -236,9 +236,9 @@ class CMakeToolchainGeneratorTest {
         override val target: KonanTarget,
     ) : Configurables {
         override val targetTriple: TargetTriple = triples.getValue(target)
-        override val absoluteTargetSysRoot: String = "/target sysroot"
-        override val absoluteTargetToolchain: String = "/target toolchain"
-        override val absoluteLlvmHome: String = "/llvm home"
+        override val absoluteTargetSysRoot: String = "/target-sysroot"
+        override val absoluteTargetToolchain: String = "/target-toolchain"
+        override val absoluteLlvmHome: String = "/llvm-home"
         override val llvmVersion: String = "19"
 
         override fun targetString(key: String): String? = null
@@ -257,7 +257,7 @@ class CMakeToolchainGeneratorTest {
         AppleConfigurables {
         override val osVersionMin: String = "13.2"
         override val sdkVersion: String = "17.4"
-        override val absoluteAdditionalToolsDir: String = "/additional tools"
+        override val absoluteAdditionalToolsDir: String = "/additional-tools"
     }
 
     private class FakeAndroidConfigurables(
