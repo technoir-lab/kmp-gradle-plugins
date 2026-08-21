@@ -221,7 +221,13 @@ class CMakeImportPluginFunctionalTest {
 
         val toolchain = buildDirectory / "generated/cmake/${target.name}/toolchain.cmake"
         val cache = buildDirectory / "intermediates/cmake/${target.name}/CMakeCache.txt"
-        assertThat(toolchain).isRegularFile()
+        assertThat(toolchain)
+            .isRegularFile()
+            .content()
+            .contains("set(CMAKE_LINKER_TYPE [=[kotlin_native]=])")
+            .contains("set(CMAKE_C_USING_LINKER_kotlin_native [=[--ld-path=")
+            .contains("set(CMAKE_CXX_USING_LINKER_kotlin_native [=[--ld-path=")
+            .doesNotContain("CMAKE_TRY_COMPILE_TARGET_TYPE")
         assertThat(cache)
             .content()
             .contains("CMAKE_TOOLCHAIN_FILE:FILEPATH=${toolchain.toAbsolutePath().cmakePath()}")

@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import java.io.File
 import kotlin.io.path.Path
+import kotlin.io.path.exists
 
 /**
  * Renders a CMake toolchain using the same Clang configuration as Kotlin/Native.
@@ -17,6 +18,7 @@ internal class CMakeToolchainGenerator(
     private val executableSuffix: String = if (HostManager.hostIsMingw) ".exe" else "",
     private val hostTarget: KonanTarget = HostManager.host,
     private val pathSeparator: String = File.pathSeparator,
+    private val pathExists: (String) -> Boolean = { Path(it).exists() },
 ) {
     fun generate(configurables: Configurables): String {
         val clang = ClangArgs.Native(configurables)
@@ -35,6 +37,7 @@ internal class CMakeToolchainGenerator(
             cxxCompiler = cxxCommand.first().withExecutableSuffix(),
             cxxCompilerArguments = cxxCommand.drop(1),
             archiver = clang.llvmAr().first().withExecutableSuffix(),
+            compilerDriverLinker = configurables.compilerDriverLinker(),
             appleDeploymentTarget = (configurables as? AppleConfigurables)?.osVersionMin,
             appleSdkVersion = (configurables as? AppleConfigurables)?.sdkVersion,
             androidApi = (configurables as? AndroidConfigurables)?.let {
@@ -56,7 +59,18 @@ internal class CMakeToolchainGenerator(
         setting("CMAKE_FIND_ROOT_PATH_MODE_LIBRARY", "ONLY")
         setting("CMAKE_FIND_ROOT_PATH_MODE_INCLUDE", "ONLY")
         setting("CMAKE_FIND_ROOT_PATH_MODE_PACKAGE", "ONLY")
-        setting("CMAKE_TRY_COMPILE_TARGET_TYPE", "STATIC_LIBRARY")
+
+        toolchain.compilerDriverLinker?.let { linker ->
+            appendLine()
+            appendLine("if(NOT DEFINED CMAKE_LINKER_TYPE)")
+            setting("CMAKE_LINKER_TYPE", KOTLIN_NATIVE_LINKER_TYPE)
+            appendLine("endif()")
+            appendLine("if(CMAKE_LINKER_TYPE STREQUAL ${KOTLIN_NATIVE_LINKER_TYPE.cmakeArgument()})")
+            val linkerOption = "--ld-path=${Path(linker).portablePathString()}"
+            setting("CMAKE_C_USING_LINKER_$KOTLIN_NATIVE_LINKER_TYPE", linkerOption)
+            setting("CMAKE_CXX_USING_LINKER_$KOTLIN_NATIVE_LINKER_TYPE", linkerOption)
+            appendLine("endif()")
+        }
 
         if (toolchain.target != hostTarget) {
             appendLine()
@@ -90,6 +104,9 @@ internal class CMakeToolchainGenerator(
 
         if (toolchain.target.family == Family.ANDROID) {
             appendLine()
+            appendLine("if(NOT DEFINED CMAKE_TRY_COMPILE_TARGET_TYPE)")
+            setting("CMAKE_TRY_COMPILE_TARGET_TYPE", "STATIC_LIBRARY")
+            appendLine("endif()")
             // Kotlin/Native ships split compiler and sysroot dependencies rather than a complete
             // Android NDK. Version 1 tells CMake not to replace that prepared configuration.
             setting("CMAKE_SYSTEM_VERSION", "1")
@@ -134,6 +151,20 @@ internal class CMakeToolchainGenerator(
     private fun String.withExecutableSuffix(): String =
         takeIf { executableSuffix.isEmpty() || endsWith(executableSuffix, ignoreCase = true) }
             ?: "$this$executableSuffix"
+
+    private fun Configurables.compilerDriverLinker(): String? {
+        if (target.family !in LINKER_TARGET_FAMILIES) {
+            return null
+        }
+        val linker = hostTargetString(LINKER_PROPERTY)
+            ?.let(::absolute)
+            ?.withExecutableSuffix()
+            ?: error("Kotlin/Native did not configure a linker for target ${target.name}")
+        check(pathExists(linker)) {
+            "Kotlin/Native linker for target ${target.name} does not exist at $linker"
+        }
+        return linker
+    }
 
     private fun CMakeToolchain.pkgConfigDirectories(): List<String> = findRoots.flatMap { root ->
         listOf(
@@ -181,5 +212,8 @@ internal class CMakeToolchainGenerator(
         const val ISYSROOT_ARGUMENT = "-isysroot"
         const val ANDROID_API_ARGUMENT = "-D__ANDROID_API__="
         const val SAFE_COMMAND_LINE_CHARACTERS = "_@%+=:,./-"
+        const val LINKER_PROPERTY = "linker"
+        const val KOTLIN_NATIVE_LINKER_TYPE = "kotlin_native"
+        val LINKER_TARGET_FAMILIES = setOf(Family.LINUX, Family.MINGW)
     }
 }

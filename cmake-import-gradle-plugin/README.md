@@ -7,7 +7,7 @@ generates the C-interop definition from that installed surface.
 
 ## Prerequisites
 
-Install CMake 3.23 or newer and make `cmake` available on `PATH`. On Windows, also
+Install CMake 3.29 or newer and make `cmake` available on `PATH`. On Windows, also
 install Ninja and make `ninja` available on `PATH`, or set `CMAKE_GENERATOR` to another
 compiler-compatible CMake generator.
 
@@ -68,11 +68,11 @@ generates a toolchain, generates the CMake build system, builds the selected tar
 stages its interop surface.
 
 The generated toolchain reuses Kotlin/Native's prepared Clang compiler, compiler arguments,
-target triple, sysroot, LLVM archiver, and Apple or Android platform settings. This makes
-the CMake library use the same cross-compilation environment as the Kotlin/Native binary;
-no compiler or sysroot paths need to be configured in `cmakeImport`. Consequently,
-`CMAKE_TOOLCHAIN_FILE` is owned by the plugin and a value in `defines` is ignored in favor
-of the generated target toolchain.
+target triple, sysroot, LLVM archiver, linker, and Apple or Android platform settings. This
+makes the CMake library use the same cross-compilation environment as the Kotlin/Native binary.
+Linux and MinGW targets use Kotlin/Native's host-compatible linker for executable CMake
+capability checks. Android support is currently limited to static-library capability checks,
+so CMake checks that specifically exercise the Android linker may not be reliable.
 
 Kotlin/Native targets unavailable on the current host still have their CMake and cinterop
 tasks registered, but those tasks are skipped just like Kotlin's own target tasks. Projects
@@ -85,5 +85,5 @@ kotlin.native.ignoreDisabledTargets=true
 The generated definition references the installed public headers and static archive.
 For a KMP library, the Release native publication is intended to carry a self-contained
 archive so consumers can use the library without applying this plugin or repeating
-linker options. Transitive native archive linkage and dynamic-library support are outside
-the current scope.
+linker options. Transitive native archive linkage and dynamic-library support are currently
+unsupported.
