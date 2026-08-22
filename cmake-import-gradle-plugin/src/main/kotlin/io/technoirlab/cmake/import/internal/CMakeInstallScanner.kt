@@ -12,31 +12,30 @@ internal class CMakeInstallScanner {
         return CMakeInstallOutput(
             includeDirectory = includeDirectory,
             libraryDirectory = libraryDirectory,
-            headers = includeDirectory.regularFiles()
-                .filter { isHeader(it) }
+            headers = includeDirectory.findFiles { it.isHeader() }
                 .map { it.relativePath(includeDirectory) },
-            archives = libraryDirectory.regularFiles().filter { isStaticArchive(it) },
-            pkgConfigFiles = libraryDirectory.regularFiles().filter { isPkgConfigFile(it) },
+            archives = libraryDirectory.findFiles { it.isStaticArchive() },
+            pkgConfigFiles = libraryDirectory.findFiles { it.isPkgConfigFile() },
         )
     }
 
-    private fun Path.regularFiles(): List<Path> = takeIf { it.isDirectory() }
+    private fun Path.findFiles(filter: (Path) -> Boolean): List<Path> = takeIf { it.isDirectory() }
         ?.walk()
-        ?.filter { it.isRegularFile() }
+        ?.filter { it.isRegularFile() && filter(it) }
         ?.toList()
         .orEmpty()
 
-    private fun isHeader(path: Path): Boolean {
-        val name = path.fileName.toString()
+    private fun Path.isHeader(): Boolean {
+        val name = fileName.toString()
         return HEADER_EXTENSIONS.any { name.endsWith(".$it", ignoreCase = true) }
     }
 
-    private fun isStaticArchive(path: Path): Boolean {
-        val name = path.fileName.toString()
+    private fun Path.isStaticArchive(): Boolean {
+        val name = fileName.toString()
         return name.endsWith(".a") || name.endsWith(".lib", ignoreCase = true)
     }
 
-    private fun isPkgConfigFile(path: Path): Boolean = path.fileName.toString().endsWith(".pc", ignoreCase = true)
+    private fun Path.isPkgConfigFile(): Boolean = fileName.toString().endsWith(".pc", ignoreCase = true)
 
     private companion object {
         private const val INCLUDE_DIRECTORY_NAME = "include"

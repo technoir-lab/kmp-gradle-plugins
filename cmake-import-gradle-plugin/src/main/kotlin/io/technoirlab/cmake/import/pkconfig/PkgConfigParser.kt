@@ -1,4 +1,4 @@
-package io.technoirlab.cmake.import.internal
+package io.technoirlab.cmake.import.pkconfig
 
 internal class PkgConfigParser {
     fun parse(content: String, predefinedVariables: Map<String, String> = emptyMap()): PkgConfigMetadata? {

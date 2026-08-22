@@ -1,4 +1,4 @@
-package io.technoirlab.cmake.import.internal
+package io.technoirlab.cmake.import.pkconfig
 
 internal data class PkgConfigMetadata(
     private val variables: Map<String, String>,

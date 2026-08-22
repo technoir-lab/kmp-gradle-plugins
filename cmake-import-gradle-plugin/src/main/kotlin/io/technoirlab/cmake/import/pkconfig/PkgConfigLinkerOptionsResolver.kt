@@ -1,5 +1,6 @@
-package io.technoirlab.cmake.import.internal
+package io.technoirlab.cmake.import.pkconfig
 
+import io.technoirlab.cmake.import.internal.normalizedPathString
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import kotlin.io.path.nameWithoutExtension

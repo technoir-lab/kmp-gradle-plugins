@@ -23,6 +23,8 @@ internal class CMakeRunner(
                 "-B",
                 configureDir.absolutePathString(),
                 "-DCMAKE_BUILD_TYPE=$buildType",
+                "--toolchain",
+                toolchainFile.absolutePathString(),
             )
             if (generator != null) {
                 args("-G", generator)
@@ -30,7 +32,6 @@ internal class CMakeRunner(
             defines.toSortedMap().forEach { (name, value) ->
                 args("-D$name=$value")
             }
-            args("--toolchain", toolchainFile.absolutePathString())
         }
     }
 

@@ -38,10 +38,14 @@ internal class CMakeToolchainGenerator(
             processor = configurables.targetTriple.architecture,
             sysroot = sysroot,
             findRoots = listOf(sysroot, Path(configurables.absoluteTargetToolchain).portablePathString()).distinct(),
-            cCompiler = Path(cCommand.first().withExecutableSuffix()).portablePathString(),
-            cCompilerArguments = cCommand.drop(1),
-            cxxCompiler = Path(cxxCommand.first().withExecutableSuffix()).portablePathString(),
-            cxxCompilerArguments = cxxCommand.drop(1),
+            cCompiler = CMakeCompilerSettings(
+                command = Path(cCommand.first().withExecutableSuffix()).portablePathString(),
+                arguments = cCommand.drop(1),
+            ),
+            cxxCompiler = CMakeCompilerSettings(
+                command = Path(cxxCommand.first().withExecutableSuffix()).portablePathString(),
+                arguments = cxxCommand.drop(1),
+            ),
             archiver = Path(clang.llvmAr().first().withExecutableSuffix()).portablePathString(),
             compilerDriverLinker = configurables.compilerDriverLinker(),
             androidExecutableLinker = androidConfigurables?.androidExecutableLinker(requireNotNull(androidApi)),
@@ -86,24 +90,24 @@ internal class CMakeToolchainGenerator(
         }
 
         appendLine()
-        setting("CMAKE_C_COMPILER", toolchain.cCompiler)
-        setting("CMAKE_CXX_COMPILER", toolchain.cxxCompiler)
+        setting("CMAKE_C_COMPILER", toolchain.cCompiler.command)
+        setting("CMAKE_CXX_COMPILER", toolchain.cxxCompiler.command)
 
         toolchain.androidExecutableLinker?.let { linker ->
             setting(
                 "CMAKE_C_COMPILE_OBJECT",
-                compilerCommandLine(toolchain.cCompiler, toolchain.cCompilerArguments),
+                compilerCommandLine(toolchain.cCompiler.command, toolchain.cCompiler.arguments),
             )
             setting(
                 "CMAKE_CXX_COMPILE_OBJECT",
-                compilerCommandLine(toolchain.cxxCompiler, toolchain.cxxCompilerArguments),
+                compilerCommandLine(toolchain.cxxCompiler.command, toolchain.cxxCompiler.arguments),
             )
             appendLine()
             setting("CMAKE_C_LINK_EXECUTABLE", linker.commandLine("C"))
             setting("CMAKE_CXX_LINK_EXECUTABLE", linker.commandLine("CXX"))
         } ?: run {
-            setting("CMAKE_C_FLAGS_INIT", toolchain.cCompilerArguments.commandLine())
-            setting("CMAKE_CXX_FLAGS_INIT", toolchain.cxxCompilerArguments.commandLine())
+            setting("CMAKE_C_FLAGS_INIT", toolchain.cCompiler.arguments.commandLine())
+            setting("CMAKE_CXX_FLAGS_INIT", toolchain.cxxCompiler.arguments.commandLine())
         }
 
         appendLine()

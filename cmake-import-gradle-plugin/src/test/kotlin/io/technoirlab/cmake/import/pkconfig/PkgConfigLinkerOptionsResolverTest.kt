@@ -1,4 +1,4 @@
-package io.technoirlab.cmake.import.internal
+package io.technoirlab.cmake.import.pkconfig
 
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy

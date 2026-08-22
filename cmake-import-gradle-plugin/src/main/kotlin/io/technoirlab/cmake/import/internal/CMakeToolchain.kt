@@ -12,10 +12,8 @@ internal data class CMakeToolchain(
     val processor: String,
     val sysroot: String,
     val findRoots: List<String>,
-    val cCompiler: String,
-    val cCompilerArguments: List<String>,
-    val cxxCompiler: String,
-    val cxxCompilerArguments: List<String>,
+    val cCompiler: CMakeCompilerSettings,
+    val cxxCompiler: CMakeCompilerSettings,
     val archiver: String,
     val compilerDriverLinker: String? = null,
     val androidExecutableLinker: CMakeExecutableLinker? = null,
@@ -23,6 +21,11 @@ internal data class CMakeToolchain(
     val appleSdkVersion: String? = null,
     val androidApi: String? = null,
     val androidAbi: String? = null,
+)
+
+internal data class CMakeCompilerSettings(
+    val command: String,
+    val arguments: List<String>,
 )
 
 internal data class CMakeExecutableLinker(

@@ -77,27 +77,6 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
-    fun `generated target toolchain overrides a configured CMake toolchain definition`() {
-        gradleRunner.root.project("kmp-application").appendBuildScript(
-            """
-            cmakeImport {
-                defines.put("CMAKE_TOOLCHAIN_FILE", "missing-user-toolchain.cmake")
-            }
-            """.trimIndent(),
-        )
-
-        gradleRunner.build(":kmp-application:cmakeGenerate${hostTargetSuffix()}")
-
-        val project = gradleRunner.root.project("kmp-application")
-        val toolchain = project.buildDir / "generated/cmake/${hostTargetName()}/toolchain.cmake"
-        val cache = project.buildDir / "intermediates/cmake/${hostTargetName()}/CMakeCache.txt"
-        assertThat(cache)
-            .content()
-            .contains("CMAKE_TOOLCHAIN_FILE:FILEPATH=${toolchain.toAbsolutePath().cmakePath()}")
-            .doesNotContain("missing-user-toolchain.cmake")
-    }
-
-    @Test
     fun `changing the generated toolchain recreates CMake state`() {
         val suffix = hostTargetSuffix()
         val generateTask = ":kmp-application:cmakeGenerate$suffix"

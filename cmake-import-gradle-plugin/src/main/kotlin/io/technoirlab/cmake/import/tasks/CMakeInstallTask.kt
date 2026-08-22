@@ -6,8 +6,8 @@ import io.technoirlab.cmake.import.internal.CInteropDefinitionGenerator
 import io.technoirlab.cmake.import.internal.CMakeInstallOutput
 import io.technoirlab.cmake.import.internal.CMakeInstallScanner
 import io.technoirlab.cmake.import.internal.CMakeRunner
-import io.technoirlab.cmake.import.internal.PkgConfigLinkerOptionsResolver
 import io.technoirlab.cmake.import.internal.portablePathString
+import io.technoirlab.cmake.import.pkconfig.PkgConfigLinkerOptionsResolver
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations

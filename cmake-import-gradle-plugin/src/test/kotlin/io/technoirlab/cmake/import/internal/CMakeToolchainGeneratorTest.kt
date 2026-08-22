@@ -124,10 +124,14 @@ class CMakeToolchainGeneratorTest {
                     processor = "x86_64",
                     sysroot = sysroot.toString(),
                     findRoots = listOf(sysroot.toString()),
-                    cCompiler = "clang",
-                    cCompilerArguments = emptyList(),
-                    cxxCompiler = "clang++",
-                    cxxCompilerArguments = emptyList(),
+                    cCompiler = CMakeCompilerSettings(
+                        command = "clang",
+                        arguments = emptyList(),
+                    ),
+                    cxxCompiler = CMakeCompilerSettings(
+                        command = "clang++",
+                        arguments = emptyList(),
+                    ),
                     archiver = "llvm-ar",
                 ),
             ),
@@ -172,10 +176,14 @@ class CMakeToolchainGeneratorTest {
                     processor = "x86_64",
                     sysroot = "/target-sysroot",
                     findRoots = listOf("/target-sysroot"),
-                    cCompiler = "clang",
-                    cCompilerArguments = emptyList(),
-                    cxxCompiler = "clang++",
-                    cxxCompilerArguments = emptyList(),
+                    cCompiler = CMakeCompilerSettings(
+                        command = "clang",
+                        arguments = emptyList(),
+                    ),
+                    cxxCompiler = CMakeCompilerSettings(
+                        command = "clang++",
+                        arguments = emptyList(),
+                    ),
                     archiver = "llvm-ar",
                     compilerDriverLinker = "/host-linker",
                 ),
@@ -325,10 +333,14 @@ class CMakeToolchainGeneratorTest {
             processor = "x86_64",
             sysroot = "C:\\SDK;root]=]tail",
             findRoots = listOf("C:\\SDK;root]=]tail"),
-            cCompiler = "C:\\LLVM folder\\clang.exe",
-            cCompilerArguments = listOf("-DVALUE=a;b", "C:\\include folder", "-DQUOTE=\"yes\""),
-            cxxCompiler = "C:\\LLVM folder\\clang++.exe",
-            cxxCompilerArguments = emptyList(),
+            cCompiler = CMakeCompilerSettings(
+                command = "C:\\LLVM folder\\clang.exe",
+                arguments = listOf("-DVALUE=a;b", "C:\\include folder", "-DQUOTE=\"yes\""),
+            ),
+            cxxCompiler = CMakeCompilerSettings(
+                command = "C:\\LLVM folder\\clang++.exe",
+                arguments = emptyList(),
+            ),
             archiver = "C:\\LLVM folder\\llvm-ar.exe",
             compilerDriverLinker = "C:\\LLVM folder\\ld.lld.exe",
         )
@@ -352,10 +364,14 @@ class CMakeToolchainGeneratorTest {
             processor = "aarch64",
             sysroot = "C:\\Android SDK\\sysroot",
             findRoots = listOf("C:\\Android SDK\\sysroot"),
-            cCompiler = "C:\\LLVM folder\\clang.exe",
-            cCompilerArguments = emptyList(),
-            cxxCompiler = "C:\\LLVM folder\\clang++.exe",
-            cxxCompilerArguments = emptyList(),
+            cCompiler = CMakeCompilerSettings(
+                command = "C:\\LLVM folder\\clang.exe",
+                arguments = emptyList(),
+            ),
+            cxxCompiler = CMakeCompilerSettings(
+                command = "C:\\LLVM folder\\clang++.exe",
+                arguments = emptyList(),
+            ),
             archiver = "C:\\LLVM folder\\llvm-ar.exe",
             androidExecutableLinker = CMakeExecutableLinker(
                 compilerDriver = "C:\\Android SDK\\bin\\aarch64-linux-android21-clang.cmd",
@@ -455,6 +471,7 @@ class CMakeToolchainGeneratorTest {
             target.family == Family.ANDROID && key == "linkerKonanFlags" -> ANDROID_LINKER_FLAGS
             else -> emptyList()
         }
+
         override fun hostString(key: String): String? = null
         override fun hostList(key: String): List<String> = emptyList()
         override fun hostTargetString(key: String): String? = linker.takeIf { key == "linker" }
