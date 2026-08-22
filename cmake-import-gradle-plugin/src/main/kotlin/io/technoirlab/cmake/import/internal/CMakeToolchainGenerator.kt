@@ -42,10 +42,7 @@ internal class CMakeToolchainGenerator(
             cxxCompilerArguments = cxxCommand.drop(1),
             archiver = clang.llvmAr().first().withExecutableSuffix(),
             compilerDriverLinker = configurables.compilerDriverLinker(),
-            androidExecutableLinker = androidConfigurables?.androidExecutableLinker(
-                sysroot = sysroot,
-                api = requireNotNull(androidApi),
-            ),
+            androidExecutableLinker = androidConfigurables?.androidExecutableLinker(requireNotNull(androidApi)),
             appleDeploymentTarget = (configurables as? AppleConfigurables)?.osVersionMin,
             appleSdkVersion = (configurables as? AppleConfigurables)?.sdkVersion,
             androidApi = androidApi,
@@ -184,11 +181,10 @@ internal class CMakeToolchainGenerator(
         return linker
     }
 
-    private fun AndroidConfigurables.androidExecutableLinker(sysroot: String, api: String): CMakeExecutableLinker {
-        val linkerTriple = targetTriple.withoutVendor()
+    private fun AndroidConfigurables.androidExecutableLinker(api: String): CMakeExecutableLinker {
         val compilerDriverTriple = when (target) {
             KonanTarget.ANDROID_ARM32 -> "armv7a-linux-androideabi"
-            else -> linkerTriple
+            else -> targetTriple.withoutVendor()
         }
         val compilerDriver = Path(absoluteTargetToolchain)
             .resolve("bin")
@@ -198,29 +194,14 @@ internal class CMakeToolchainGenerator(
             "Kotlin/Native Android linker driver for target ${target.name} does not exist at $compilerDriver"
         }
 
-        val toolchainSysroot = Path(absoluteTargetToolchain).resolve("sysroot")
-        val platformLibraryDirectory = Path(sysroot).resolve(
-            if (target == KonanTarget.ANDROID_X64) "usr/lib64" else "usr/lib",
-        )
-        val targetLibraryDirectory = toolchainSysroot.resolve("usr/lib/$linkerTriple")
         return CMakeExecutableLinker(
             compilerDriver = compilerDriver,
-            arguments = listOf(
-                "-fPIE",
-                "-pie",
-                "-target",
-                linkerTriple,
-                "--sysroot=$sysroot",
-                "-L$platformLibraryDirectory",
-                "-L${targetLibraryDirectory.resolve(api)}",
-                "-L$targetLibraryDirectory",
-            ),
             libraries = linkerKonanFlags,
         )
     }
 
     private fun CMakeExecutableLinker.commandLine(language: String): String = buildList {
-        add((listOf(compilerDriver) + arguments).commandLine())
+        add(listOf(compilerDriver).commandLine())
         add("<FLAGS>")
         add("<CMAKE_${language}_LINK_FLAGS>")
         add("<LINK_FLAGS>")

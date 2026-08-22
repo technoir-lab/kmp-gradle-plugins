@@ -240,11 +240,8 @@ class CMakeToolchainGeneratorTest {
         target: KonanTarget,
         expectedAbi: String,
         expectedCompilerDriver: String,
-        expectedLinkerTriple: String,
-        expectedPlatformLibraryDirectory: String,
     ) {
         val toolchain = generator.generate(FakeAndroidConfigurables(target))
-        val expectedSysroot = expectedPlatformLibraryDirectory.substringBeforeLast("/usr/lib")
         val cCompileRule = toolchain.lineSequence().single { it.startsWith("set(CMAKE_C_COMPILE_OBJECT") }
         val cxxCompileRule = toolchain.lineSequence().single { it.startsWith("set(CMAKE_CXX_COMPILE_OBJECT") }
 
@@ -258,11 +255,8 @@ class CMakeToolchainGeneratorTest {
             .contains("set(CMAKE_CXX_COMPILE_OBJECT")
             .contains(
                 "set(CMAKE_C_LINK_EXECUTABLE " +
-                    "[=[$expectedCompilerDriver -fPIE -pie -target $expectedLinkerTriple " +
-                    "--sysroot=$expectedSysroot -L$expectedPlatformLibraryDirectory " +
-                    "-L/target-toolchain/sysroot/usr/lib/$expectedLinkerTriple/21 " +
-                    "-L/target-toolchain/sysroot/usr/lib/$expectedLinkerTriple " +
-                    "<FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> " +
+                    "[=[$expectedCompilerDriver <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> " +
+                    "<OBJECTS> -o <TARGET> " +
                     "<LINK_LIBRARIES> -lm -lc++_static -lc++abi -landroid -llog -latomic]=])",
             )
             .contains("set(CMAKE_CXX_LINK_EXECUTABLE")
@@ -286,7 +280,7 @@ class CMakeToolchainGeneratorTest {
 
         assertThat(toolchain)
             .contains("set(CMAKE_C_COMPILER [=[/llvm-home/bin/clang.exe]=])")
-            .contains("/target-toolchain/bin/aarch64-linux-android21-clang.cmd -fPIE")
+            .contains("/target-toolchain/bin/aarch64-linux-android21-clang.cmd <FLAGS>")
     }
 
     @Test
@@ -317,7 +311,7 @@ class CMakeToolchainGeneratorTest {
     }
 
     @Test
-    fun `escapes Android linker paths and arguments without changing placeholders`() {
+    fun `escapes Android linker paths without changing placeholders`() {
         val toolchain = CMakeToolchain(
             target = KonanTarget.ANDROID_ARM64,
             targetTriple = "aarch64-unknown-linux-android",
@@ -332,7 +326,6 @@ class CMakeToolchainGeneratorTest {
             archiver = "C:\\LLVM folder\\llvm-ar.exe",
             androidExecutableLinker = CMakeExecutableLinker(
                 compilerDriver = "C:\\Android SDK\\bin\\aarch64-linux-android21-clang.cmd",
-                arguments = listOf("--sysroot=C:\\Android SDK\\sysroot"),
                 libraries = listOf("-lm"),
             ),
             androidApi = "21",
@@ -342,7 +335,7 @@ class CMakeToolchainGeneratorTest {
         assertThat(generator.generate(toolchain))
             .contains(
                 "[=[\"C:/Android SDK/bin/aarch64-linux-android21-clang.cmd\" " +
-                    "\"--sysroot=C:/Android SDK/sysroot\" <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> " +
+                    "<FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> " +
                     "<OBJECTS> -o <TARGET> <LINK_LIBRARIES> -lm]=]",
             )
     }
@@ -481,29 +474,21 @@ class CMakeToolchainGeneratorTest {
                 KonanTarget.ANDROID_X86,
                 "x86",
                 "/target-toolchain/bin/i686-linux-android21-clang",
-                "i686-linux-android",
-                "/target-sysroot/android-21/arch-x86/usr/lib",
             ),
             arrayOf(
                 KonanTarget.ANDROID_X64,
                 "x86_64",
                 "/target-toolchain/bin/x86_64-linux-android21-clang",
-                "x86_64-linux-android",
-                "/target-sysroot/android-21/arch-x86_64/usr/lib64",
             ),
             arrayOf(
                 KonanTarget.ANDROID_ARM32,
                 "armeabi-v7a",
                 "/target-toolchain/bin/armv7a-linux-androideabi21-clang",
-                "arm-linux-androideabi",
-                "/target-sysroot/android-21/arch-arm/usr/lib",
             ),
             arrayOf(
                 KonanTarget.ANDROID_ARM64,
                 "arm64-v8a",
                 "/target-toolchain/bin/aarch64-linux-android21-clang",
-                "aarch64-linux-android",
-                "/target-sysroot/android-21/arch-arm64/usr/lib",
             ),
         )
 

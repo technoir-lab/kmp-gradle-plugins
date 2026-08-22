@@ -27,6 +27,5 @@ internal data class CMakeToolchain(
 
 internal data class CMakeExecutableLinker(
     val compilerDriver: String,
-    val arguments: List<String>,
     val libraries: List<String>,
 )
