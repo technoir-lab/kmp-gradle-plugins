@@ -26,7 +26,9 @@ internal class CMakeToolchainGenerator(
         val clang = ClangArgs.Native(configurables)
         val cCommand = clang.clangC()
         val cxxCommand = clang.clangCXX()
-        val sysroot = compilerSysroot(cCommand.drop(1)) ?: configurables.absoluteTargetSysRoot
+        val sysroot = Path(
+            compilerSysroot(cCommand.drop(1)) ?: configurables.absoluteTargetSysRoot,
+        ).portablePathString()
         val androidConfigurables = configurables as? AndroidConfigurables
         val androidApi = androidConfigurables?.let { cCommand.androidApi() }
         val toolchain = CMakeToolchain(
@@ -35,12 +37,12 @@ internal class CMakeToolchainGenerator(
             systemName = configurables.target.family.cmakeSystemName,
             processor = configurables.targetTriple.architecture,
             sysroot = sysroot,
-            findRoots = listOf(sysroot, configurables.absoluteTargetToolchain).distinct(),
-            cCompiler = cCommand.first().withExecutableSuffix(),
+            findRoots = listOf(sysroot, Path(configurables.absoluteTargetToolchain).portablePathString()).distinct(),
+            cCompiler = Path(cCommand.first().withExecutableSuffix()).portablePathString(),
             cCompilerArguments = cCommand.drop(1),
-            cxxCompiler = cxxCommand.first().withExecutableSuffix(),
+            cxxCompiler = Path(cxxCommand.first().withExecutableSuffix()).portablePathString(),
             cxxCompilerArguments = cxxCommand.drop(1),
-            archiver = clang.llvmAr().first().withExecutableSuffix(),
+            archiver = Path(clang.llvmAr().first().withExecutableSuffix()).portablePathString(),
             compilerDriverLinker = configurables.compilerDriverLinker(),
             androidExecutableLinker = androidConfigurables?.androidExecutableLinker(requireNotNull(androidApi)),
             appleDeploymentTarget = (configurables as? AppleConfigurables)?.osVersionMin,
@@ -189,7 +191,7 @@ internal class CMakeToolchainGenerator(
         val compilerDriver = Path(absoluteTargetToolchain)
             .resolve("bin")
             .resolve("$compilerDriverTriple$api-clang$commandScriptSuffix")
-            .toString()
+            .portablePathString()
         check(pathExists(compilerDriver)) {
             "Kotlin/Native Android linker driver for target ${target.name} does not exist at $compilerDriver"
         }

@@ -20,7 +20,11 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 
 class CMakeToolchainGeneratorTest {
-    private val generator = CMakeToolchainGenerator(executableSuffix = "", pathExists = { true })
+    private val generator = CMakeToolchainGenerator(
+        executableSuffix = "",
+        commandScriptSuffix = "",
+        pathExists = { true },
+    )
 
     @ParameterizedTest
     @MethodSource("systemNames")
@@ -284,6 +288,35 @@ class CMakeToolchainGeneratorTest {
     }
 
     @Test
+    fun `normalizes Windows Kotlin Native paths before rendering CMake settings`() {
+        val toolchain = CMakeToolchainGenerator(
+            executableSuffix = ".exe",
+            commandScriptSuffix = ".cmd",
+            pathExists = { true },
+        ).generate(
+            FakeAndroidConfigurables(
+                target = KonanTarget.ANDROID_ARM64,
+                targetSysRoot = "C:\\Users\\user1\\.konan\\dependencies\\target-sysroot-1-android_ndk",
+                targetToolchain = "C:\\Users\\user1\\.konan\\dependencies\\target-toolchain-2-android_ndk",
+                llvmHome = "C:\\Users\\user1\\.konan\\dependencies\\llvm-19",
+            ),
+        )
+
+        assertThat(toolchain)
+            .contains(
+                "set(CMAKE_SYSROOT " +
+                    "[=[C:/Users/user1/.konan/dependencies/target-sysroot-1-android_ndk/" +
+                    "android-21/arch-arm64]=])",
+            )
+            .contains(
+                "set(CMAKE_C_LINK_EXECUTABLE " +
+                    "[=[C:/Users/user1/.konan/dependencies/target-toolchain-2-android_ndk/bin/" +
+                    "aarch64-linux-android21-clang.cmd <FLAGS>",
+            )
+            .doesNotContain("C:\\Users")
+    }
+
+    @Test
     fun `escapes CMake values and compiler argument lists without changing them`() {
         val toolchain = CMakeToolchain(
             target = KonanTarget.LINUX_X64,
@@ -407,11 +440,14 @@ class CMakeToolchainGeneratorTest {
     private open class FakeConfigurables(
         override val target: KonanTarget,
         private val linker: String? = "/host-linker",
+        targetSysRoot: String = "/target-sysroot",
+        targetToolchain: String = "/target-toolchain",
+        llvmHome: String = "/llvm-home",
     ) : Configurables {
         override val targetTriple: TargetTriple = triples.getValue(target)
-        override val absoluteTargetSysRoot: String = "/target-sysroot"
-        override val absoluteTargetToolchain: String = "/target-toolchain"
-        override val absoluteLlvmHome: String = "/llvm-home"
+        override val absoluteTargetSysRoot: String = targetSysRoot
+        override val absoluteTargetToolchain: String = targetToolchain
+        override val absoluteLlvmHome: String = llvmHome
         override val llvmVersion: String = "19"
 
         override fun targetString(key: String): String? = null
@@ -438,7 +474,15 @@ class CMakeToolchainGeneratorTest {
 
     private class FakeAndroidConfigurables(
         target: KonanTarget,
-    ) : FakeConfigurables(target),
+        targetSysRoot: String = "/target-sysroot",
+        targetToolchain: String = "/target-toolchain",
+        llvmHome: String = "/llvm-home",
+    ) : FakeConfigurables(
+        target = target,
+        targetSysRoot = targetSysRoot,
+        targetToolchain = targetToolchain,
+        llvmHome = llvmHome,
+    ),
         AndroidConfigurables
 
     private companion object {
