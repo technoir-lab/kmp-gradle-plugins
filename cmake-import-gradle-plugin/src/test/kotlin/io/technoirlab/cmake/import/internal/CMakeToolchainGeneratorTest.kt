@@ -230,17 +230,22 @@ class CMakeToolchainGeneratorTest {
             )
     }
 
-    @Test
-    fun `renders Apple architecture SDK sysroot and deployment settings`() {
-        val toolchain = generator.generate(FakeAppleConfigurables(KonanTarget.IOS_SIMULATOR_ARM64))
+    @ParameterizedTest
+    @MethodSource("appleTargets")
+    fun `renders Apple architecture SDK sysroot and deployment settings`(
+        target: KonanTarget,
+        expectedSystemName: String,
+        expectedTargetTriple: String,
+    ) {
+        val toolchain = generator.generate(FakeAppleConfigurables(target))
 
         assertThat(toolchain)
-            .contains("set(CMAKE_SYSTEM_NAME [=[iOS]=])")
+            .contains("set(CMAKE_SYSTEM_NAME [=[$expectedSystemName]=])")
             .contains("set(CMAKE_OSX_ARCHITECTURES [=[arm64]=])")
             .contains("set(CMAKE_OSX_SYSROOT [=[/target-sysroot]=])")
             .contains("set(CMAKE_OSX_DEPLOYMENT_TARGET [=[13.2]=])")
             .contains("set(CMAKE_SYSTEM_VERSION [=[17.4]=])")
-            .contains("-target arm64-apple-ios13.2-simulator")
+            .contains("-target $expectedTargetTriple")
             .contains("-stdlib=libc++")
             .doesNotContain("CMAKE_LINKER_TYPE")
             .doesNotContain("CMAKE_TRY_COMPILE_TARGET_TYPE")
@@ -508,6 +513,7 @@ class CMakeToolchainGeneratorTest {
             KonanTarget.IOS_ARM64 to TargetTriple.fromString("arm64-apple-ios"),
             KonanTarget.IOS_SIMULATOR_ARM64 to TargetTriple.fromString("arm64-apple-ios-simulator"),
             KonanTarget.TVOS_ARM64 to TargetTriple.fromString("arm64-apple-tvos"),
+            KonanTarget.TVOS_SIMULATOR_ARM64 to TargetTriple.fromString("arm64-apple-tvos-simulator"),
             KonanTarget.WATCHOS_DEVICE_ARM64 to TargetTriple.fromString("arm64-apple-watchos"),
             KonanTarget.LINUX_X64 to TargetTriple.fromString("x86_64-unknown-linux-gnu"),
             KonanTarget.LINUX_ARM64 to TargetTriple.fromString("aarch64-unknown-linux-gnu"),
@@ -527,6 +533,14 @@ class CMakeToolchainGeneratorTest {
             arrayOf(KonanTarget.LINUX_X64, "Linux"),
             arrayOf(KonanTarget.MINGW_X64, "Windows"),
             arrayOf(KonanTarget.ANDROID_ARM64, "Android"),
+        )
+
+        @JvmStatic
+        fun appleTargets() = listOf(
+            arrayOf(KonanTarget.IOS_ARM64, "iOS", "arm64-apple-ios13.2"),
+            arrayOf(KonanTarget.IOS_SIMULATOR_ARM64, "iOS", "arm64-apple-ios13.2-simulator"),
+            arrayOf(KonanTarget.TVOS_ARM64, "tvOS", "arm64-apple-tvos13.2"),
+            arrayOf(KonanTarget.TVOS_SIMULATOR_ARM64, "tvOS", "arm64-apple-tvos13.2-simulator"),
         )
 
         @JvmStatic

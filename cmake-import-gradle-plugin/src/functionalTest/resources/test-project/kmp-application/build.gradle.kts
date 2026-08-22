@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.konan.target.Family
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
@@ -9,11 +10,21 @@ kotlin {
     linuxX64()
     macosArm64()
     mingwX64()
+    iosArm64()
+    iosSimulatorArm64()
+    tvosArm64()
+    tvosSimulatorArm64()
 
     targets.withType<KotlinNativeTarget>().configureEach {
         binaries {
-            executable {
-                entryPoint = "kmp.application.main"
+            if (konanTarget.family in setOf(Family.IOS, Family.TVOS)) {
+                framework {
+                    isStatic = true
+                }
+            } else {
+                executable {
+                    entryPoint = "kmp.application.main"
+                }
             }
         }
     }

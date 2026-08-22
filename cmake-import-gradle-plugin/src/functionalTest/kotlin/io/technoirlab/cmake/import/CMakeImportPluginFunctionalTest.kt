@@ -185,11 +185,7 @@ class CMakeImportPluginFunctionalTest {
         assertThat(result.task(":kmp-application:linkReleaseExecutable${target.suffix}")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
 
-        val archives = (project.buildDir / "outputs/cmake/${target.name}/lib")
-            .toFile()
-            .walkTopDown()
-            .filter { it.isFile && (it.extension == "a" || it.extension.equals("lib", ignoreCase = true)) }
-            .toList()
+        val archives = (project.buildDir / "outputs/cmake/${target.name}/lib").staticArchives()
         assertThat(archives).hasSize(1)
 
         val toolchain = project.buildDir / "generated/cmake/${target.name}/toolchain.cmake"
@@ -204,6 +200,43 @@ class CMakeImportPluginFunctionalTest {
         assertThat(cache)
             .content()
             .contains("CMAKE_TOOLCHAIN_FILE:FILEPATH=${toolchain.toAbsolutePath().cmakePath()}")
+    }
+
+    @Test
+    fun `builds and links Apple device and simulator frameworks with generated toolchains`() {
+        assumeTrue(
+            System.getProperty("os.name").startsWith("Mac", ignoreCase = true),
+            "Apple frameworks require a macOS host",
+        )
+        val project = gradleRunner.root.project("kmp-application")
+        val targets = appleTargets()
+        val linkTasks = targets.map { ":kmp-application:linkDebugFramework${it.suffix}" }
+
+        val result = gradleRunner.build(*linkTasks.toTypedArray())
+
+        targets.forEach { target ->
+            val toolchainTask = ":kmp-application:cmakeGenerateToolchain${target.suffix}"
+            val installTask = ":kmp-application:cmakeInstall${target.suffix}"
+            val cinteropTask = ":kmp-application:cinteropCmake${target.suffix}"
+            val linkTask = ":kmp-application:linkDebugFramework${target.suffix}"
+            assertThat(result.task(toolchainTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+            assertThat(result.task(installTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+            assertThat(result.task(cinteropTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+            assertThat(result.task(linkTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+
+            val archives = (project.buildDir / "outputs/cmake/${target.name}/lib").staticArchives()
+            assertThat(archives).hasSize(1)
+
+            val toolchain = project.buildDir / "generated/cmake/${target.name}/toolchain.cmake"
+            val toolchainText = toolchain.toFile().readText()
+            assertThat(toolchainText)
+                .contains("set(CMAKE_SYSTEM_NAME [=[${target.cmakeSystemName}]=])")
+                .contains("set(CMAKE_OSX_ARCHITECTURES [=[arm64]=])")
+                .contains("set(CMAKE_OSX_DEPLOYMENT_TARGET")
+                .contains("set(CMAKE_SYSTEM_VERSION")
+                .containsIgnoringCase(target.sdkName)
+                .doesNotContain("CMAKE_TRY_COMPILE_TARGET_TYPE")
+        }
     }
 
     @Test
@@ -310,11 +343,7 @@ class CMakeImportPluginFunctionalTest {
         assertThat(installDirectory / "include/nested/world.h").exists()
         assertThat(installDirectory / "include/hello.cpp").exists()
         assertThat(installDirectory / "include/hello_impl.h").doesNotExist()
-        val archives = (installDirectory / "lib")
-            .toFile()
-            .walkTopDown()
-            .filter { it.isFile && (it.extension == "a" || it.extension.equals("lib", ignoreCase = true)) }
-            .toList()
+        val archives = (installDirectory / "lib").staticArchives()
         assertThat(archives).hasSize(1)
         val archiveName = archives.single().name
         assertThat(archiveName.endsWith(".a") || archiveName.endsWith(".lib", ignoreCase = true)).isTrue()
@@ -459,11 +488,30 @@ class CMakeImportPluginFunctionalTest {
         else -> error("No enabled non-host fixture target is available")
     }
 
+    private fun appleTargets() = listOf(
+        AppleTarget("iosArm64", "IosArm64", "iOS", "iphoneos"),
+        AppleTarget("iosSimulatorArm64", "IosSimulatorArm64", "iOS", "iphonesimulator"),
+        AppleTarget("tvosArm64", "TvosArm64", "tvOS", "appletvos"),
+        AppleTarget("tvosSimulatorArm64", "TvosSimulatorArm64", "tvOS", "appletvsimulator"),
+    )
+
+    private fun Path.staticArchives() = toFile()
+        .walkTopDown()
+        .filter { it.isFile && (it.extension == "a" || it.extension.equals("lib", ignoreCase = true)) }
+        .toList()
+
     private fun Path.cmakePath(): String = toString().replace('\\', '/')
 
     private data class HostTarget(
         val name: String,
         val suffix: String,
+    )
+
+    private data class AppleTarget(
+        val name: String,
+        val suffix: String,
+        val cmakeSystemName: String,
+        val sdkName: String,
     )
 
     private companion object {
