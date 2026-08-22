@@ -2,7 +2,6 @@ package io.technoirlab.cmake.import.tasks
 
 import io.technoirlab.cmake.import.CMakeImportPlugin.Companion.PROBLEM_GROUP
 import io.technoirlab.cmake.import.internal.CMakeRunner
-import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFileProperty
@@ -38,21 +37,21 @@ import kotlin.io.path.writeText
  */
 @Suppress("UnstableApiUsage")
 @DisableCachingByDefault(because = "CMake manages non-relocatable build state")
-internal abstract class CMakeGenerateTask @Inject constructor(
+abstract class CMakeGenerateTask @Inject internal constructor(
     private val execOperations: ExecOperations,
     private val fileSystemOperations: FileSystemOperations,
     private val providerFactory: ProviderFactory,
-) : DefaultTask() {
+) : BaseCMakeTask() {
+
+    @get:Input
+    abstract val cmakeBuildType: Property<String>
+
+    @get:Input
+    abstract val cmakeDefines: MapProperty<String, String>
 
     @get:InputDirectory
     @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val projectDirectory: DirectoryProperty
-
-    @get:Input
-    abstract val buildType: Property<String>
-
-    @get:Input
-    abstract val defines: MapProperty<String, String>
+    abstract val sourceDirectory: DirectoryProperty
 
     @get:InputFile
     @get:PathSensitive(PathSensitivity.NONE)
@@ -75,12 +74,12 @@ internal abstract class CMakeGenerateTask @Inject constructor(
 
     // Workaround for https://github.com/gradle/gradle/issues/31958
     @get:Inject
-    abstract val problems: Problems
+    internal abstract val problems: Problems
 
     @TaskAction
-    fun generate() {
-        val projectDir = projectDirectory.get().asFile.toPath()
-        val buildType = buildType.get()
+    internal fun generate() {
+        val sourceDir = sourceDirectory.get().asFile.toPath()
+        val buildType = cmakeBuildType.get()
         val configureDirectory = configureDirectory.get().asFile.toPath()
         val toolchainFile = toolchainFile.get().asFile.toPath()
         val toolchainFingerprint = fingerprint(toolchainFile)
@@ -101,7 +100,7 @@ internal abstract class CMakeGenerateTask @Inject constructor(
             )
             .orNull
         val cmakeRunner = CMakeRunner(execOperations)
-        cmakeRunner.generate(projectDir, configureDirectory, toolchainFile, buildType, generator, defines.get())
+        cmakeRunner.generate(sourceDir, configureDirectory, toolchainFile, buildType, generator, cmakeDefines.get())
 
         val cacheFile = cacheFile.get().asFile
         if (!cacheFile.isFile) {

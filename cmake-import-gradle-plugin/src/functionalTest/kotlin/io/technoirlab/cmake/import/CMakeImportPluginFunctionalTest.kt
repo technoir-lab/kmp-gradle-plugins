@@ -296,28 +296,6 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
-    fun `unsupported target and CMake tasks are skipped`() {
-        assumeTrue(
-            System.getProperty("os.name").startsWith("Linux", ignoreCase = true),
-            "The fixture's macOS target is unsupported only on Linux and Windows",
-        )
-        val suffix = "MacosArm64"
-        val taskNames = listOf(
-            "cmakeGenerateToolchain$suffix",
-            "cmakeGenerate$suffix",
-            "cmakeBuild$suffix",
-            "cmakeInstall$suffix",
-            "cinteropCmake$suffix",
-        )
-
-        val result = gradleRunner.build(*taskNames.map { ":kmp-application:$it" }.toTypedArray())
-
-        taskNames.forEach { taskName ->
-            assertThat(result.task(":kmp-application:$taskName")?.outcome).isEqualTo(TaskOutcome.SKIPPED)
-        }
-    }
-
-    @Test
     fun `editing C++ source reruns CMake task and updates application output`() {
         val buildTask = ":kmp-application:cmakeBuild${hostTargetSuffix()}"
         val runTask = ":kmp-application:runReleaseExecutable${hostTargetSuffix()}"

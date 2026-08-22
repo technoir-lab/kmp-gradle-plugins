@@ -30,7 +30,7 @@ import kotlin.io.path.writeText
 @DisableCachingByDefault(because = "The generated toolchain contains absolute Kotlin/Native dependency paths")
 internal abstract class CMakeGenerateToolchainTask : DefaultTask() {
     @get:Input
-    abstract val konanTargetName: Property<String>
+    abstract val konanTarget: Property<KonanTarget>
 
     @get:Input
     abstract val kotlinNativeDependenciesDirectory: Property<String>
@@ -53,11 +53,11 @@ internal abstract class CMakeGenerateToolchainTask : DefaultTask() {
         check(propertiesFile == nativeHome.resolve(KONAN_PROPERTIES_PATH)) {
             "Kotlin/Native prepared $nativeHome but provided properties from $propertiesFile"
         }
-        val properties = loadProperties(propertiesFile)
-        val target = KonanTarget.predefinedTargets.getValue(konanTargetName.get())
+        val konanTarget = konanTarget.get()
+        val konanProperties = loadProperties(propertiesFile)
         val configurables = loadConfigurables(
-            target,
-            properties,
+            konanTarget,
+            konanProperties,
             kotlinNativeDependenciesDirectory.get(),
             progressCallback = { _, _, _ -> },
         )

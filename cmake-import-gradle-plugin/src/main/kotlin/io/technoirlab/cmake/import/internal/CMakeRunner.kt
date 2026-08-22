@@ -8,7 +8,7 @@ internal class CMakeRunner(
     private val execOperations: ExecOperations,
 ) {
     fun generate(
-        projectDir: Path,
+        sourceDir: Path,
         configureDir: Path,
         toolchainFile: Path,
         buildType: String,
@@ -19,7 +19,7 @@ internal class CMakeRunner(
             executable = "cmake"
             args(
                 "-S",
-                projectDir.absolutePathString(),
+                sourceDir.absolutePathString(),
                 "-B",
                 configureDir.absolutePathString(),
                 "-DCMAKE_BUILD_TYPE=$buildType",
@@ -35,14 +35,14 @@ internal class CMakeRunner(
         }
     }
 
-    fun build(configureDir: Path, targetName: String, buildType: String) {
+    fun build(configureDir: Path, target: String, buildType: String) {
         execOperations.exec {
             executable = "cmake"
             args(
                 "--build",
                 configureDir.absolutePathString(),
                 "--target",
-                targetName,
+                target,
                 "--config",
                 buildType,
                 "--parallel",

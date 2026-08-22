@@ -6,23 +6,26 @@ import io.technoirlab.cmake.import.tasks.CMakeGenerateTask
 import io.technoirlab.cmake.import.tasks.CMakeGenerateToolchainTask
 import io.technoirlab.cmake.import.tasks.CMakeInstallTask
 import io.technoirlab.core.capitalized
+import io.technoirlab.gradle.setDisallowChanges
 import io.technoirlab.gradle.whenPluginApplied
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
 import org.gradle.api.problems.ProblemGroup
 import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.native.internal.KotlinNativeDownloadTask
-import org.jetbrains.kotlin.konan.target.HostManager
+import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import java.io.File
 
 /**
@@ -44,63 +47,46 @@ class CMakeImportPlugin : Plugin<Project> {
     }
 
     private fun Project.configureNativeTarget(target: KotlinNativeTarget, extension: CMakeImportExtension) {
-        val kotlinTarget = target.name
-        val cmakeBuildDirectory = layout.buildDirectory.dir("intermediates/cmake/$kotlinTarget")
-        val cmakeInstallDirectory = layout.buildDirectory.dir("outputs/cmake/$kotlinTarget")
-        val taskStateDirectory = layout.buildDirectory.dir("tmp/cmake/$kotlinTarget")
-        val targetEnabled = HostManager().isEnabled(target.konanTarget)
-        val toolchainTask = registerToolchainTask(target, targetEnabled)
+        val cmakeBuildDirectory = layout.buildDirectory.dir("intermediates/cmake/${target.name}")
+        val cmakeInstallDirectory = layout.buildDirectory.dir("outputs/cmake/${target.name}")
+        val taskStateDirectory = layout.buildDirectory.dir("tmp/cmake/${target.name}")
+        val toolchainTask = registerGenerateToolchainTask(target)
         val generateTask = registerGenerateTask(
-            kotlinTarget,
+            target,
             toolchainTask,
             extension,
             cmakeBuildDirectory,
             taskStateDirectory,
-            targetEnabled,
         )
-        val buildTask = registerBuildTask(kotlinTarget, generateTask, extension, cmakeBuildDirectory, taskStateDirectory)
+        val buildTask = registerBuildTask(target, generateTask, extension, cmakeBuildDirectory, taskStateDirectory)
         val installTask = registerInstallTask(
-            kotlinTarget,
+            target,
             buildTask,
             extension,
             cmakeBuildDirectory,
             cmakeInstallDirectory,
             cinteropName = CINTEROP_NAME,
         )
-        listOf(buildTask, installTask).forEach { task ->
-            task.configure { enabled = targetEnabled }
-        }
 
         target.compilations.named(KotlinCompilation.MAIN_COMPILATION_NAME) {
             cinterops.register(CINTEROP_NAME) {
-                definitionFile.set(installTask.flatMap { it.definitionFile })
-                tasks.named(interopProcessingTaskName).configure {
-                    enabled = targetEnabled
-                    dependsOn(installTask)
-                    inputs.dir(installTask.flatMap { it.installDirectory })
-                        .withPathSensitivity(PathSensitivity.RELATIVE)
+                tasks.named<CInteropProcess>(interopProcessingTaskName).configure {
+                    settings.packageName = extension.packageName.get()
+                    if (enabled) {
+                        definitionFile.set(installTask.flatMap { it.definitionFile })
+                        inputs.dir(installTask.flatMap { it.installDirectory })
+                            .withPathSensitivity(PathSensitivity.RELATIVE)
+                    }
                 }
             }
         }
     }
 
-    private fun Project.registerToolchainTask(
-        target: KotlinNativeTarget,
-        targetEnabled: Boolean,
-    ): TaskProvider<CMakeGenerateToolchainTask> {
-        val nativeDistributionTask = tasks.named(
-            KOTLIN_NATIVE_DOWNLOAD_TASK_NAME,
-            KotlinNativeDownloadTask::class.java,
-        )
-        val dependenciesDirectory = providers.gradleProperty(KONAN_DATA_DIR_GRADLE_PROPERTY)
-            .map { File(it) }
-            .orElse(providers.environmentVariable(KONAN_DATA_DIR_ENVIRONMENT_VARIABLE).map { File(it) })
-            .orElse(providers.systemProperty(USER_HOME_SYSTEM_PROPERTY).map { File(it, KONAN_HOME_DIRECTORY_NAME) })
-            .map { File(it, KOTLIN_NATIVE_DEPENDENCIES_DIRECTORY_NAME).absolutePath }
-        return tasks.register<CMakeGenerateToolchainTask>(
-            "cmakeGenerateToolchain${target.name.capitalized()}",
-        ) {
-            konanTargetName.set(target.konanTarget.name)
+    private fun Project.registerGenerateToolchainTask(target: KotlinNativeTarget): TaskProvider<CMakeGenerateToolchainTask> {
+        val nativeDistributionTask = tasks.named<KotlinNativeDownloadTask>(KOTLIN_NATIVE_DOWNLOAD_TASK_NAME)
+        val dependenciesDirectory = getKotlinNativeDependenciesFolder(providers)
+        return tasks.register<CMakeGenerateToolchainTask>("cmakeGenerateToolchain${target.name.capitalized()}") {
+            konanTarget.setDisallowChanges(target.konanTarget)
             kotlinNativeDependenciesDirectory.set(dependenciesDirectory)
             nativeHomeMarker.set(nativeDistributionTask.flatMap { it.nativeDirectoryLocation })
             konanPropertiesFile.set(
@@ -109,42 +95,39 @@ class CMakeImportPlugin : Plugin<Project> {
                 },
             )
             toolchainFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/toolchain.cmake"))
-            enabled = targetEnabled
-            if (targetEnabled) {
-                dependsOn(nativeDistributionTask)
-            }
+            dependsOn(nativeDistributionTask)
         }
     }
 
     private fun Project.registerGenerateTask(
-        kotlinTarget: String,
-        toolchainTask: TaskProvider<CMakeGenerateToolchainTask>,
+        target: KotlinNativeTarget,
+        generateToolchainTask: TaskProvider<CMakeGenerateToolchainTask>,
         extension: CMakeImportExtension,
         cmakeBuildDirectory: Provider<Directory>,
         taskStateDirectory: Provider<Directory>,
-        targetEnabled: Boolean,
-    ) = tasks.register<CMakeGenerateTask>("cmakeGenerate${kotlinTarget.capitalized()}") {
-        projectDirectory.set(extension.sourceDirectory)
-        buildType.set(extension.buildType)
-        defines.set(extension.defines)
-        toolchainFile.set(toolchainTask.flatMap { it.toolchainFile })
+    ) = tasks.register<CMakeGenerateTask>("cmakeGenerate${target.name.capitalized()}") {
+        konanTarget.setDisallowChanges(target.konanTarget)
+        cmakeBuildType.set(extension.buildType)
+        cmakeDefines.set(extension.defines)
+        sourceDirectory.set(extension.sourceDirectory)
+        toolchainFile.set(generateToolchainTask.flatMap { it.toolchainFile })
         configureDirectory.set(cmakeBuildDirectory)
         cacheFile.set(cmakeBuildDirectory.map { it.file(CMAKE_CACHE_FILE_NAME) })
         generateOutputDirectory.set(taskStateDirectory.map { it.dir("generate") })
-        enabled = targetEnabled
-        dependsOn(toolchainTask)
+        dependsOn(generateToolchainTask)
     }
 
     private fun Project.registerBuildTask(
-        kotlinTarget: String,
+        target: KotlinNativeTarget,
         generateTask: TaskProvider<CMakeGenerateTask>,
         extension: CMakeImportExtension,
         cmakeBuildDirectory: Provider<Directory>,
         taskStateDirectory: Provider<Directory>,
-    ) = tasks.register<CMakeBuildTask>("cmakeBuild${kotlinTarget.capitalized()}") {
-        projectDirectory.set(extension.sourceDirectory)
-        targetName.set(extension.targetName)
-        buildType.set(extension.buildType)
+    ) = tasks.register<CMakeBuildTask>("cmakeBuild${target.name.capitalized()}") {
+        konanTarget.setDisallowChanges(target.konanTarget)
+        cmakeTarget.set(extension.targetName)
+        cmakeBuildType.set(extension.buildType)
+        sourceDirectory.set(extension.sourceDirectory)
         generateOutputDirectory.set(generateTask.flatMap { it.generateOutputDirectory })
         configureDirectory.set(cmakeBuildDirectory)
         buildOutputDirectory.set(taskStateDirectory.map { it.dir("build") })
@@ -152,24 +135,32 @@ class CMakeImportPlugin : Plugin<Project> {
     }
 
     private fun Project.registerInstallTask(
-        kotlinTarget: String,
+        target: KotlinNativeTarget,
         buildTask: TaskProvider<CMakeBuildTask>,
         extension: CMakeImportExtension,
         cmakeBuildDirectory: Provider<Directory>,
         cmakeInstallDirectory: Provider<Directory>,
         cinteropName: String,
-    ) = tasks.register<CMakeInstallTask>("cmakeInstall${kotlinTarget.capitalized()}") {
-        projectDirectory.set(extension.sourceDirectory)
-        targetName.set(extension.targetName)
+    ) = tasks.register<CMakeInstallTask>("cmakeInstall${target.name.capitalized()}") {
+        konanTarget.setDisallowChanges(target.konanTarget)
+        cmakeTarget.set(extension.targetName)
+        cmakeBuildType.set(extension.buildType)
+        cmakeComponent.set(extension.installComponent)
         packageName.set(extension.packageName)
-        headers.set(extension.headers)
-        buildType.set(extension.buildType)
-        installComponent.set(extension.installComponent)
+        includedHeaders.set(extension.headers)
+        sourceDirectory.set(extension.sourceDirectory)
         configureDirectory.set(cmakeBuildDirectory)
         installDirectory.set(cmakeInstallDirectory)
-        definitionFile.set(layout.buildDirectory.file("generated/cmake/$kotlinTarget/$cinteropName.def"))
+        definitionFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/$cinteropName.def"))
         dependsOn(buildTask)
     }
+
+    private fun getKotlinNativeDependenciesFolder(providers: ProviderFactory): Provider<String> =
+        providers.gradleProperty(KONAN_DATA_DIR_GRADLE_PROPERTY)
+            .map { File(it) }
+            .orElse(providers.environmentVariable(KONAN_DATA_DIR_ENVIRONMENT_VARIABLE).map { File(it) })
+            .orElse(providers.systemProperty(USER_HOME_SYSTEM_PROPERTY).map { File(it, KONAN_HOME_DIRECTORY_NAME) })
+            .map { File(it, KOTLIN_NATIVE_DEPENDENCIES_DIRECTORY_NAME).absolutePath }
 
     internal companion object {
         private const val DEFAULT_BUILD_TYPE = "Release"
