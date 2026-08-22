@@ -62,6 +62,8 @@ install(TARGETS hello
 
 if(ANDROID)
     set(HELLO_CXX_LIBRARIES "-lc++_static -lc++abi")
+elseif(WIN32)
+    set(HELLO_CXX_LIBRARIES "")
 elseif(APPLE)
     set(HELLO_CXX_LIBRARIES "-lc++")
 else()

@@ -1,14 +1,13 @@
 #include "hello.h"
 #include "hello_impl.h"
 
-#include <cstdio>
+#include <iostream>
 #include <string>
 
 namespace {
 [[gnu::noinline]] void print_message(const char* value) {
     std::string message(value);
-    message.reserve(64);
-    std::fputs(message.c_str(), stdout);
+    std::cout << message;
 }
 }
 
