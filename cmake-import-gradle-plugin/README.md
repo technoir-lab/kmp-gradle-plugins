@@ -5,6 +5,18 @@ project to a CMake static-library target. It configures and builds each supporte
 installs its public headers and archive into a Gradle-managed staging directory, and
 generates the C-interop definition from that installed surface.
 
+## Supported targets
+
+- Android Native: `androidNativeX86`, `androidNativeX64`, `androidNativeArm32`, and
+  `androidNativeArm64`.
+- Linux: `linuxX64` and `linuxArm64`.
+- MinGW: `mingwX64`.
+- macOS: `macosArm64`.
+- iOS: `iosArm64` and `iosSimulatorArm64`.
+- tvOS: `tvosArm64` and `tvosSimulatorArm64`.
+- watchOS: `watchosArm32`, `watchosArm64`, `watchosDeviceArm64`, and
+  `watchosSimulatorArm64`.
+
 ## Prerequisites
 
 - CMake 3.29 or newer, available on `PATH`.
@@ -72,8 +84,6 @@ stages its interop surface.
 The generated toolchain reuses Kotlin/Native's prepared Clang compiler, compiler arguments,
 target triple, sysroot, LLVM archiver, linker, and Apple or Android platform settings. This
 makes the CMake library use the same cross-compilation environment as the Kotlin/Native binary.
-The Apple toolchain supports Kotlin/Native's ARM64 iOS and tvOS device and simulator targets,
-including `iosArm64`, `iosSimulatorArm64`, `tvosArm64`, and `tvosSimulatorArm64`.
 Linux and MinGW targets use Kotlin/Native's host-compatible linker for executable CMake
 capability checks. Android targets use Kotlin/Native's API-specific Android compiler driver
 and linker settings, so their compiler bootstrap and capability checks also link executables.

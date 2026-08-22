@@ -1,5 +1,6 @@
 package io.technoirlab.cmake.import
 
+import io.technoirlab.core.capitalized
 import io.technoirlab.gradle.test.kit.GradleRunnerExtension
 import io.technoirlab.gradle.test.kit.appendBuildScript
 import io.technoirlab.gradle.test.kit.buildDir
@@ -174,15 +175,15 @@ class CMakeImportPluginFunctionalTest {
         val target = nonHostTarget()
         val project = gradleRunner.root.project("kmp-application")
 
-        val result = gradleRunner.build(":kmp-application:linkReleaseExecutable${target.suffix}")
+        val result = gradleRunner.build(":kmp-application:linkReleaseExecutable${target.name.capitalized()}")
 
-        assertThat(result.task(":kmp-application:cmakeGenerateToolchain${target.suffix}")?.outcome)
+        assertThat(result.task(":kmp-application:cmakeGenerateToolchain${target.name.capitalized()}")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
-        assertThat(result.task(":kmp-application:cmakeInstall${target.suffix}")?.outcome)
+        assertThat(result.task(":kmp-application:cmakeInstall${target.name.capitalized()}")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
-        assertThat(result.task(":kmp-application:cinteropCmake${target.suffix}")?.outcome)
+        assertThat(result.task(":kmp-application:cinteropCmake${target.name.capitalized()}")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
-        assertThat(result.task(":kmp-application:linkReleaseExecutable${target.suffix}")?.outcome)
+        assertThat(result.task(":kmp-application:linkReleaseExecutable${target.name.capitalized()}")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
 
         val archives = (project.buildDir / "outputs/cmake/${target.name}/lib").staticArchives()
@@ -210,15 +211,15 @@ class CMakeImportPluginFunctionalTest {
         )
         val project = gradleRunner.root.project("kmp-application")
         val targets = appleTargets()
-        val linkTasks = targets.map { ":kmp-application:linkDebugFramework${it.suffix}" }
+        val linkTasks = targets.map { ":kmp-application:linkDebugFramework${it.name.capitalized()}" }
 
         val result = gradleRunner.build(*linkTasks.toTypedArray())
 
         targets.forEach { target ->
-            val toolchainTask = ":kmp-application:cmakeGenerateToolchain${target.suffix}"
-            val installTask = ":kmp-application:cmakeInstall${target.suffix}"
-            val cinteropTask = ":kmp-application:cinteropCmake${target.suffix}"
-            val linkTask = ":kmp-application:linkDebugFramework${target.suffix}"
+            val toolchainTask = ":kmp-application:cmakeGenerateToolchain${target.name.capitalized()}"
+            val installTask = ":kmp-application:cmakeInstall${target.name.capitalized()}"
+            val cinteropTask = ":kmp-application:cinteropCmake${target.name.capitalized()}"
+            val linkTask = ":kmp-application:linkDebugFramework${target.name.capitalized()}"
             assertThat(result.task(toolchainTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
             assertThat(result.task(installTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
             assertThat(result.task(cinteropTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
@@ -231,7 +232,7 @@ class CMakeImportPluginFunctionalTest {
             val toolchainText = toolchain.toFile().readText()
             assertThat(toolchainText)
                 .contains("set(CMAKE_SYSTEM_NAME [=[${target.cmakeSystemName}]=])")
-                .contains("set(CMAKE_OSX_ARCHITECTURES [=[arm64]=])")
+                .contains("set(CMAKE_OSX_ARCHITECTURES [=[${target.architecture}]=])")
                 .contains("set(CMAKE_OSX_DEPLOYMENT_TARGET")
                 .contains("set(CMAKE_SYSTEM_VERSION")
                 .containsIgnoringCase(target.sdkName)
@@ -257,19 +258,19 @@ class CMakeImportPluginFunctionalTest {
             """.trimIndent(),
         )
         val targets = listOf(
-            HostTarget("androidNativeX86", "AndroidNativeX86"),
-            HostTarget("androidNativeX64", "AndroidNativeX64"),
-            HostTarget("androidNativeArm32", "AndroidNativeArm32"),
-            HostTarget("androidNativeArm64", "AndroidNativeArm64"),
+            HostTarget("androidNativeX86"),
+            HostTarget("androidNativeX64"),
+            HostTarget("androidNativeArm32"),
+            HostTarget("androidNativeArm64"),
         )
         val arm64LinkTask = ":kmp-application:linkReleaseExecutableAndroidNativeArm64"
         val result = gradleRunner.build(
-            *targets.map { ":kmp-application:cmakeGenerate${it.suffix}" }.toTypedArray(),
+            *targets.map { ":kmp-application:cmakeGenerate${it.name.capitalized()}" }.toTypedArray(),
             arm64LinkTask,
         )
 
         targets.forEach { target ->
-            assertThat(result.task(":kmp-application:cmakeGenerate${target.suffix}")?.outcome)
+            assertThat(result.task(":kmp-application:cmakeGenerate${target.name.capitalized()}")?.outcome)
                 .isEqualTo(TaskOutcome.SUCCESS)
             val toolchain = project.buildDir / "generated/cmake/${target.name}/toolchain.cmake"
             val cache = project.buildDir / "intermediates/cmake/${target.name}/CMakeCache.txt"
@@ -472,7 +473,7 @@ class CMakeImportPluginFunctionalTest {
     private fun hostTargetSuffix(): String {
         val host = hostTarget
         assumeTrue(host != null, "No exact-host fixture target is available on this host")
-        return host!!.suffix
+        return host!!.name.capitalized()
     }
 
     private fun hostTargetName(): String {
@@ -482,17 +483,21 @@ class CMakeImportPluginFunctionalTest {
     }
 
     private fun nonHostTarget(): HostTarget = when {
-        System.getProperty("os.name").startsWith("Linux", ignoreCase = true) -> HostTarget("mingwX64", "MingwX64")
-        System.getProperty("os.name").startsWith("Windows", ignoreCase = true) -> HostTarget("linuxX64", "LinuxX64")
-        System.getProperty("os.name").startsWith("Mac", ignoreCase = true) -> HostTarget("mingwX64", "MingwX64")
+        System.getProperty("os.name").startsWith("Linux", ignoreCase = true) -> HostTarget("mingwX64")
+        System.getProperty("os.name").startsWith("Windows", ignoreCase = true) -> HostTarget("linuxX64")
+        System.getProperty("os.name").startsWith("Mac", ignoreCase = true) -> HostTarget("mingwX64")
         else -> error("No enabled non-host fixture target is available")
     }
 
     private fun appleTargets() = listOf(
-        AppleTarget("iosArm64", "IosArm64", "iOS", "iphoneos"),
-        AppleTarget("iosSimulatorArm64", "IosSimulatorArm64", "iOS", "iphonesimulator"),
-        AppleTarget("tvosArm64", "TvosArm64", "tvOS", "appletvos"),
-        AppleTarget("tvosSimulatorArm64", "TvosSimulatorArm64", "tvOS", "appletvsimulator"),
+        AppleTarget(name = "iosArm64", cmakeSystemName = "iOS", sdkName = "iphoneos"),
+        AppleTarget(name = "iosSimulatorArm64", cmakeSystemName = "iOS", sdkName = "iphonesimulator"),
+        AppleTarget(name = "tvosArm64", cmakeSystemName = "tvOS", sdkName = "appletvos"),
+        AppleTarget(name = "tvosSimulatorArm64", cmakeSystemName = "tvOS", sdkName = "appletvsimulator"),
+        AppleTarget(name = "watchosArm32", cmakeSystemName = "watchOS", sdkName = "watchos", architecture = "armv7k"),
+        AppleTarget(name = "watchosArm64", cmakeSystemName = "watchOS", sdkName = "watchos", architecture = "arm64_32"),
+        AppleTarget(name = "watchosDeviceArm64", cmakeSystemName = "watchOS", sdkName = "watchos"),
+        AppleTarget(name = "watchosSimulatorArm64", cmakeSystemName = "watchOS", sdkName = "watchsimulator"),
     )
 
     private fun Path.staticArchives() = toFile()
@@ -504,24 +509,23 @@ class CMakeImportPluginFunctionalTest {
 
     private data class HostTarget(
         val name: String,
-        val suffix: String,
     )
 
     private data class AppleTarget(
         val name: String,
-        val suffix: String,
         val cmakeSystemName: String,
         val sdkName: String,
+        val architecture: String = "arm64",
     )
 
     private companion object {
         val hostTarget: HostTarget? = when {
             System.getProperty("os.name").startsWith("Mac", ignoreCase = true) &&
-                System.getProperty("os.arch") in setOf("aarch64", "arm64") -> HostTarget("macosArm64", "MacosArm64")
+                System.getProperty("os.arch") in setOf("aarch64", "arm64") -> HostTarget("macosArm64")
             System.getProperty("os.name").startsWith("Linux", ignoreCase = true) &&
-                System.getProperty("os.arch") in setOf("amd64", "x86_64") -> HostTarget("linuxX64", "LinuxX64")
+                System.getProperty("os.arch") in setOf("amd64", "x86_64") -> HostTarget("linuxX64")
             System.getProperty("os.name").startsWith("Windows", ignoreCase = true) &&
-                System.getProperty("os.arch") in setOf("amd64", "x86_64") -> HostTarget("mingwX64", "MingwX64")
+                System.getProperty("os.arch") in setOf("amd64", "x86_64") -> HostTarget("mingwX64")
             else -> null
         }
     }
