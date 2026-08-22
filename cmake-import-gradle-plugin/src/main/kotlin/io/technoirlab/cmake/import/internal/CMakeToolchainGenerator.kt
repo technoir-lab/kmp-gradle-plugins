@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.konan.target.Configurables
 import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.target.KonanTarget
+import org.jetbrains.kotlin.konan.target.withoutVendor
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.exists
@@ -16,6 +17,7 @@ import kotlin.io.path.exists
  */
 internal class CMakeToolchainGenerator(
     private val executableSuffix: String = if (HostManager.hostIsMingw) ".exe" else "",
+    private val commandScriptSuffix: String = if (HostManager.hostIsMingw) ".cmd" else "",
     private val hostTarget: KonanTarget = HostManager.host,
     private val pathSeparator: String = File.pathSeparator,
     private val pathExists: (String) -> Boolean = { Path(it).exists() },
@@ -24,26 +26,29 @@ internal class CMakeToolchainGenerator(
         val clang = ClangArgs.Native(configurables)
         val cCommand = clang.clangC()
         val cxxCommand = clang.clangCXX()
-        val sysroot = compilerSysroot(cCommand.drop(1)) ?: configurables.absoluteTargetSysRoot
+        val sysroot = Path(
+            compilerSysroot(cCommand.drop(1)) ?: configurables.absoluteTargetSysRoot,
+        ).portablePathString()
+        val androidConfigurables = configurables as? AndroidConfigurables
+        val androidApi = androidConfigurables?.let { cCommand.androidApi() }
         val toolchain = CMakeToolchain(
             target = configurables.target,
             targetTriple = configurables.targetTriple.toString(),
             systemName = configurables.target.family.cmakeSystemName,
             processor = configurables.targetTriple.architecture,
             sysroot = sysroot,
-            findRoots = listOf(sysroot, configurables.absoluteTargetToolchain).distinct(),
-            cCompiler = cCommand.first().withExecutableSuffix(),
+            findRoots = listOf(sysroot, Path(configurables.absoluteTargetToolchain).portablePathString()).distinct(),
+            cCompiler = Path(cCommand.first().withExecutableSuffix()).portablePathString(),
             cCompilerArguments = cCommand.drop(1),
-            cxxCompiler = cxxCommand.first().withExecutableSuffix(),
+            cxxCompiler = Path(cxxCommand.first().withExecutableSuffix()).portablePathString(),
             cxxCompilerArguments = cxxCommand.drop(1),
-            archiver = clang.llvmAr().first().withExecutableSuffix(),
+            archiver = Path(clang.llvmAr().first().withExecutableSuffix()).portablePathString(),
             compilerDriverLinker = configurables.compilerDriverLinker(),
+            androidExecutableLinker = androidConfigurables?.androidExecutableLinker(requireNotNull(androidApi)),
             appleDeploymentTarget = (configurables as? AppleConfigurables)?.osVersionMin,
             appleSdkVersion = (configurables as? AppleConfigurables)?.sdkVersion,
-            androidApi = (configurables as? AndroidConfigurables)?.let {
-                cCommand.androidApi()
-            },
-            androidAbi = (configurables as? AndroidConfigurables)?.let {
+            androidApi = androidApi,
+            androidAbi = androidConfigurables?.let {
                 configurables.target.androidAbi
             },
         )
@@ -83,8 +88,23 @@ internal class CMakeToolchainGenerator(
         appendLine()
         setting("CMAKE_C_COMPILER", toolchain.cCompiler)
         setting("CMAKE_CXX_COMPILER", toolchain.cxxCompiler)
-        setting("CMAKE_C_FLAGS_INIT", toolchain.cCompilerArguments.commandLine())
-        setting("CMAKE_CXX_FLAGS_INIT", toolchain.cxxCompilerArguments.commandLine())
+
+        toolchain.androidExecutableLinker?.let { linker ->
+            setting(
+                "CMAKE_C_COMPILE_OBJECT",
+                compilerCommandLine(toolchain.cCompiler, toolchain.cCompilerArguments),
+            )
+            setting(
+                "CMAKE_CXX_COMPILE_OBJECT",
+                compilerCommandLine(toolchain.cxxCompiler, toolchain.cxxCompilerArguments),
+            )
+            appendLine()
+            setting("CMAKE_C_LINK_EXECUTABLE", linker.commandLine("C"))
+            setting("CMAKE_CXX_LINK_EXECUTABLE", linker.commandLine("CXX"))
+        } ?: run {
+            setting("CMAKE_C_FLAGS_INIT", toolchain.cCompilerArguments.commandLine())
+            setting("CMAKE_CXX_FLAGS_INIT", toolchain.cxxCompilerArguments.commandLine())
+        }
 
         appendLine()
         cacheSetting("CMAKE_AR", toolchain.archiver, "Kotlin/Native LLVM archiver")
@@ -104,9 +124,6 @@ internal class CMakeToolchainGenerator(
 
         if (toolchain.target.family == Family.ANDROID) {
             appendLine()
-            appendLine("if(NOT DEFINED CMAKE_TRY_COMPILE_TARGET_TYPE)")
-            setting("CMAKE_TRY_COMPILE_TARGET_TYPE", "STATIC_LIBRARY")
-            appendLine("endif()")
             // Kotlin/Native ships split compiler and sysroot dependencies rather than a complete
             // Android NDK. Version 1 tells CMake not to replace that prepared configuration.
             setting("CMAKE_SYSTEM_VERSION", "1")
@@ -165,6 +182,49 @@ internal class CMakeToolchainGenerator(
         }
         return linker
     }
+
+    private fun AndroidConfigurables.androidExecutableLinker(api: String): CMakeExecutableLinker {
+        val compilerDriverTriple = when (target) {
+            KonanTarget.ANDROID_ARM32 -> "armv7a-linux-androideabi"
+            else -> targetTriple.withoutVendor()
+        }
+        val compilerDriver = Path(absoluteTargetToolchain)
+            .resolve("bin")
+            .resolve("$compilerDriverTriple$api-clang$commandScriptSuffix")
+            .portablePathString()
+        check(pathExists(compilerDriver)) {
+            "Kotlin/Native Android linker driver for target ${target.name} does not exist at $compilerDriver"
+        }
+
+        return CMakeExecutableLinker(
+            compilerDriver = compilerDriver,
+            libraries = linkerKonanFlags,
+        )
+    }
+
+    private fun CMakeExecutableLinker.commandLine(language: String): String = buildList {
+        add(listOf(compilerDriver).commandLine())
+        add("<FLAGS>")
+        add("<CMAKE_${language}_LINK_FLAGS>")
+        add("<LINK_FLAGS>")
+        add("<OBJECTS>")
+        add("-o")
+        add("<TARGET>")
+        add("<LINK_LIBRARIES>")
+        libraries.takeIf { it.isNotEmpty() }?.let { add(it.commandLine()) }
+    }.joinToString(" ")
+
+    private fun compilerCommandLine(compiler: String, arguments: List<String>): String = buildList {
+        add(listOf(compiler).commandLine())
+        add("<DEFINES>")
+        add("<INCLUDES>")
+        arguments.takeIf { it.isNotEmpty() }?.let { add(it.commandLine()) }
+        add("<FLAGS>")
+        add("-o")
+        add("<OBJECT>")
+        add("-c")
+        add("<SOURCE>")
+    }.joinToString(" ")
 
     private fun CMakeToolchain.pkgConfigDirectories(): List<String> = findRoots.flatMap { root ->
         listOf(

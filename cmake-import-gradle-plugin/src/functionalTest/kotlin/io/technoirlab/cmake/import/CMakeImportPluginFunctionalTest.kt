@@ -9,6 +9,7 @@ import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
+import java.nio.file.Path
 import kotlin.io.path.appendText
 import kotlin.io.path.div
 import kotlin.io.path.writeText
@@ -227,6 +228,61 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
+    fun `uses executable Android probes for every Android target`() {
+        val project = gradleRunner.root.project("kmp-application")
+        project.appendBuildScript(
+            """
+            kotlin {
+                androidNativeX86()
+                androidNativeX64()
+                androidNativeArm32()
+                androidNativeArm64()
+            }
+            
+            cmakeImport {
+                defines.put("CMAKE_IMPORT_VERIFY_COMPILER_FLAGS_AT_LINK", "ON")
+            }
+            """.trimIndent(),
+        )
+        val targets = listOf(
+            HostTarget("androidNativeX86", "AndroidNativeX86"),
+            HostTarget("androidNativeX64", "AndroidNativeX64"),
+            HostTarget("androidNativeArm32", "AndroidNativeArm32"),
+            HostTarget("androidNativeArm64", "AndroidNativeArm64"),
+        )
+        val arm64LinkTask = ":kmp-application:linkReleaseExecutableAndroidNativeArm64"
+        val result = gradleRunner.build(
+            *targets.map { ":kmp-application:cmakeGenerate${it.suffix}" }.toTypedArray(),
+            arm64LinkTask,
+        )
+
+        targets.forEach { target ->
+            assertThat(result.task(":kmp-application:cmakeGenerate${target.suffix}")?.outcome)
+                .isEqualTo(TaskOutcome.SUCCESS)
+            val toolchain = project.buildDir / "generated/cmake/${target.name}/toolchain.cmake"
+            val cache = project.buildDir / "intermediates/cmake/${target.name}/CMakeCache.txt"
+            assertThat(toolchain)
+                .isRegularFile()
+                .content()
+                .contains("set(CMAKE_C_LINK_EXECUTABLE")
+                .contains("set(CMAKE_CXX_LINK_EXECUTABLE")
+                .doesNotContain("CMAKE_TRY_COMPILE_TARGET_TYPE")
+            assertThat(cache)
+                .content()
+                .contains("HELLO_ANDROID_LINKER_ACCEPTS_INVALID_OPTION:INTERNAL=")
+                .contains("HELLO_ANDROID_COMPILER_FLAGS_REACH_LINKER:INTERNAL=1")
+        }
+        assertThat(result.output)
+            .contains("Detecting C compiler ABI info - done")
+            .contains("Detecting CXX compiler ABI info - done")
+        assertThat(result.task(":kmp-application:cmakeInstallAndroidNativeArm64")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":kmp-application:cinteropCmakeAndroidNativeArm64")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(arm64LinkTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+    }
+
+    @Test
     fun `unsupported target and CMake tasks are skipped`() {
         assumeTrue(
             System.getProperty("os.name").startsWith("Linux", ignoreCase = true),
@@ -249,12 +305,12 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
-    fun `editing C source reruns CMake task and updates application output`() {
+    fun `editing C++ source reruns CMake task and updates application output`() {
         val buildTask = ":kmp-application:cmakeBuild${hostTargetSuffix()}"
         val runTask = ":kmp-application:runReleaseExecutable${hostTargetSuffix()}"
 
         gradleRunner.build(runTask)
-        val source = gradleRunner.root.dir / "cmake/src/hello.c"
+        val source = gradleRunner.root.dir / "cmake/src/hello.cpp"
         source.replaceText("Hello, world!", "Changed, world!")
 
         val rebuildResult = gradleRunner.build(buildTask)
@@ -273,7 +329,7 @@ class CMakeImportPluginFunctionalTest {
         val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
         assertThat(installDirectory / "include/hello.h").exists()
         assertThat(installDirectory / "include/nested/world.h").exists()
-        assertThat(installDirectory / "include/hello.c").exists()
+        assertThat(installDirectory / "include/hello.cpp").exists()
         assertThat(installDirectory / "include/hello_impl.h").doesNotExist()
         val archives = (installDirectory / "lib")
             .toFile()
@@ -292,7 +348,7 @@ class CMakeImportPluginFunctionalTest {
             .content()
             .contains("\nheaderFilter = hello.h nested/world.h\n")
             .contains("linkerOpts = -lm")
-            .doesNotContain("hello.c")
+            .doesNotContain("hello.cpp")
             .doesNotContain("hello_impl.h")
     }
 
@@ -390,7 +446,8 @@ class CMakeImportPluginFunctionalTest {
             "install(FILES src/hello_impl.h DESTINATION unexpected)",
         )
         cmakeLists.replaceText(
-            "install(FILES hello.pc DESTINATION lib/pkgconfig COMPONENT hello-static)",
+            "install(FILES \"\${CMAKE_CURRENT_BINARY_DIR}/hello.pc\" " +
+                "DESTINATION lib/pkgconfig COMPONENT hello-static)",
             "",
         )
 
@@ -423,7 +480,7 @@ class CMakeImportPluginFunctionalTest {
         else -> error("No enabled non-host fixture target is available")
     }
 
-    private fun java.nio.file.Path.cmakePath(): String = toString().replace('\\', '/')
+    private fun Path.cmakePath(): String = toString().replace('\\', '/')
 
     private data class HostTarget(
         val name: String,
