@@ -235,13 +235,14 @@ class CMakeToolchainGeneratorTest {
     fun `renders Apple architecture SDK sysroot and deployment settings`(
         target: KonanTarget,
         expectedSystemName: String,
+        expectedArchitecture: String,
         expectedTargetTriple: String,
     ) {
         val toolchain = generator.generate(FakeAppleConfigurables(target))
 
         assertThat(toolchain)
             .contains("set(CMAKE_SYSTEM_NAME [=[$expectedSystemName]=])")
-            .contains("set(CMAKE_OSX_ARCHITECTURES [=[arm64]=])")
+            .contains("set(CMAKE_OSX_ARCHITECTURES [=[$expectedArchitecture]=])")
             .contains("set(CMAKE_OSX_SYSROOT [=[/target-sysroot]=])")
             .contains("set(CMAKE_OSX_DEPLOYMENT_TARGET [=[13.2]=])")
             .contains("set(CMAKE_SYSTEM_VERSION [=[17.4]=])")
@@ -514,7 +515,10 @@ class CMakeToolchainGeneratorTest {
             KonanTarget.IOS_SIMULATOR_ARM64 to TargetTriple.fromString("arm64-apple-ios-simulator"),
             KonanTarget.TVOS_ARM64 to TargetTriple.fromString("arm64-apple-tvos"),
             KonanTarget.TVOS_SIMULATOR_ARM64 to TargetTriple.fromString("arm64-apple-tvos-simulator"),
+            KonanTarget.WATCHOS_ARM32 to TargetTriple.fromString("armv7k-apple-watchos"),
+            KonanTarget.WATCHOS_ARM64 to TargetTriple.fromString("arm64_32-apple-watchos"),
             KonanTarget.WATCHOS_DEVICE_ARM64 to TargetTriple.fromString("arm64-apple-watchos"),
+            KonanTarget.WATCHOS_SIMULATOR_ARM64 to TargetTriple.fromString("arm64-apple-watchos-simulator"),
             KonanTarget.LINUX_X64 to TargetTriple.fromString("x86_64-unknown-linux-gnu"),
             KonanTarget.LINUX_ARM64 to TargetTriple.fromString("aarch64-unknown-linux-gnu"),
             KonanTarget.MINGW_X64 to TargetTriple.fromString("x86_64-pc-windows-gnu"),
@@ -537,10 +541,14 @@ class CMakeToolchainGeneratorTest {
 
         @JvmStatic
         fun appleTargets() = listOf(
-            arrayOf(KonanTarget.IOS_ARM64, "iOS", "arm64-apple-ios13.2"),
-            arrayOf(KonanTarget.IOS_SIMULATOR_ARM64, "iOS", "arm64-apple-ios13.2-simulator"),
-            arrayOf(KonanTarget.TVOS_ARM64, "tvOS", "arm64-apple-tvos13.2"),
-            arrayOf(KonanTarget.TVOS_SIMULATOR_ARM64, "tvOS", "arm64-apple-tvos13.2-simulator"),
+            arrayOf(KonanTarget.IOS_ARM64, "iOS", "arm64", "arm64-apple-ios13.2"),
+            arrayOf(KonanTarget.IOS_SIMULATOR_ARM64, "iOS", "arm64", "arm64-apple-ios13.2-simulator"),
+            arrayOf(KonanTarget.TVOS_ARM64, "tvOS", "arm64", "arm64-apple-tvos13.2"),
+            arrayOf(KonanTarget.TVOS_SIMULATOR_ARM64, "tvOS", "arm64", "arm64-apple-tvos13.2-simulator"),
+            arrayOf(KonanTarget.WATCHOS_ARM32, "watchOS", "armv7k", "armv7k-apple-watchos13.2"),
+            arrayOf(KonanTarget.WATCHOS_ARM64, "watchOS", "arm64_32", "arm64_32-apple-watchos13.2"),
+            arrayOf(KonanTarget.WATCHOS_DEVICE_ARM64, "watchOS", "arm64", "arm64-apple-watchos13.2"),
+            arrayOf(KonanTarget.WATCHOS_SIMULATOR_ARM64, "watchOS", "arm64", "arm64-apple-watchos13.2-simulator"),
         )
 
         @JvmStatic

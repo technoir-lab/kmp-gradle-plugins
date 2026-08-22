@@ -15,6 +15,7 @@ dependencies {
     implementation(libs.gradle.extensions)
 
     functionalTestImplementation(libs.assertj.core)
+    functionalTestImplementation(libs.core.utils)
     functionalTestImplementation(libs.gradle.test.kit)
 
     compileOnly(libs.kotlin.gradle.plugin)
