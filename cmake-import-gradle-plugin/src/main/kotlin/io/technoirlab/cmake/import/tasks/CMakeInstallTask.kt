@@ -43,7 +43,6 @@ import kotlin.io.path.writeText
 internal abstract class CMakeInstallTask @Inject constructor(
     private val execOperations: ExecOperations,
     private val fileSystemOperations: FileSystemOperations,
-    private val problems: Problems,
 ) : DefaultTask() {
 
     @get:InputDirectory
@@ -80,6 +79,10 @@ internal abstract class CMakeInstallTask @Inject constructor(
 
     @get:OutputFile
     abstract val definitionFile: RegularFileProperty
+
+    // Workaround for https://github.com/gradle/gradle/issues/31958
+    @get:Inject
+    abstract val problems: Problems
 
     @TaskAction
     fun install() {

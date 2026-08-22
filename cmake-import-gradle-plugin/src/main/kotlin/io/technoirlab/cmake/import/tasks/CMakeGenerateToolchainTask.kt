@@ -1,6 +1,7 @@
 package io.technoirlab.cmake.import.tasks
 
 import io.technoirlab.cmake.import.internal.CMakeToolchainGenerator
+import io.technoirlab.gradle.asPath
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
@@ -11,11 +12,14 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
-import org.jetbrains.kotlin.konan.properties.loadProperties
+import org.jetbrains.kotlin.konan.file.use
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.jetbrains.kotlin.konan.target.loadConfigurables
 import java.nio.charset.StandardCharsets
+import java.nio.file.Path
+import java.util.Properties
 import kotlin.io.path.Path
+import kotlin.io.path.bufferedReader
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
@@ -44,12 +48,12 @@ internal abstract class CMakeGenerateToolchainTask : DefaultTask() {
 
     @TaskAction
     fun generate() {
-        val nativeHome = Path(nativeHomeMarker.get().asFile.readText(StandardCharsets.UTF_8).trim())
-        val propertiesFile = konanPropertiesFile.get().asFile.toPath()
+        val nativeHome = Path(nativeHomeMarker.get().asPath().readText(StandardCharsets.UTF_8).trim())
+        val propertiesFile = konanPropertiesFile.get().asPath()
         check(propertiesFile == nativeHome.resolve(KONAN_PROPERTIES_PATH)) {
             "Kotlin/Native prepared $nativeHome but provided properties from $propertiesFile"
         }
-        val properties = loadProperties(propertiesFile.toString())
+        val properties = loadProperties(propertiesFile)
         val target = KonanTarget.predefinedTargets.getValue(konanTargetName.get())
         val configurables = loadConfigurables(
             target,
@@ -57,8 +61,13 @@ internal abstract class CMakeGenerateToolchainTask : DefaultTask() {
             kotlinNativeDependenciesDirectory.get(),
             progressCallback = { _, _, _ -> },
         )
-        val output = toolchainFile.get().asFile.toPath().createParentDirectories()
-        output.writeText(CMakeToolchainGenerator().generate(configurables), StandardCharsets.UTF_8)
+        val toolchainGenerator = CMakeToolchainGenerator()
+        val output = toolchainFile.get().asPath().createParentDirectories()
+        output.writeText(toolchainGenerator.generate(configurables), StandardCharsets.UTF_8)
+    }
+
+    private fun loadProperties(file: Path): Properties = file.bufferedReader().use {
+        Properties().apply { load(it) }
     }
 
     internal companion object {

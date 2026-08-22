@@ -41,7 +41,6 @@ import kotlin.io.path.writeText
 internal abstract class CMakeGenerateTask @Inject constructor(
     private val execOperations: ExecOperations,
     private val fileSystemOperations: FileSystemOperations,
-    private val problems: Problems,
     private val providerFactory: ProviderFactory,
 ) : DefaultTask() {
 
@@ -73,6 +72,10 @@ internal abstract class CMakeGenerateTask @Inject constructor(
      */
     @get:OutputDirectory
     abstract val generateOutputDirectory: DirectoryProperty
+
+    // Workaround for https://github.com/gradle/gradle/issues/31958
+    @get:Inject
+    abstract val problems: Problems
 
     @TaskAction
     fun generate() {
