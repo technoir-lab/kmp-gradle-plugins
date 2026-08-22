@@ -261,7 +261,7 @@ class CMakeToolchainGeneratorTest {
                     "-L/target-toolchain/sysroot/usr/lib/$expectedLinkerTriple/21 " +
                     "-L/target-toolchain/sysroot/usr/lib/$expectedLinkerTriple " +
                     "<FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> " +
-                    "-lm -lc++_static -lc++abi -landroid -llog -latomic <LINK_LIBRARIES>]=])",
+                    "<LINK_LIBRARIES> -lm -lc++_static -lc++abi -landroid -llog -latomic]=])",
             )
             .contains("set(CMAKE_CXX_LINK_EXECUTABLE")
             .doesNotContain("CMAKE_C_FLAGS_INIT")
@@ -337,7 +337,7 @@ class CMakeToolchainGeneratorTest {
             .contains(
                 "[=[\"C:/Android SDK/bin/aarch64-linux-android21-clang.cmd\" " +
                     "\"--sysroot=C:/Android SDK/sysroot\" <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> " +
-                    "<OBJECTS> -o <TARGET> -lm <LINK_LIBRARIES>]=]",
+                    "<OBJECTS> -o <TARGET> <LINK_LIBRARIES> -lm]=]",
             )
     }
 

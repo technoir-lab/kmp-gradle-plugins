@@ -227,8 +227,8 @@ internal class CMakeToolchainGenerator(
         add("<OBJECTS>")
         add("-o")
         add("<TARGET>")
-        libraries.takeIf { it.isNotEmpty() }?.let { add(it.commandLine()) }
         add("<LINK_LIBRARIES>")
+        libraries.takeIf { it.isNotEmpty() }?.let { add(it.commandLine()) }
     }.joinToString(" ")
 
     private fun compilerCommandLine(compiler: String, arguments: List<String>): String = buildList {

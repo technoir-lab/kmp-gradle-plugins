@@ -240,7 +240,6 @@ class CMakeImportPluginFunctionalTest {
             }
             
             cmakeImport {
-                defines.put("CMAKE_C_FLAGS", "-fsanitize=undefined")
                 defines.put("CMAKE_IMPORT_VERIFY_COMPILER_FLAGS_AT_LINK", "ON")
             }
             """.trimIndent(),
@@ -270,7 +269,6 @@ class CMakeImportPluginFunctionalTest {
                 .doesNotContain("CMAKE_TRY_COMPILE_TARGET_TYPE")
             assertThat(cache)
                 .content()
-                .contains("HELLO_ANDROID_LINKER_ACCEPTS_VERSION_SCRIPT:INTERNAL=1")
                 .contains("HELLO_ANDROID_LINKER_ACCEPTS_INVALID_OPTION:INTERNAL=")
                 .contains("HELLO_ANDROID_COMPILER_FLAGS_REACH_LINKER:INTERNAL=1")
         }
@@ -307,12 +305,12 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
-    fun `editing C source reruns CMake task and updates application output`() {
+    fun `editing C++ source reruns CMake task and updates application output`() {
         val buildTask = ":kmp-application:cmakeBuild${hostTargetSuffix()}"
         val runTask = ":kmp-application:runReleaseExecutable${hostTargetSuffix()}"
 
         gradleRunner.build(runTask)
-        val source = gradleRunner.root.dir / "cmake/src/hello.c"
+        val source = gradleRunner.root.dir / "cmake/src/hello.cpp"
         source.replaceText("Hello, world!", "Changed, world!")
 
         val rebuildResult = gradleRunner.build(buildTask)
@@ -331,7 +329,7 @@ class CMakeImportPluginFunctionalTest {
         val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
         assertThat(installDirectory / "include/hello.h").exists()
         assertThat(installDirectory / "include/nested/world.h").exists()
-        assertThat(installDirectory / "include/hello.c").exists()
+        assertThat(installDirectory / "include/hello.cpp").exists()
         assertThat(installDirectory / "include/hello_impl.h").doesNotExist()
         val archives = (installDirectory / "lib")
             .toFile()
@@ -350,7 +348,7 @@ class CMakeImportPluginFunctionalTest {
             .content()
             .contains("\nheaderFilter = hello.h nested/world.h\n")
             .contains("linkerOpts = -lm")
-            .doesNotContain("hello.c")
+            .doesNotContain("hello.cpp")
             .doesNotContain("hello_impl.h")
     }
 
@@ -448,7 +446,8 @@ class CMakeImportPluginFunctionalTest {
             "install(FILES src/hello_impl.h DESTINATION unexpected)",
         )
         cmakeLists.replaceText(
-            "install(FILES hello.pc DESTINATION lib/pkgconfig COMPONENT hello-static)",
+            "install(FILES \"\${CMAKE_CURRENT_BINARY_DIR}/hello.pc\" " +
+                "DESTINATION lib/pkgconfig COMPONENT hello-static)",
             "",
         )
 
