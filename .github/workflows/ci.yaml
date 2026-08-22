@@ -64,7 +64,24 @@ jobs:
         shell: pwsh
         run: echo "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
 
+      - name: Build with Gradle on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (Test-Path 'W:\') {
+            throw 'W: is already in use'
+          }
+
+          subst W: "$env:GITHUB_WORKSPACE"
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to mount the workspace as W:'
+          }
+
+          Set-Location 'W:\'
+          .\gradlew.bat build --scan
+
       - name: Build with Gradle
+        if: runner.os != 'Windows'
         run: ./gradlew build --scan
 
       - name: Publish test report
