@@ -8,7 +8,6 @@ import io.technoirlab.cmake.import.internal.CMakeInstallScanner
 import io.technoirlab.cmake.import.internal.CMakeRunner
 import io.technoirlab.cmake.import.internal.portablePathString
 import io.technoirlab.cmake.import.pkconfig.PkgConfigLinkerOptionsResolver
-import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFileProperty
@@ -40,30 +39,30 @@ import kotlin.io.path.writeText
  */
 @Suppress("UnstableApiUsage")
 @DisableCachingByDefault(because = "CMake manages non-relocatable build state")
-internal abstract class CMakeInstallTask @Inject constructor(
+abstract class CMakeInstallTask @Inject internal constructor(
     private val execOperations: ExecOperations,
     private val fileSystemOperations: FileSystemOperations,
-) : DefaultTask() {
-
-    @get:InputDirectory
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val projectDirectory: DirectoryProperty
+) : BaseCMakeTask() {
 
     @get:Input
-    abstract val targetName: Property<String>
+    abstract val cmakeTarget: Property<String>
+
+    @get:Input
+    abstract val cmakeBuildType: Property<String>
+
+    @get:Input
+    @get:Optional
+    abstract val cmakeComponent: Property<String>
 
     @get:Input
     abstract val packageName: Property<String>
 
     @get:Input
-    abstract val headers: SetProperty<String>
+    abstract val includedHeaders: SetProperty<String>
 
-    @get:Input
-    abstract val buildType: Property<String>
-
-    @get:Input
-    @get:Optional
-    abstract val installComponent: Property<String>
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sourceDirectory: DirectoryProperty
 
     /**
      * CMake's non-relocatable build tree.
@@ -82,13 +81,12 @@ internal abstract class CMakeInstallTask @Inject constructor(
 
     // Workaround for https://github.com/gradle/gradle/issues/31958
     @get:Inject
-    abstract val problems: Problems
+    internal abstract val problems: Problems
 
     @TaskAction
-    fun install() {
-        val buildType = buildType.get()
-        val packageName = packageName.get()
-        val installComponent = installComponent.orNull
+    internal fun install() {
+        val buildType = cmakeBuildType.get()
+        val component = cmakeComponent.orNull
         val configureDirectory = configureDirectory.get().asFile.toPath()
         val installDirectory = installDirectory.get().asFile.toPath()
 
@@ -96,12 +94,13 @@ internal abstract class CMakeInstallTask @Inject constructor(
             delete(installDirectory)
         }
         val cmakeRunner = CMakeRunner(execOperations)
-        cmakeRunner.install(configureDirectory, installDirectory, buildType, installComponent)
+        cmakeRunner.install(configureDirectory, installDirectory, buildType, component)
 
-        val includedHeaders = headers.get()
+        val includedHeaders = includedHeaders.get()
         val output = CMakeInstallScanner().scan(installDirectory)
-        output.validate(installComponent, includedHeaders)
+        output.validate(component, includedHeaders)
 
+        val packageName = packageName.get()
         val archive = output.archives.single()
         val definitionFile = definitionFile.get().asFile.toPath().createParentDirectories()
         val pkgConfigLinkerOptionsResolver = PkgConfigLinkerOptionsResolver()
