@@ -4,3 +4,13 @@ public final class io/technoirlab/vfsoverlay/VfsOverlayPlugin : org/gradle/api/P
 	public fun apply (Lorg/gradle/api/Project;)V
 }
 
+public abstract interface annotation class io/technoirlab/vfsoverlay/api/VfsOverlayDsl : java/lang/annotation/Annotation {
+}
+
+public abstract interface class io/technoirlab/vfsoverlay/api/VfsOverlayExtension {
+	public abstract fun getKotlinNativeDependenciesDir ()Lorg/gradle/api/provider/Provider;
+	public abstract fun getMappings ()Lorg/gradle/api/provider/MapProperty;
+	public abstract fun mapping (Ljava/io/File;Ljava/io/File;)V
+	public abstract fun mapping (Lorg/gradle/api/provider/Provider;Lorg/gradle/api/provider/Provider;)V
+}
+
