@@ -7,13 +7,15 @@ generates the C-interop definition from that installed surface.
 
 ## Prerequisites
 
-Install CMake 3.29 or newer and make `cmake` available on `PATH`. On Windows, also
-install Ninja and make `ninja` available on `PATH`, or set `CMAKE_GENERATOR` to another
-compiler-compatible CMake generator.
+- CMake 3.29 or newer, available on `PATH`.
+- Apple targets: macOS with an Xcode installation that contains the corresponding
+  platform SDK.
+- MinGW targets: `ninja` available on `PATH`, or `CMAKE_GENERATOR` set to another
+  compiler-compatible CMake generator.
 
-The CMake project must expose a static-library target with a `PUBLIC` or `INTERFACE`
-`HEADERS` file set. It must install exactly one static archive to `lib/` and its public
-headers to `include/`:
+The CMake project must:
+- Expose a static-library target with a `PUBLIC` or `INTERFACE` `HEADERS` file set.
+- Install exactly one static archive to `lib/` and its public headers to `include/`.
 
 ```cmake
 add_library(hello STATIC src/hello.c)
@@ -70,6 +72,8 @@ stages its interop surface.
 The generated toolchain reuses Kotlin/Native's prepared Clang compiler, compiler arguments,
 target triple, sysroot, LLVM archiver, linker, and Apple or Android platform settings. This
 makes the CMake library use the same cross-compilation environment as the Kotlin/Native binary.
+The Apple toolchain supports Kotlin/Native's ARM64 iOS and tvOS device and simulator targets,
+including `iosArm64`, `iosSimulatorArm64`, `tvosArm64`, and `tvosSimulatorArm64`.
 Linux and MinGW targets use Kotlin/Native's host-compatible linker for executable CMake
 capability checks. Android targets use Kotlin/Native's API-specific Android compiler driver
 and linker settings, so their compiler bootstrap and capability checks also link executables.
