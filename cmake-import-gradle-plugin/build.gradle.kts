@@ -8,6 +8,10 @@ gradlePluginConfig {
     buildFeatures {
         abiValidation = true
     }
+
+    metadata {
+        description = "CMake import for Kotlin/Native."
+    }
 }
 
 dependencies {
