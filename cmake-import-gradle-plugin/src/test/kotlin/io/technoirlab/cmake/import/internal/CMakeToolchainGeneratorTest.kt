@@ -236,8 +236,15 @@ class CMakeToolchainGeneratorTest {
 
     @ParameterizedTest
     @MethodSource("androidAbis")
-    fun `renders Android API and ABI settings`(target: KonanTarget, expectedAbi: String) {
+    fun `renders Android API ABI and executable linker settings`(
+        target: KonanTarget,
+        expectedAbi: String,
+        expectedCompilerDriver: String,
+        expectedLinkerTriple: String,
+        expectedPlatformLibraryDirectory: String,
+    ) {
         val toolchain = generator.generate(FakeAndroidConfigurables(target))
+        val expectedSysroot = expectedPlatformLibraryDirectory.substringBeforeLast("/usr/lib")
 
         assertThat(toolchain)
             .contains("set(CMAKE_SYSTEM_NAME [=[Android]=])")
@@ -245,9 +252,35 @@ class CMakeToolchainGeneratorTest {
             .contains("set(CMAKE_ANDROID_API [=[21]=])")
             .contains("set(CMAKE_ANDROID_ARCH_ABI [=[$expectedAbi]=])")
             .contains("-D__ANDROID_API__=21")
-            .contains("if(NOT DEFINED CMAKE_TRY_COMPILE_TARGET_TYPE)")
-            .contains("set(CMAKE_TRY_COMPILE_TARGET_TYPE [=[STATIC_LIBRARY]=])")
+            .contains("set(CMAKE_C_COMPILE_OBJECT")
+            .contains("set(CMAKE_CXX_COMPILE_OBJECT")
+            .contains(
+                "set(CMAKE_C_LINK_EXECUTABLE " +
+                    "[=[$expectedCompilerDriver -fPIE -pie -target $expectedLinkerTriple " +
+                    "--sysroot=$expectedSysroot -L$expectedPlatformLibraryDirectory " +
+                    "-L/target-toolchain/sysroot/usr/lib/$expectedLinkerTriple/21 " +
+                    "-L/target-toolchain/sysroot/usr/lib/$expectedLinkerTriple " +
+                    "<FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> " +
+                    "-lm -lc++_static -lc++abi -landroid -llog -latomic <LINK_LIBRARIES>]=])",
+            )
+            .contains("set(CMAKE_CXX_LINK_EXECUTABLE")
+            .doesNotContain("CMAKE_C_FLAGS_INIT")
+            .doesNotContain("CMAKE_CXX_FLAGS_INIT")
+            .doesNotContain("CMAKE_TRY_COMPILE_TARGET_TYPE")
             .doesNotContain("CMAKE_LINKER_TYPE")
+    }
+
+    @Test
+    fun `uses Windows command script suffix for Android linker driver before validation`() {
+        val toolchain = CMakeToolchainGenerator(
+            executableSuffix = ".exe",
+            commandScriptSuffix = ".cmd",
+            pathExists = { it.endsWith(".cmd") },
+        ).generate(FakeAndroidConfigurables(KonanTarget.ANDROID_ARM64))
+
+        assertThat(toolchain)
+            .contains("set(CMAKE_C_COMPILER [=[/llvm-home/bin/clang.exe]=])")
+            .contains("/target-toolchain/bin/aarch64-linux-android21-clang.cmd -fPIE")
     }
 
     @Test
@@ -278,6 +311,37 @@ class CMakeToolchainGeneratorTest {
     }
 
     @Test
+    fun `escapes Android linker paths and arguments without changing placeholders`() {
+        val toolchain = CMakeToolchain(
+            target = KonanTarget.ANDROID_ARM64,
+            targetTriple = "aarch64-unknown-linux-android",
+            systemName = "Android",
+            processor = "aarch64",
+            sysroot = "C:\\Android SDK\\sysroot",
+            findRoots = listOf("C:\\Android SDK\\sysroot"),
+            cCompiler = "C:\\LLVM folder\\clang.exe",
+            cCompilerArguments = emptyList(),
+            cxxCompiler = "C:\\LLVM folder\\clang++.exe",
+            cxxCompilerArguments = emptyList(),
+            archiver = "C:\\LLVM folder\\llvm-ar.exe",
+            androidExecutableLinker = CMakeExecutableLinker(
+                compilerDriver = "C:\\Android SDK\\bin\\aarch64-linux-android21-clang.cmd",
+                arguments = listOf("--sysroot=C:\\Android SDK\\sysroot"),
+                libraries = listOf("-lm"),
+            ),
+            androidApi = "21",
+            androidAbi = "arm64-v8a",
+        )
+
+        assertThat(generator.generate(toolchain))
+            .contains(
+                "[=[\"C:/Android SDK/bin/aarch64-linux-android21-clang.cmd\" " +
+                    "\"--sysroot=C:/Android SDK/sysroot\" <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> " +
+                    "<OBJECTS> -o <TARGET> -lm <LINK_LIBRARIES>]=]",
+            )
+    }
+
+    @Test
     fun `reports a missing Kotlin Native linker`() {
         assertThatThrownBy {
             CMakeToolchainGenerator(executableSuffix = "", pathExists = { true })
@@ -296,6 +360,22 @@ class CMakeToolchainGeneratorTest {
             .isInstanceOf(IllegalStateException::class.java)
             .hasMessage(
                 "Kotlin/Native linker for target mingw_x64 does not exist at /missing/ld.lld",
+            )
+    }
+
+    @Test
+    fun `reports a nonexistent Kotlin Native Android linker driver`() {
+        assertThatThrownBy {
+            CMakeToolchainGenerator(
+                executableSuffix = "",
+                commandScriptSuffix = "",
+                pathExists = { false },
+            ).generate(FakeAndroidConfigurables(KonanTarget.ANDROID_ARM64))
+        }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessage(
+                "Kotlin/Native Android linker driver for target android_arm64 does not exist at " +
+                    "/target-toolchain/bin/aarch64-linux-android21-clang",
             )
     }
 
@@ -336,7 +416,10 @@ class CMakeToolchainGeneratorTest {
         override val llvmVersion: String = "19"
 
         override fun targetString(key: String): String? = null
-        override fun targetList(key: String): List<String> = emptyList()
+        override fun targetList(key: String): List<String> = when {
+            target.family == Family.ANDROID && key == "linkerKonanFlags" -> ANDROID_LINKER_FLAGS
+            else -> emptyList()
+        }
         override fun hostString(key: String): String? = null
         override fun hostList(key: String): List<String> = emptyList()
         override fun hostTargetString(key: String): String? = linker.takeIf { key == "linker" }
@@ -388,10 +471,43 @@ class CMakeToolchainGeneratorTest {
 
         @JvmStatic
         fun androidAbis() = listOf(
-            arrayOf(KonanTarget.ANDROID_X86, "x86"),
-            arrayOf(KonanTarget.ANDROID_X64, "x86_64"),
-            arrayOf(KonanTarget.ANDROID_ARM32, "armeabi-v7a"),
-            arrayOf(KonanTarget.ANDROID_ARM64, "arm64-v8a"),
+            arrayOf(
+                KonanTarget.ANDROID_X86,
+                "x86",
+                "/target-toolchain/bin/i686-linux-android21-clang",
+                "i686-linux-android",
+                "/target-sysroot/android-21/arch-x86/usr/lib",
+            ),
+            arrayOf(
+                KonanTarget.ANDROID_X64,
+                "x86_64",
+                "/target-toolchain/bin/x86_64-linux-android21-clang",
+                "x86_64-linux-android",
+                "/target-sysroot/android-21/arch-x86_64/usr/lib64",
+            ),
+            arrayOf(
+                KonanTarget.ANDROID_ARM32,
+                "armeabi-v7a",
+                "/target-toolchain/bin/armv7a-linux-androideabi21-clang",
+                "arm-linux-androideabi",
+                "/target-sysroot/android-21/arch-arm/usr/lib",
+            ),
+            arrayOf(
+                KonanTarget.ANDROID_ARM64,
+                "arm64-v8a",
+                "/target-toolchain/bin/aarch64-linux-android21-clang",
+                "aarch64-linux-android",
+                "/target-sysroot/android-21/arch-arm64/usr/lib",
+            ),
+        )
+
+        val ANDROID_LINKER_FLAGS = listOf(
+            "-lm",
+            "-lc++_static",
+            "-lc++abi",
+            "-landroid",
+            "-llog",
+            "-latomic",
         )
     }
 }

@@ -71,8 +71,8 @@ The generated toolchain reuses Kotlin/Native's prepared Clang compiler, compiler
 target triple, sysroot, LLVM archiver, linker, and Apple or Android platform settings. This
 makes the CMake library use the same cross-compilation environment as the Kotlin/Native binary.
 Linux and MinGW targets use Kotlin/Native's host-compatible linker for executable CMake
-capability checks. Android support is currently limited to static-library capability checks,
-so CMake checks that specifically exercise the Android linker may not be reliable.
+capability checks. Android targets use Kotlin/Native's API-specific Android compiler driver
+and linker settings, so their compiler bootstrap and capability checks also link executables.
 
 Kotlin/Native targets unavailable on the current host still have their CMake and cinterop
 tasks registered, but those tasks are skipped just like Kotlin's own target tasks. Projects
