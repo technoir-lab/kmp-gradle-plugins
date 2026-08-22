@@ -245,6 +245,8 @@ class CMakeToolchainGeneratorTest {
     ) {
         val toolchain = generator.generate(FakeAndroidConfigurables(target))
         val expectedSysroot = expectedPlatformLibraryDirectory.substringBeforeLast("/usr/lib")
+        val cCompileRule = toolchain.lineSequence().single { it.startsWith("set(CMAKE_C_COMPILE_OBJECT") }
+        val cxxCompileRule = toolchain.lineSequence().single { it.startsWith("set(CMAKE_CXX_COMPILE_OBJECT") }
 
         assertThat(toolchain)
             .contains("set(CMAKE_SYSTEM_NAME [=[Android]=])")
@@ -268,6 +270,10 @@ class CMakeToolchainGeneratorTest {
             .doesNotContain("CMAKE_CXX_FLAGS_INIT")
             .doesNotContain("CMAKE_TRY_COMPILE_TARGET_TYPE")
             .doesNotContain("CMAKE_LINKER_TYPE")
+        assertThat(cCompileRule)
+            .containsSubsequence("<DEFINES>", "<INCLUDES>", "-D__ANDROID_API__=21", "<FLAGS>")
+        assertThat(cxxCompileRule)
+            .containsSubsequence("<DEFINES>", "<INCLUDES>", "-D__ANDROID_API__=21", "<FLAGS>")
     }
 
     @Test

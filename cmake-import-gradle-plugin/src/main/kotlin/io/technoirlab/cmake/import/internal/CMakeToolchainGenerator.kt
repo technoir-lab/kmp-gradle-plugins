@@ -232,9 +232,10 @@ internal class CMakeToolchainGenerator(
     }.joinToString(" ")
 
     private fun compilerCommandLine(compiler: String, arguments: List<String>): String = buildList {
-        add((listOf(compiler) + arguments).commandLine())
+        add(listOf(compiler).commandLine())
         add("<DEFINES>")
         add("<INCLUDES>")
+        arguments.takeIf { it.isNotEmpty() }?.let { add(it.commandLine()) }
         add("<FLAGS>")
         add("-o")
         add("<OBJECT>")
