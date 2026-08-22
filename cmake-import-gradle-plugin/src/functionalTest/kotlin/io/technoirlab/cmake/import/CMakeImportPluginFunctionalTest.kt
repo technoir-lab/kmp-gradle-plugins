@@ -149,13 +149,6 @@ class CMakeImportPluginFunctionalTest {
 
     @Test
     fun `published library carries the CMake archive to a consumer`() {
-        gradleRunner.root.project("kmp-library").appendBuildScript(
-            """
-            // Keep cross-linker inputs below the Windows MAX_PATH limit in the deeply nested TestKit project.
-            layout.buildDirectory = layout.projectDirectory.dir("../b")
-            """.trimIndent(),
-        )
-
         gradleRunner.build(
             ":kmp-library:publishKotlinMultiplatformPublicationToTestRepository",
             ":kmp-library:publish${hostTargetSuffix()}PublicationToTestRepository",
@@ -200,13 +193,6 @@ class CMakeImportPluginFunctionalTest {
     fun `builds and links an enabled non-host target with its generated toolchain`() {
         val target = nonHostTarget()
         val project = gradleRunner.root.project("kmp-application")
-        val buildDirectory = gradleRunner.root.dir / "b"
-        project.appendBuildScript(
-            """
-            // Keep cross-linker inputs below the Windows MAX_PATH limit in the deeply nested TestKit project.
-            layout.buildDirectory = layout.projectDirectory.dir("../b")
-            """.trimIndent(),
-        )
 
         val result = gradleRunner.build(":kmp-application:linkReleaseExecutable${target.suffix}")
 
@@ -219,15 +205,15 @@ class CMakeImportPluginFunctionalTest {
         assertThat(result.task(":kmp-application:linkReleaseExecutable${target.suffix}")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
 
-        val archives = (buildDirectory / "outputs/cmake/${target.name}/lib")
+        val archives = (project.buildDir / "outputs/cmake/${target.name}/lib")
             .toFile()
             .walkTopDown()
             .filter { it.isFile && (it.extension == "a" || it.extension.equals("lib", ignoreCase = true)) }
             .toList()
         assertThat(archives).hasSize(1)
 
-        val toolchain = buildDirectory / "generated/cmake/${target.name}/toolchain.cmake"
-        val cache = buildDirectory / "intermediates/cmake/${target.name}/CMakeCache.txt"
+        val toolchain = project.buildDir / "generated/cmake/${target.name}/toolchain.cmake"
+        val cache = project.buildDir / "intermediates/cmake/${target.name}/CMakeCache.txt"
         assertThat(toolchain)
             .isRegularFile()
             .content()
