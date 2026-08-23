@@ -90,12 +90,10 @@ class CMakeImportPlugin : Plugin<Project> {
         extension: CMakeImportExtension,
     ): TaskProvider<CMakeGenerateToolchainTask> {
         val nativeDistributionTask = tasks.named<KotlinNativeDownloadTask>(KOTLIN_NATIVE_DOWNLOAD_TASK_NAME)
-        val dependenciesDirectory = getKotlinNativeDependenciesFolder(providers)
-        val konanPropertyOverrides = getKonanPropertyOverrides(target, extension.buildType)
         return tasks.register<CMakeGenerateToolchainTask>("cmakeGenerateToolchain${target.name.capitalized()}") {
             konanTarget.setDisallowChanges(target.konanTarget)
-            kotlinNativeDependenciesDirectory.set(dependenciesDirectory)
-            this.konanPropertyOverrides.set(konanPropertyOverrides)
+            kotlinNativeDependenciesDirectory.set(getKotlinNativeDependenciesFolder(providers))
+            konanPropertyOverrides.set(getKonanPropertyOverrides(target, extension.buildType))
             nativeHomeMarker.set(nativeDistributionTask.flatMap { it.nativeDirectoryLocation })
             konanPropertiesFile.set(
                 nativeDistributionTask.flatMap {
