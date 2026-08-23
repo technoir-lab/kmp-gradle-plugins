@@ -38,13 +38,17 @@ internal class CMakeToolchainGenerator(
             processor = configurables.targetTriple.architecture,
             sysroot = sysroot,
             findRoots = listOf(sysroot, Path(configurables.absoluteTargetToolchain).portablePathString()).distinct(),
-            cCompiler = CMakeCompilerSettings(
+            cCompiler = CMakeCompilerDriverSettings(
                 command = Path(cCommand.first().withExecutableSuffix()).portablePathString(),
                 arguments = cCommand.drop(1),
+                linkArguments = configurables.compilerDriverRuntimeLinkArguments(),
             ),
-            cxxCompiler = CMakeCompilerSettings(
+            cxxCompiler = CMakeCompilerDriverSettings(
                 command = Path(cxxCommand.first().withExecutableSuffix()).portablePathString(),
                 arguments = cxxCommand.drop(1),
+                linkArguments = configurables.compilerDriverRuntimeLinkArguments(
+                    CXX_COMPILER_DRIVER_RUNTIME_LINK_FLAGS,
+                ),
             ),
             archiver = Path(clang.llvmAr().first().withExecutableSuffix()).portablePathString(),
             compilerDriverLinker = configurables.compilerDriverLinker(),
@@ -108,6 +112,7 @@ internal class CMakeToolchainGenerator(
         } ?: run {
             setting("CMAKE_C_FLAGS_INIT", toolchain.cCompiler.arguments.commandLine())
             setting("CMAKE_CXX_FLAGS_INIT", toolchain.cxxCompiler.arguments.commandLine())
+            linkOptions(toolchain.cCompiler, toolchain.cxxCompiler)
         }
 
         appendLine()
@@ -148,6 +153,18 @@ internal class CMakeToolchainGenerator(
         appendLine("set($name ${value.cmakeArgument()} CACHE FILEPATH ${description.cmakeArgument()} FORCE)")
     }
 
+    private fun StringBuilder.linkOptions(cCompiler: CMakeCompilerDriverSettings, cxxCompiler: CMakeCompilerDriverSettings) {
+        val common = cCompiler.linkArguments.filter { it in cxxCompiler.linkArguments }
+        val c = cCompiler.linkArguments.filterNot { it in common }
+        val cxx = cxxCompiler.linkArguments.filterNot { it in common }
+        val options = common.map { "$<$<LINK_LANGUAGE:C,CXX>:$it>" } +
+            c.map { "$<$<LINK_LANGUAGE:C>:$it>" } +
+            cxx.map { "$<$<LINK_LANGUAGE:CXX>:$it>" }
+        if (options.isNotEmpty()) {
+            appendLine("add_link_options(${options.joinToString(" ") { it.cmakeArgument() }})")
+        }
+    }
+
     private fun compilerSysroot(arguments: List<String>): String? {
         arguments.firstOrNull { it.startsWith(SYSROOT_ARGUMENT) }
             ?.removePrefix(SYSROOT_ARGUMENT)
@@ -186,6 +203,16 @@ internal class CMakeToolchainGenerator(
         }
         return linker
     }
+
+    /**
+     * `linkerKonanFlags` combines Kotlin runtime libraries, raw linker options, and compiler-driver options.
+     * CMake targets own their libraries and linker policy, but still need driver options that select runtimes
+     * supplied by the target toolchain. Classify those options by meaning rather than by target family.
+     */
+    private fun Configurables.compilerDriverRuntimeLinkArguments(languageSpecificFlags: Set<String> = emptySet()): List<String> =
+        linkerKonanFlags.filter {
+            it in COMMON_COMPILER_DRIVER_RUNTIME_LINK_FLAGS || it in languageSpecificFlags
+        }
 
     private fun AndroidConfigurables.androidExecutableLinker(api: String): CMakeExecutableLinker {
         val compilerDriverTriple = when (target) {
@@ -278,6 +305,8 @@ internal class CMakeToolchainGenerator(
         const val SAFE_COMMAND_LINE_CHARACTERS = "_@%+=:,./-"
         const val LINKER_PROPERTY = "linker"
         const val KOTLIN_NATIVE_LINKER_TYPE = "kotlin_native"
+        val COMMON_COMPILER_DRIVER_RUNTIME_LINK_FLAGS = setOf("-static-libgcc")
+        val CXX_COMPILER_DRIVER_RUNTIME_LINK_FLAGS = setOf("-static-libstdc++")
         val LINKER_TARGET_FAMILIES = setOf(Family.LINUX, Family.MINGW)
     }
 }
