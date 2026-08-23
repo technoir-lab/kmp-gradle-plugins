@@ -124,11 +124,11 @@ class CMakeToolchainGeneratorTest {
                     processor = "x86_64",
                     sysroot = sysroot.toString(),
                     findRoots = listOf(sysroot.toString()),
-                    cCompiler = CMakeCompilerSettings(
+                    cCompiler = CMakeCompilerDriverSettings(
                         command = "clang",
                         arguments = emptyList(),
                     ),
-                    cxxCompiler = CMakeCompilerSettings(
+                    cxxCompiler = CMakeCompilerDriverSettings(
                         command = "clang++",
                         arguments = emptyList(),
                     ),
@@ -176,11 +176,11 @@ class CMakeToolchainGeneratorTest {
                     processor = "x86_64",
                     sysroot = "/target-sysroot",
                     findRoots = listOf("/target-sysroot"),
-                    cCompiler = CMakeCompilerSettings(
+                    cCompiler = CMakeCompilerDriverSettings(
                         command = "clang",
                         arguments = emptyList(),
                     ),
-                    cxxCompiler = CMakeCompilerSettings(
+                    cxxCompiler = CMakeCompilerDriverSettings(
                         command = "clang++",
                         arguments = emptyList(),
                     ),
@@ -228,6 +228,65 @@ class CMakeToolchainGeneratorTest {
                 "set(CMAKE_C_USING_LINKER_kotlin_native " +
                     "[=[--ld-path=/llvm-home/bin/ld.gold.exe]=])",
             )
+    }
+
+    @Test
+    fun `uses Kotlin Native compiler driver runtime options independent of target family`() {
+        val mingwToolchain = generator.generate(FakeConfigurables(KonanTarget.MINGW_X64))
+        val linuxToolchain = generator.generate(
+            FakeConfigurables(
+                target = KonanTarget.LINUX_X64,
+                customLinkerKonanFlags = MINGW_LINKER_FLAGS + LINUX_LINKER_FLAGS,
+            ),
+        )
+
+        assertThat(listOf(mingwToolchain, linuxToolchain)).allSatisfy { toolchain ->
+            assertThat(toolchain)
+                .contains(
+                    "add_link_options(" +
+                        "[=[$<$<LINK_LANGUAGE:C,CXX>:-static-libgcc>]=] " +
+                        "[=[$<$<LINK_LANGUAGE:CXX>:-static-libstdc++>]=])",
+                )
+                .doesNotContain("-lbcrypt")
+                .doesNotContain("-Bstatic")
+                .doesNotContain("--defsym")
+                .doesNotContain("CMAKE_EXE_LINKER_FLAGS_INIT")
+        }
+
+        assertThat(generator.generate(FakeConfigurables(KonanTarget.LINUX_X64)))
+            .doesNotContain("add_link_options")
+    }
+
+    @Test
+    fun `renders common and language-specific compiler driver link arguments`() {
+        val toolchain = generator.generate(
+            CMakeToolchain(
+                target = KonanTarget.LINUX_X64,
+                targetTriple = "x86_64-unknown-linux-gnu",
+                systemName = "Linux",
+                processor = "x86_64",
+                sysroot = "/target-sysroot",
+                findRoots = listOf("/target-sysroot"),
+                cCompiler = CMakeCompilerDriverSettings(
+                    command = "clang",
+                    arguments = emptyList(),
+                    linkArguments = listOf("-common", "-c-only"),
+                ),
+                cxxCompiler = CMakeCompilerDriverSettings(
+                    command = "clang++",
+                    arguments = emptyList(),
+                    linkArguments = listOf("-common", "-cxx-only"),
+                ),
+                archiver = "llvm-ar",
+            ),
+        )
+
+        assertThat(toolchain).contains(
+            "add_link_options(" +
+                "[=[$<$<LINK_LANGUAGE:C,CXX>:-common>]=] " +
+                "[=[$<$<LINK_LANGUAGE:C>:-c-only>]=] " +
+                "[=[$<$<LINK_LANGUAGE:CXX>:-cxx-only>]=])",
+        )
     }
 
     @ParameterizedTest
@@ -339,11 +398,11 @@ class CMakeToolchainGeneratorTest {
             processor = "x86_64",
             sysroot = "C:\\SDK;root]=]tail",
             findRoots = listOf("C:\\SDK;root]=]tail"),
-            cCompiler = CMakeCompilerSettings(
+            cCompiler = CMakeCompilerDriverSettings(
                 command = "C:\\LLVM folder\\clang.exe",
                 arguments = listOf("-DVALUE=a;b", "C:\\include folder", "-DQUOTE=\"yes\""),
             ),
-            cxxCompiler = CMakeCompilerSettings(
+            cxxCompiler = CMakeCompilerDriverSettings(
                 command = "C:\\LLVM folder\\clang++.exe",
                 arguments = emptyList(),
             ),
@@ -370,11 +429,11 @@ class CMakeToolchainGeneratorTest {
             processor = "aarch64",
             sysroot = "C:\\Android SDK\\sysroot",
             findRoots = listOf("C:\\Android SDK\\sysroot"),
-            cCompiler = CMakeCompilerSettings(
+            cCompiler = CMakeCompilerDriverSettings(
                 command = "C:\\LLVM folder\\clang.exe",
                 arguments = emptyList(),
             ),
-            cxxCompiler = CMakeCompilerSettings(
+            cxxCompiler = CMakeCompilerDriverSettings(
                 command = "C:\\LLVM folder\\clang++.exe",
                 arguments = emptyList(),
             ),
@@ -462,6 +521,7 @@ class CMakeToolchainGeneratorTest {
     private open class FakeConfigurables(
         override val target: KonanTarget,
         private val linker: String? = "/host-linker",
+        private val customLinkerKonanFlags: List<String>? = null,
         targetSysRoot: String = "/target-sysroot",
         targetToolchain: String = "/target-toolchain",
         llvmHome: String = "/llvm-home",
@@ -474,7 +534,10 @@ class CMakeToolchainGeneratorTest {
 
         override fun targetString(key: String): String? = null
         override fun targetList(key: String): List<String> = when {
+            customLinkerKonanFlags != null && key == "linkerKonanFlags" -> customLinkerKonanFlags
             target.family == Family.ANDROID && key == "linkerKonanFlags" -> ANDROID_LINKER_FLAGS
+            target.family == Family.LINUX && key == "linkerKonanFlags" -> LINUX_LINKER_FLAGS
+            target.family == Family.MINGW && key == "linkerKonanFlags" -> MINGW_LINKER_FLAGS
             else -> emptyList()
         }
 
@@ -582,6 +645,18 @@ class CMakeToolchainGeneratorTest {
             "-landroid",
             "-llog",
             "-latomic",
+        )
+        val MINGW_LINKER_FLAGS = listOf(
+            "-static-libgcc",
+            "-static-libstdc++",
+            "-lbcrypt",
+        )
+        val LINUX_LINKER_FLAGS = listOf(
+            "-Bstatic",
+            "-lstdc++",
+            "-Bdynamic",
+            "--defsym",
+            "__cxa_demangle=Konan_cxa_demangle",
         )
     }
 }
