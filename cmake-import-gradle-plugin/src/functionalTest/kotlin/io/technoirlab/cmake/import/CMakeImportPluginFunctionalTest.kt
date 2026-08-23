@@ -129,6 +129,77 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
+    fun `generated toolchain uses main compilation Konan property override without main binaries`() {
+        val project = gradleRunner.root.project("kmp-library")
+        val customSysroot = (project.dir / "custom-linux-sysroot").also {
+            it.toFile().mkdirs()
+        }
+        project.appendBuildScript(
+            """
+            kotlin.targets.named<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>("linuxX64") {
+                check(binaries.none { it.compilation.name == "main" })
+                compilations.named("main") {
+                    compileTaskProvider.configure {
+                        compilerOptions.freeCompilerArgs.add(
+                            "-Xoverride-konan-properties=" +
+                                "targetSysRoot.linux_x64=${customSysroot.cmakePath()}"
+                        )
+                    }
+                }
+            }
+            """.trimIndent(),
+        )
+
+        gradleRunner.build(":kmp-library:cmakeGenerateToolchainLinuxX64")
+
+        val toolchain = project.buildDir / "generated/cmake/linuxX64/toolchain.cmake"
+        assertThat(toolchain)
+            .content()
+            .contains("set(CMAKE_SYSROOT [=[${customSysroot.cmakePath()}]=])")
+            .contains("--sysroot=${customSysroot.cmakePath()}")
+    }
+
+    @Test
+    fun `generated toolchain uses matching DEBUG binary Konan property override`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val debugSysroot = project.dir / "debug-linux-sysroot"
+        val releaseSysroot = project.dir / "release-linux-sysroot"
+        listOf(debugSysroot, releaseSysroot).forEach {
+            it.toFile().mkdirs()
+        }
+        project.appendBuildScript(
+            """
+            kotlin {
+                targets.named<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>("linuxX64") {
+                    binaries.configureEach {
+                        val sysroot = if (buildType.name.equals("debug", ignoreCase = true)) {
+                            "${debugSysroot.cmakePath()}"
+                        } else {
+                            "${releaseSysroot.cmakePath()}"
+                        }
+                        freeCompilerArgs +=
+                            "-Xoverride-konan-properties=" +
+                                "targetSysRoot.linux_x64=${'$'}sysroot"
+                    }
+                }
+            }
+
+            cmakeImport {
+                buildType = "Debug"
+            }
+            """.trimIndent(),
+        )
+
+        gradleRunner.build(":kmp-application:cmakeGenerateToolchainLinuxX64")
+
+        val toolchain = project.buildDir / "generated/cmake/linuxX64/toolchain.cmake"
+        assertThat(toolchain)
+            .content()
+            .contains("set(CMAKE_SYSROOT [=[${debugSysroot.cmakePath()}]=])")
+            .contains("--sysroot=${debugSysroot.cmakePath()}")
+    }
+
+    @Test
     fun `published library carries the CMake archive to a consumer`() {
         gradleRunner.build(
             ":kmp-library:publishKotlinMultiplatformPublicationToTestRepository",

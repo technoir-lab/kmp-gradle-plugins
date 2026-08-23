@@ -1,6 +1,7 @@
 package io.technoirlab.cmake.import
 
 import io.technoirlab.cmake.import.api.CMakeImportExtension
+import io.technoirlab.cmake.import.internal.KonanProperties
 import io.technoirlab.cmake.import.tasks.CMakeBuildTask
 import io.technoirlab.cmake.import.tasks.CMakeGenerateTask
 import io.technoirlab.cmake.import.tasks.CMakeGenerateToolchainTask
@@ -18,12 +19,14 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.listProperty
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 import org.jetbrains.kotlin.gradle.targets.native.internal.KotlinNativeDownloadTask
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import java.io.File
@@ -50,7 +53,7 @@ class CMakeImportPlugin : Plugin<Project> {
         val cmakeBuildDirectory = layout.buildDirectory.dir("intermediates/cmake/${target.name}")
         val cmakeInstallDirectory = layout.buildDirectory.dir("outputs/cmake/${target.name}")
         val taskStateDirectory = layout.buildDirectory.dir("tmp/cmake/${target.name}")
-        val toolchainTask = registerGenerateToolchainTask(target)
+        val toolchainTask = registerGenerateToolchainTask(target, extension)
         val generateTask = registerGenerateTask(
             target,
             toolchainTask,
@@ -82,16 +85,21 @@ class CMakeImportPlugin : Plugin<Project> {
         }
     }
 
-    private fun Project.registerGenerateToolchainTask(target: KotlinNativeTarget): TaskProvider<CMakeGenerateToolchainTask> {
+    private fun Project.registerGenerateToolchainTask(
+        target: KotlinNativeTarget,
+        extension: CMakeImportExtension,
+    ): TaskProvider<CMakeGenerateToolchainTask> {
         val nativeDistributionTask = tasks.named<KotlinNativeDownloadTask>(KOTLIN_NATIVE_DOWNLOAD_TASK_NAME)
         val dependenciesDirectory = getKotlinNativeDependenciesFolder(providers)
+        val konanPropertyOverrides = getKonanPropertyOverrides(target, extension.buildType)
         return tasks.register<CMakeGenerateToolchainTask>("cmakeGenerateToolchain${target.name.capitalized()}") {
             konanTarget.setDisallowChanges(target.konanTarget)
             kotlinNativeDependenciesDirectory.set(dependenciesDirectory)
+            this.konanPropertyOverrides.set(konanPropertyOverrides)
             nativeHomeMarker.set(nativeDistributionTask.flatMap { it.nativeDirectoryLocation })
             konanPropertiesFile.set(
                 nativeDistributionTask.flatMap {
-                    it.konanHome.file(CMakeGenerateToolchainTask.KONAN_PROPERTIES_PATH)
+                    it.konanHome.file(KonanProperties.KONAN_PROPERTIES_PATH)
                 },
             )
             toolchainFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/toolchain.cmake"))
@@ -153,6 +161,45 @@ class CMakeImportPlugin : Plugin<Project> {
         installDirectory.set(cmakeInstallDirectory)
         definitionFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/$cinteropName.def"))
         dependsOn(buildTask)
+    }
+
+    private fun Project.getKonanPropertyOverrides(
+        target: KotlinNativeTarget,
+        cmakeBuildType: Provider<String>,
+    ): Provider<Map<String, String>> {
+        val compilationKonanPropertyOverrides = target.compilations.named(KotlinCompilation.MAIN_COMPILATION_NAME)
+            .flatMap { compilation ->
+                compilation.compileTaskProvider.flatMap { compileTask ->
+                    compileTask.compilerOptions.freeCompilerArgs.map(KonanProperties::parse)
+                }
+            }
+        // Link tasks expose KGP's effective common/target/compilation/binary arguments in precedence order.
+        // Keep build types separate because CMake generates one toolchain for the configured build type.
+        val debugBinaryKonanPropertyOverrides = objects.listProperty<Map<String, String>>()
+        val releaseBinaryKonanPropertyOverrides = objects.listProperty<Map<String, String>>()
+        target.binaries.configureEach {
+            if (compilation.name == KotlinCompilation.MAIN_COMPILATION_NAME) {
+                val overrides = linkTaskProvider.flatMap { linkTask ->
+                    linkTask.toolOptions.freeCompilerArgs.map(KonanProperties::parse)
+                }
+                when (buildType) {
+                    NativeBuildType.DEBUG -> debugBinaryKonanPropertyOverrides.add(overrides)
+                    NativeBuildType.RELEASE -> releaseBinaryKonanPropertyOverrides.add(overrides)
+                }
+            }
+        }
+        val binaryKonanPropertyOverrides = cmakeBuildType.flatMap { buildType ->
+            if (buildType.equals(NativeBuildType.DEBUG.name, ignoreCase = true)) {
+                debugBinaryKonanPropertyOverrides
+            } else {
+                releaseBinaryKonanPropertyOverrides
+            }
+        }
+        return compilationKonanPropertyOverrides.zip(
+            binaryKonanPropertyOverrides,
+        ) { compilationOverrides, binaryOverrides ->
+            KonanProperties.select(compilationOverrides, binaryOverrides)
+        }
     }
 
     private fun getKotlinNativeDependenciesFolder(providers: ProviderFactory): Provider<String> =
