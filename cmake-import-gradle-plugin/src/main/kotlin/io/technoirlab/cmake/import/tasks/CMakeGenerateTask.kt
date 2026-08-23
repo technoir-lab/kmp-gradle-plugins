@@ -9,11 +9,11 @@ import org.gradle.api.problems.ProblemId
 import org.gradle.api.problems.Problems
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.LocalState
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
@@ -40,8 +40,11 @@ import kotlin.io.path.writeText
 abstract class CMakeGenerateTask @Inject internal constructor(
     private val execOperations: ExecOperations,
     private val fileSystemOperations: FileSystemOperations,
-    private val providerFactory: ProviderFactory,
 ) : BaseCMakeTask() {
+
+    @get:Input
+    @get:Optional
+    abstract val cmakeGenerator: Property<String>
 
     @get:Input
     abstract val cmakeBuildType: Property<String>
@@ -92,15 +95,15 @@ abstract class CMakeGenerateTask @Inject internal constructor(
             }
         }
 
-        val generator = providerFactory.environmentVariable(CMAKE_GENERATOR_ENVIRONMENT_VARIABLE)
-            .filter { it.isNotBlank() }
-            .orElse(
-                providerFactory.systemProperty(OS_NAME_SYSTEM_PROPERTY)
-                    .map(::defaultGenerator),
-            )
-            .orNull
         val cmakeRunner = CMakeRunner(execOperations)
-        cmakeRunner.generate(sourceDir, configureDirectory, toolchainFile, buildType, generator, cmakeDefines.get())
+        cmakeRunner.generate(
+            sourceDir = sourceDir,
+            configureDir = configureDirectory,
+            toolchainFile = toolchainFile,
+            buildType = buildType,
+            generator = cmakeGenerator.orNull,
+            defines = cmakeDefines.get(),
+        )
 
         val cacheFile = cacheFile.get().asFile
         if (!cacheFile.isFile) {
@@ -123,15 +126,9 @@ abstract class CMakeGenerateTask @Inject internal constructor(
     )
 
     internal companion object {
-        private const val CMAKE_GENERATOR_ENVIRONMENT_VARIABLE = "CMAKE_GENERATOR"
-        private const val OS_NAME_SYSTEM_PROPERTY = "os.name"
         const val TOOLCHAIN_FINGERPRINT_FILE_NAME = "toolchain.sha256"
-        private const val WINDOWS_DEFAULT_GENERATOR = "Ninja"
 
         val CACHE_FILE_NOT_GENERATED =
             ProblemId.create("cache-file-not-generated", "CMake cache file was not generated", PROBLEM_GROUP)
-
-        fun defaultGenerator(operatingSystemName: String): String? = WINDOWS_DEFAULT_GENERATOR
-            .takeIf { operatingSystemName.startsWith("Windows", ignoreCase = true) }
     }
 }

@@ -115,6 +115,7 @@ class CMakeImportPlugin : Plugin<Project> {
         taskStateDirectory: Provider<Directory>,
     ) = tasks.register<CMakeGenerateTask>("cmakeGenerate${target.name.capitalized()}") {
         konanTarget.setDisallowChanges(target.konanTarget)
+        cmakeGenerator.convention(providers.getCMakeGenerator())
         cmakeBuildType.set(extension.buildType)
         cmakeDefines.set(extension.defines)
         sourceDirectory.set(extension.sourceDirectory)
@@ -208,6 +209,18 @@ class CMakeImportPlugin : Plugin<Project> {
             .orElse(providers.environmentVariable(KONAN_DATA_DIR_ENVIRONMENT_VARIABLE).map { File(it) })
             .orElse(providers.systemProperty(USER_HOME_SYSTEM_PROPERTY).map { File(it, KONAN_HOME_DIRECTORY_NAME) })
             .map { File(it, KOTLIN_NATIVE_DEPENDENCIES_DIRECTORY_NAME).absolutePath }
+
+    @Suppress("UnstableApiUsage")
+    private fun ProviderFactory.getCMakeGenerator(): Provider<String> = environmentVariable("CMAKE_GENERATOR")
+        .filter { it.isNotBlank() }
+        .orElse(getDefaultCMakeGenerator())
+
+    private fun ProviderFactory.getDefaultCMakeGenerator(): Provider<String> = systemProperty("os.name").map { os ->
+        when {
+            os.startsWith("Windows", ignoreCase = true) -> "Ninja"
+            else -> null
+        }
+    }
 
     internal companion object {
         private const val DEFAULT_BUILD_TYPE = "Release"
