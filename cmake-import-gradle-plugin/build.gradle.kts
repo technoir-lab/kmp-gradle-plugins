@@ -7,6 +7,7 @@ gradlePluginConfig {
 
     buildFeatures {
         abiValidation = true
+        serialization = true
     }
 
     metadata {
@@ -17,6 +18,8 @@ gradlePluginConfig {
 dependencies {
     implementation(libs.core.utils)
     implementation(libs.gradle.extensions)
+    implementation(libs.kotlinx.serialization.core)
+    implementation(libs.kotlinx.serialization.json)
 
     functionalTestImplementation(libs.assertj.core)
     functionalTestImplementation(libs.core.utils)

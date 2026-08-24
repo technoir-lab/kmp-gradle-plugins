@@ -194,6 +194,22 @@ class PkgConfigLinkerOptionsResolverTest {
     }
 
     @Test
+    fun `does not accept mixed-case archive suffixes`() {
+        val matching = pkgConfigFile(
+            "hello.pc",
+            $$"""
+            libdir=/install/lib
+            Name: hello
+            Libs: -L${libdir} -lhello -lm
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("hello.LiB"), listOf(matching))
+
+        assertThat(options).isEmpty()
+    }
+
+    @Test
     fun `selects conventionally prefixed pkg-config filename`() {
         val pkgConfigFile = pkgConfigFile(
             "libfoo.pc",

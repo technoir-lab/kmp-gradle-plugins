@@ -1,11 +1,13 @@
 package io.technoirlab.cmake.import.tasks
 
 import io.technoirlab.cmake.import.internal.CMakeRunner
+import io.technoirlab.gradle.asPath
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.LocalState
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
@@ -24,10 +26,6 @@ abstract class CMakeInstallTask @Inject internal constructor(
     private val execOperations: ExecOperations,
     private val fileSystemOperations: FileSystemOperations,
 ) : BaseCMakeTask() {
-
-    @get:Input
-    abstract val cmakeTarget: Property<String>
-
     @get:Input
     abstract val cmakeBuildType: Property<String>
 
@@ -35,15 +33,18 @@ abstract class CMakeInstallTask @Inject internal constructor(
     @get:Optional
     abstract val cmakeComponent: Property<String>
 
-    @get:InputDirectory
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val sourceDirectory: DirectoryProperty
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    internal abstract val buildStateFile: RegularFileProperty
 
     /**
      * CMake's non-relocatable build tree.
      */
     @get:LocalState
     abstract val configureDirectory: DirectoryProperty
+
+    @get:Input
+    internal abstract val configureDirectoryPath: Property<String>
 
     /**
      * Staged `include/` and `lib/` directories installed by CMake.
@@ -55,8 +56,8 @@ abstract class CMakeInstallTask @Inject internal constructor(
     internal fun install() {
         val buildType = cmakeBuildType.get()
         val component = cmakeComponent.orNull
-        val configureDirectory = configureDirectory.get().asFile.toPath()
-        val installDirectory = installDirectory.get().asFile.toPath()
+        val configureDirectory = configureDirectory.get().asPath()
+        val installDirectory = installDirectory.get().asPath()
 
         fileSystemOperations.delete {
             delete(installDirectory)

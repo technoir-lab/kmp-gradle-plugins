@@ -4,20 +4,24 @@ import io.technoirlab.cmake.import.CMakeImportPlugin.Companion.PROBLEM_GROUP
 import io.technoirlab.cmake.import.internal.CInteropDefinition
 import io.technoirlab.cmake.import.internal.CInteropDefinitionGenerator
 import io.technoirlab.cmake.import.internal.CMakeInstallOutput
-import io.technoirlab.cmake.import.internal.CMakeInstallScanner
+import io.technoirlab.cmake.import.internal.CMakeInstallScanner.Companion.INCLUDE_DIRECTORY_NAME
+import io.technoirlab.cmake.import.internal.CMakeInstallScanner.Companion.LIBRARY_DIRECTORY_NAME
 import io.technoirlab.cmake.import.internal.portablePathString
 import io.technoirlab.cmake.import.pkconfig.PkgConfigLinkerOptionsResolver
+import io.technoirlab.gradle.asPath
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.problems.Problem
 import org.gradle.api.problems.ProblemId
 import org.gradle.api.problems.Problems
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputDirectory
-import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
@@ -36,8 +40,7 @@ import kotlin.io.path.writeText
 @Suppress("UnstableApiUsage")
 @DisableCachingByDefault(because = "C-interop definitions contain absolute installation paths")
 abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor() : DefaultTask() {
-    @get:Input
-    @get:Optional
+    @get:Internal
     abstract val cmakeComponent: Property<String>
 
     @get:Input
@@ -46,9 +49,21 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
     @get:Input
     abstract val includedHeaders: SetProperty<String>
 
-    @get:InputDirectory
-    @get:PathSensitive(PathSensitivity.ABSOLUTE)
+    @get:Internal
     abstract val installDirectory: DirectoryProperty
+
+    @get:Input
+    internal abstract val installDirectoryPath: Property<String>
+
+    @get:Input
+    internal abstract val installedHeaderPaths: ListProperty<String>
+
+    @get:Input
+    internal abstract val installedArchivePaths: ListProperty<String>
+
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    internal abstract val installedPkgConfigFiles: ConfigurableFileCollection
 
     @get:OutputFile
     abstract val definitionFile: RegularFileProperty
@@ -61,11 +76,18 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
     internal fun generate() {
         val component = cmakeComponent.orNull
         val includedHeaders = includedHeaders.get()
-        val output = CMakeInstallScanner().scan(installDirectory.get().asFile.toPath())
+        val installDirectory = installDirectory.get().asPath()
+        val output = CMakeInstallOutput(
+            includeDirectory = installDirectory.resolve(INCLUDE_DIRECTORY_NAME),
+            libraryDirectory = installDirectory.resolve(LIBRARY_DIRECTORY_NAME),
+            headers = installedHeaderPaths.get().map(Path::of),
+            archives = installedArchivePaths.get().map(installDirectory::resolve),
+            pkgConfigFiles = installedPkgConfigFiles.files.map { it.toPath() }.sorted(),
+        )
         output.validate(component, includedHeaders)
 
         val archive = output.archives.single()
-        val definitionFile = definitionFile.get().asFile.toPath().createParentDirectories()
+        val definitionFile = definitionFile.get().asPath().createParentDirectories()
         val pkgConfigLinkerOptionsResolver = PkgConfigLinkerOptionsResolver()
         definitionFile.writeText(
             CInteropDefinitionGenerator().generate(
