@@ -61,9 +61,10 @@ cmakeImport {
 
 For every Kotlin/Native target, the plugin registers target-specific
 `cmakeGenerateToolchain<Target>`, `cmakeGenerate<Target>`, `cmakeBuild<Target>`, and
-`cmakeInstall<Target>` tasks, plus a `cmake` cinterop. They form a dependency chain that
-generates a toolchain, generates the CMake build system, builds the selected target, and
-stages its interop surface.
+`cmakeInstall<Target>` and `cmakeGenerateCInteropDefinition<Target>` tasks, plus a `cmake`
+cinterop. They form a dependency chain that generates a toolchain, generates the CMake build
+system, builds the selected target, stages its interop surface, and generates its C-interop
+definition.
 
 The generated toolchain reuses Kotlin/Native's prepared compiler, compiler arguments,
 target triple, sysroot, LLVM archiver, linker, and Apple or Android platform settings. This

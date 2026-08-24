@@ -3,6 +3,7 @@ package io.technoirlab.cmake.import
 import io.technoirlab.cmake.import.api.CMakeImportExtension
 import io.technoirlab.cmake.import.internal.KonanProperties
 import io.technoirlab.cmake.import.tasks.CMakeBuildTask
+import io.technoirlab.cmake.import.tasks.CMakeGenerateCInteropDefinitionTask
 import io.technoirlab.cmake.import.tasks.CMakeGenerateTask
 import io.technoirlab.cmake.import.tasks.CMakeGenerateToolchainTask
 import io.technoirlab.cmake.import.tasks.CMakeInstallTask
@@ -68,6 +69,11 @@ class CMakeImportPlugin : Plugin<Project> {
             extension,
             cmakeBuildDirectory,
             cmakeInstallDirectory,
+        )
+        val generateCInteropDefinitionTask = registerGenerateCInteropDefinitionTask(
+            target,
+            installTask,
+            extension,
             cinteropName = CINTEROP_NAME,
         )
 
@@ -76,7 +82,7 @@ class CMakeImportPlugin : Plugin<Project> {
                 tasks.named<CInteropProcess>(interopProcessingTaskName).configure {
                     settings.packageName = extension.packageName.get()
                     if (enabled) {
-                        definitionFile.set(installTask.flatMap { it.definitionFile })
+                        definitionFile.set(generateCInteropDefinitionTask.flatMap { it.definitionFile })
                         inputs.dir(installTask.flatMap { it.installDirectory })
                             .withPathSensitivity(PathSensitivity.RELATIVE)
                     }
@@ -147,19 +153,30 @@ class CMakeImportPlugin : Plugin<Project> {
         extension: CMakeImportExtension,
         cmakeBuildDirectory: Provider<Directory>,
         cmakeInstallDirectory: Provider<Directory>,
-        cinteropName: String,
     ) = tasks.register<CMakeInstallTask>("cmakeInstall${target.name.capitalized()}") {
         konanTarget.setDisallowChanges(target.konanTarget)
         cmakeTarget.set(extension.targetName)
         cmakeBuildType.set(extension.buildType)
         cmakeComponent.set(extension.installComponent)
-        packageName.set(extension.packageName)
-        includedHeaders.set(extension.headers)
         sourceDirectory.set(extension.sourceDirectory)
         configureDirectory.set(cmakeBuildDirectory)
         installDirectory.set(cmakeInstallDirectory)
-        definitionFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/$cinteropName.def"))
         dependsOn(buildTask)
+    }
+
+    private fun Project.registerGenerateCInteropDefinitionTask(
+        target: KotlinNativeTarget,
+        installTask: TaskProvider<CMakeInstallTask>,
+        extension: CMakeImportExtension,
+        cinteropName: String,
+    ) = tasks.register<CMakeGenerateCInteropDefinitionTask>(
+        "cmakeGenerateCInteropDefinition${target.name.capitalized()}",
+    ) {
+        cmakeComponent.set(extension.installComponent)
+        packageName.set(extension.packageName)
+        includedHeaders.set(extension.headers)
+        installDirectory.set(installTask.flatMap { it.installDirectory })
+        definitionFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/$cinteropName.def"))
     }
 
     private fun Project.getKonanPropertyOverrides(
