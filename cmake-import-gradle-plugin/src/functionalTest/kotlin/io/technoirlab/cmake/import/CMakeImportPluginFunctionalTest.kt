@@ -231,14 +231,40 @@ class CMakeImportPluginFunctionalTest {
         val generateTask = ":kmp-application:cmakeGenerate$suffix"
         val buildTask = ":kmp-application:cmakeBuild$suffix"
         val installTask = ":kmp-application:cmakeInstall$suffix"
+        val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
 
-        gradleRunner.build(installTask)
-        val repeatResult = gradleRunner.build(installTask)
+        gradleRunner.build(definitionTask)
+        val repeatResult = gradleRunner.build(definitionTask)
 
         assertThat(repeatResult.task(toolchainTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
         assertThat(repeatResult.task(generateTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
         assertThat(repeatResult.task(buildTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
         assertThat(repeatResult.task(installTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+        assertThat(repeatResult.task(definitionTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+    }
+
+    @Test
+    fun `changing package name regenerates definition without reinstalling`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val suffix = hostTargetSuffix()
+        val installTask = ":kmp-application:cmakeInstall$suffix"
+        val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
+        gradleRunner.build(definitionTask)
+        project.appendBuildScript(
+            """
+            cmakeImport {
+                packageName = "changed.cmake.package"
+            }
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner.build(definitionTask)
+
+        assertThat(result.task(installTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+        assertThat(result.task(definitionTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def")
+            .content()
+            .startsWith("package = changed.cmake.package")
     }
 
     @Test
@@ -251,6 +277,8 @@ class CMakeImportPluginFunctionalTest {
         assertThat(result.task(":kmp-application:cmakeGenerateToolchain${target.name.capitalized()}")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.task(":kmp-application:cmakeInstall${target.name.capitalized()}")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":kmp-application:cmakeGenerateCInteropDefinition${target.name.capitalized()}")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.task(":kmp-application:cinteropCmake${target.name.capitalized()}")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
@@ -289,10 +317,12 @@ class CMakeImportPluginFunctionalTest {
         targets.forEach { target ->
             val toolchainTask = ":kmp-application:cmakeGenerateToolchain${target.name.capitalized()}"
             val installTask = ":kmp-application:cmakeInstall${target.name.capitalized()}"
+            val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition${target.name.capitalized()}"
             val cinteropTask = ":kmp-application:cinteropCmake${target.name.capitalized()}"
             val linkTask = ":kmp-application:linkDebugFramework${target.name.capitalized()}"
             assertThat(result.task(toolchainTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
             assertThat(result.task(installTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+            assertThat(result.task(definitionTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
             assertThat(result.task(cinteropTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
             assertThat(result.task(linkTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
 
@@ -361,6 +391,8 @@ class CMakeImportPluginFunctionalTest {
             .contains("Detecting CXX compiler ABI info - done")
         assertThat(result.task(":kmp-application:cmakeInstallAndroidNativeArm64")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":kmp-application:cmakeGenerateCInteropDefinitionAndroidNativeArm64")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.task(":kmp-application:cinteropCmakeAndroidNativeArm64")?.outcome)
             .isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.task(arm64LinkTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
@@ -385,7 +417,7 @@ class CMakeImportPluginFunctionalTest {
     @Test
     fun `generated definition contains header files only`() {
         val project = gradleRunner.root.project("kmp-application")
-        gradleRunner.build(":kmp-application:cmakeInstall${hostTargetSuffix()}")
+        gradleRunner.build(":kmp-application:cmakeGenerateCInteropDefinition${hostTargetSuffix()}")
 
         val installDirectory = project.buildDir / "outputs/cmake/${hostTargetName()}"
         val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
@@ -419,7 +451,7 @@ class CMakeImportPluginFunctionalTest {
             "-Wl,-framework,CoreMedia -Wl,-weak_framework,UniformTypeIdentifiers -pthread -lm",
         )
 
-        gradleRunner.build(":kmp-application:cmakeInstall${hostTargetSuffix()}")
+        gradleRunner.build(":kmp-application:cmakeGenerateCInteropDefinition${hostTargetSuffix()}")
 
         val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
         assertThat(definition)
@@ -440,7 +472,7 @@ class CMakeImportPluginFunctionalTest {
             """.trimIndent(),
         )
 
-        gradleRunner.build(":kmp-application:cmakeInstall${hostTargetSuffix()}")
+        gradleRunner.build(":kmp-application:cmakeGenerateCInteropDefinition${hostTargetSuffix()}")
 
         val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
         assertThat(definition)
@@ -461,7 +493,7 @@ class CMakeImportPluginFunctionalTest {
             """.trimIndent(),
         )
 
-        gradleRunner.build(":kmp-application:cmakeInstall${hostTargetSuffix()}")
+        gradleRunner.build(":kmp-application:cmakeGenerateCInteropDefinition${hostTargetSuffix()}")
 
         val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
         assertThat(definition)
@@ -470,7 +502,7 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
-    fun `install reports configured public headers missing from the selected component`() {
+    fun `definition generation reports configured public headers missing from the selected component`() {
         gradleRunner.root.project("kmp-application").appendBuildScript(
             """
             cmakeImport {
@@ -481,7 +513,7 @@ class CMakeImportPluginFunctionalTest {
         )
 
         val result = gradleRunner.build(
-            ":kmp-application:cmakeInstall${hostTargetSuffix()}",
+            ":kmp-application:cmakeGenerateCInteropDefinition${hostTargetSuffix()}",
             expectFailure = true,
         )
 
@@ -492,7 +524,7 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
-    fun `install reports every invalid output before failing`() {
+    fun `definition generation reports every invalid output before failing`() {
         val cmakeLists = gradleRunner.root.dir / "cmake/CMakeLists.txt"
         cmakeLists.replaceText(
             """
@@ -510,7 +542,7 @@ class CMakeImportPluginFunctionalTest {
         )
 
         val result = gradleRunner.build(
-            ":kmp-application:cmakeInstall${hostTargetSuffix()}",
+            ":kmp-application:cmakeGenerateCInteropDefinition${hostTargetSuffix()}",
             expectFailure = true,
         )
 
