@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import java.nio.file.Path
 import kotlin.io.path.appendText
+import kotlin.io.path.createDirectories
 import kotlin.io.path.div
 import kotlin.io.path.writeText
 
@@ -268,6 +269,103 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
+    fun `changing CMake definitions invalidates Generate and propagates through installation`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val suffix = hostTargetSuffix()
+        val toolchainTask = ":kmp-application:cmakeGenerateToolchain$suffix"
+        val generateTask = ":kmp-application:cmakeGenerate$suffix"
+        val buildTask = ":kmp-application:cmakeBuild$suffix"
+        val installTask = ":kmp-application:cmakeInstall$suffix"
+        val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
+        gradleRunner.build(definitionTask)
+        project.appendBuildScript(
+            """
+            cmakeImport {
+                defines.put("UNUSED_DEFINITION", "changed")
+            }
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner.build(definitionTask)
+
+        assertThat(result.task(toolchainTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+        assertThat(result.task(generateTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(buildTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(installTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(definitionTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+    }
+
+    @Test
+    fun `consumer build input selected through Konan target propagates only downstream`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val targetName = hostTargetName()
+        val suffix = hostTargetSuffix()
+        val generateTask = ":kmp-application:cmakeGenerate$suffix"
+        val buildTask = ":kmp-application:cmakeBuild$suffix"
+        val installTask = ":kmp-application:cmakeInstall$suffix"
+        val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
+        project.appendBuildScript(
+            """
+            tasks.named<io.technoirlab.cmake.import.tasks.CMakeBuildTask>("cmakeBuild$suffix") {
+                inputs.property("consumerTarget", konanTarget.map { it.name })
+                inputs.property(
+                    "consumerBuildInput",
+                    providers.gradleProperty("consumerBuildInput").orElse("default")
+                )
+            }
+            """.trimIndent(),
+        )
+        gradleRunner.build(
+            definitionTask,
+            configuration = { gradleProperties["consumerBuildInput"] = "first-$targetName" },
+        )
+
+        val result = gradleRunner.build(
+            definitionTask,
+            configuration = { gradleProperties["consumerBuildInput"] = "second-$targetName" },
+        )
+
+        assertThat(result.task(generateTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+        assertThat(result.task(buildTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(installTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(definitionTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+    }
+
+    @Test
+    fun `installed header content invalidates CInterop without regenerating definition`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val suffix = hostTargetSuffix()
+        val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
+        val cinteropTask = ":kmp-application:cinteropCmake$suffix"
+        gradleRunner.build(cinteropTask)
+        val installedHeader = project.buildDir.resolve("outputs/cmake/${hostTargetName()}/include/hello.h")
+        installedHeader.appendText("\n/* Changed after installation. */\n")
+
+        val result = gradleRunner.build(cinteropTask, "-x", ":kmp-application:cmakeInstall$suffix")
+
+        assertThat(result.task(definitionTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+        assertThat(result.task(cinteropTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+    }
+
+    @Test
+    fun `unrelated staged metadata does not invalidate definition or CInterop`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val suffix = hostTargetSuffix()
+        val installTask = ":kmp-application:cmakeInstall$suffix"
+        val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
+        val cinteropTask = ":kmp-application:cinteropCmake$suffix"
+        gradleRunner.build(cinteropTask)
+        project.buildDir.resolve("outputs/cmake/${hostTargetName()}/share/readme.txt")
+            .apply { parent.createDirectories() }
+            .writeText("unrelated metadata")
+
+        val result = gradleRunner.build(cinteropTask, "-x", installTask)
+
+        assertThat(result.task(definitionTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+        assertThat(result.task(cinteropTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+    }
+
+    @Test
     fun `builds and links an enabled non-host target with its generated toolchain`() {
         val target = nonHostTarget()
         val project = gradleRunner.root.project("kmp-application")
@@ -400,8 +498,11 @@ class CMakeImportPluginFunctionalTest {
 
     @Test
     fun `editing C++ source reruns CMake task and updates application output`() {
-        val buildTask = ":kmp-application:cmakeBuild${hostTargetSuffix()}"
-        val runTask = ":kmp-application:runReleaseExecutable${hostTargetSuffix()}"
+        val suffix = hostTargetSuffix()
+        val buildTask = ":kmp-application:cmakeBuild$suffix"
+        val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
+        val cinteropTask = ":kmp-application:cinteropCmake$suffix"
+        val runTask = ":kmp-application:runReleaseExecutable$suffix"
 
         gradleRunner.build(runTask)
         val source = gradleRunner.root.dir / "cmake/src/hello.cpp"
@@ -411,7 +512,28 @@ class CMakeImportPluginFunctionalTest {
         val runResult = gradleRunner.build(runTask)
 
         assertThat(rebuildResult.task(buildTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(runResult.task(definitionTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+        assertThat(runResult.task(cinteropTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(runResult.output).contains("Changed, world!")
+    }
+
+    @Test
+    fun `uppercase LIB is a CInterop content input`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val suffix = hostTargetSuffix()
+        val installTask = ":kmp-application:cmakeInstall$suffix"
+        val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
+        val cinteropTask = ":kmp-application:cinteropCmake$suffix"
+        gradleRunner.build(cinteropTask)
+        val uppercaseArchive = project.buildDir.resolve("outputs/cmake/${hostTargetName()}/lib/unreferenced.LIB")
+        uppercaseArchive.writeText("first")
+
+        val addedResult = gradleRunner.build(cinteropTask, "-x", installTask, "-x", definitionTask)
+        uppercaseArchive.writeText("second")
+        val changedResult = gradleRunner.build(cinteropTask, "-x", installTask, "-x", definitionTask)
+
+        assertThat(addedResult.task(cinteropTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(changedResult.task(cinteropTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
     }
 
     @Test
@@ -459,6 +581,30 @@ class CMakeImportPluginFunctionalTest {
             .contains(
                 "-framework CoreMedia -weak_framework UniformTypeIdentifiers -lpthread -lm",
             )
+    }
+
+    @Test
+    fun `uppercase pkg-config linker change invalidates definition and CInterop`() {
+        val suffix = hostTargetSuffix()
+        val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
+        val cinteropTask = ":kmp-application:cinteropCmake$suffix"
+        val cmakeLists = gradleRunner.root.dir / "cmake/CMakeLists.txt"
+        cmakeLists.replaceText(
+            "configure_file(hello.pc \"\${CMAKE_CURRENT_BINARY_DIR}/hello.pc\" @ONLY)",
+            "configure_file(hello.pc \"\${CMAKE_CURRENT_BINARY_DIR}/hello.PC\" @ONLY)",
+        )
+        cmakeLists.replaceText(
+            "install(FILES \"\${CMAKE_CURRENT_BINARY_DIR}/hello.pc\" DESTINATION lib/pkgconfig COMPONENT hello-static)",
+            "install(FILES \"\${CMAKE_CURRENT_BINARY_DIR}/hello.PC\" DESTINATION lib/pkgconfig COMPONENT hello-static)",
+        )
+        gradleRunner.build(cinteropTask)
+        val pkgConfigFile = gradleRunner.root.dir / "cmake/hello.pc"
+        pkgConfigFile.replaceText("-lm", "-pthread -lm")
+
+        val result = gradleRunner.build(cinteropTask)
+
+        assertThat(result.task(definitionTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(cinteropTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
     }
 
     @Test
@@ -583,7 +729,7 @@ class CMakeImportPluginFunctionalTest {
 
     private fun Path.staticArchives() = toFile()
         .walkTopDown()
-        .filter { it.isFile && (it.extension == "a" || it.extension.equals("lib", ignoreCase = true)) }
+        .filter { it.isFile && it.extension in setOf("a", "A", "lib", "LIB") }
         .toList()
 
     private fun Path.cmakePath(): String = toString().replace('\\', '/')

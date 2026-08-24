@@ -50,8 +50,8 @@ internal class PkgConfigLinkerOptionsResolver(
     private fun Path.library(): Library? {
         val fileName = fileName.toString()
         val nameWithoutExtension = when {
-            fileName.endsWith(".a") -> fileName.dropLast(2)
-            fileName.endsWith(".lib", ignoreCase = true) -> fileName.dropLast(4)
+            fileName.endsWith(".a") || fileName.endsWith(".A") -> fileName.dropLast(2)
+            fileName.endsWith(".lib") || fileName.endsWith(".LIB") -> fileName.dropLast(4)
             else -> return null
         }
         val linkerName = nameWithoutExtension.removeLibraryPrefix().takeIf { it.isNotEmpty() } ?: return null

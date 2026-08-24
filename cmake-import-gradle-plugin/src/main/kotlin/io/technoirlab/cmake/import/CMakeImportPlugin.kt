@@ -1,13 +1,18 @@
 package io.technoirlab.cmake.import
 
 import io.technoirlab.cmake.import.api.CMakeImportExtension
+import io.technoirlab.cmake.import.internal.CMakeInstallScanner
 import io.technoirlab.cmake.import.internal.KonanProperties
+import io.technoirlab.cmake.import.internal.normalizedPathString
+import io.technoirlab.cmake.import.internal.portablePathString
+import io.technoirlab.cmake.import.internal.relativePath
 import io.technoirlab.cmake.import.tasks.CMakeBuildTask
 import io.technoirlab.cmake.import.tasks.CMakeGenerateCInteropDefinitionTask
 import io.technoirlab.cmake.import.tasks.CMakeGenerateTask
 import io.technoirlab.cmake.import.tasks.CMakeGenerateToolchainTask
 import io.technoirlab.cmake.import.tasks.CMakeInstallTask
 import io.technoirlab.core.capitalized
+import io.technoirlab.gradle.asPath
 import io.technoirlab.gradle.setDisallowChanges
 import io.technoirlab.gradle.whenPluginApplied
 import org.gradle.api.Plugin
@@ -83,7 +88,15 @@ class CMakeImportPlugin : Plugin<Project> {
                     settings.packageName = extension.packageName.get()
                     if (enabled) {
                         definitionFile.set(generateCInteropDefinitionTask.flatMap { it.definitionFile })
-                        inputs.dir(installTask.flatMap { it.installDirectory })
+                        inputs.files(
+                            installTask.flatMap { it.installDirectory }.map { directory ->
+                                directory.asFileTree.matching {
+                                    include(INSTALLED_HEADERS_PATTERN)
+                                    include(INSTALLED_ARCHIVE_PATTERNS)
+                                }
+                            },
+                        )
+                            .withPropertyName("cmakeInstalledInteropFiles")
                             .withPathSensitivity(PathSensitivity.RELATIVE)
                     }
                 }
@@ -107,7 +120,6 @@ class CMakeImportPlugin : Plugin<Project> {
                 },
             )
             toolchainFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/toolchain.cmake"))
-            dependsOn(nativeDistributionTask)
         }
     }
 
@@ -123,11 +135,13 @@ class CMakeImportPlugin : Plugin<Project> {
         cmakeBuildType.set(extension.buildType)
         cmakeDefines.set(extension.defines)
         sourceDirectory.set(extension.sourceDirectory)
+        sourceDirectoryPath.set(sourceDirectory.map { it.asPath().normalizedPathString() })
         toolchainFile.set(generateToolchainTask.flatMap { it.toolchainFile })
+        toolchainFilePath.set(toolchainFile.map { it.asPath().normalizedPathString() })
         configureDirectory.set(cmakeBuildDirectory)
+        configureDirectoryPath.set(configureDirectory.map { it.asPath().normalizedPathString() })
         cacheFile.set(cmakeBuildDirectory.map { it.file(CMAKE_CACHE_FILE_NAME) })
-        generateOutputDirectory.set(taskStateDirectory.map { it.dir("generate") })
-        dependsOn(generateToolchainTask)
+        generateStateFile.set(taskStateDirectory.map { it.file(GENERATE_STATE_FILE_NAME) })
     }
 
     private fun Project.registerBuildTask(
@@ -140,11 +154,10 @@ class CMakeImportPlugin : Plugin<Project> {
         konanTarget.setDisallowChanges(target.konanTarget)
         cmakeTarget.set(extension.targetName)
         cmakeBuildType.set(extension.buildType)
-        sourceDirectory.set(extension.sourceDirectory)
-        generateOutputDirectory.set(generateTask.flatMap { it.generateOutputDirectory })
+        generateStateFile.set(generateTask.flatMap { it.generateStateFile })
         configureDirectory.set(cmakeBuildDirectory)
-        buildOutputDirectory.set(taskStateDirectory.map { it.dir("build") })
-        dependsOn(generateTask)
+        configureDirectoryPath.set(configureDirectory.map { it.asPath().normalizedPathString() })
+        buildStateFile.set(taskStateDirectory.map { it.file(BUILD_STATE_FILE_NAME) })
     }
 
     private fun Project.registerInstallTask(
@@ -155,13 +168,12 @@ class CMakeImportPlugin : Plugin<Project> {
         cmakeInstallDirectory: Provider<Directory>,
     ) = tasks.register<CMakeInstallTask>("cmakeInstall${target.name.capitalized()}") {
         konanTarget.setDisallowChanges(target.konanTarget)
-        cmakeTarget.set(extension.targetName)
         cmakeBuildType.set(extension.buildType)
         cmakeComponent.set(extension.installComponent)
-        sourceDirectory.set(extension.sourceDirectory)
+        buildStateFile.set(buildTask.flatMap { it.buildStateFile })
         configureDirectory.set(cmakeBuildDirectory)
+        configureDirectoryPath.set(configureDirectory.map { it.asPath().normalizedPathString() })
         installDirectory.set(cmakeInstallDirectory)
-        dependsOn(buildTask)
     }
 
     private fun Project.registerGenerateCInteropDefinitionTask(
@@ -169,14 +181,39 @@ class CMakeImportPlugin : Plugin<Project> {
         installTask: TaskProvider<CMakeInstallTask>,
         extension: CMakeImportExtension,
         cinteropName: String,
-    ) = tasks.register<CMakeGenerateCInteropDefinitionTask>(
-        "cmakeGenerateCInteropDefinition${target.name.capitalized()}",
-    ) {
-        cmakeComponent.set(extension.installComponent)
-        packageName.set(extension.packageName)
-        includedHeaders.set(extension.headers)
-        installDirectory.set(installTask.flatMap { it.installDirectory })
-        definitionFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/$cinteropName.def"))
+    ): TaskProvider<CMakeGenerateCInteropDefinitionTask> {
+        val installDirectory = installTask.flatMap { it.installDirectory }
+        val installOutput = installDirectory.map { directory ->
+            CMakeInstallScanner().scan(directory.asPath())
+        }
+        val taskName = "cmakeGenerateCInteropDefinition${target.name.capitalized()}"
+        return tasks.register<CMakeGenerateCInteropDefinitionTask>(taskName) {
+            cmakeComponent.set(extension.installComponent)
+            packageName.set(extension.packageName)
+            includedHeaders.set(extension.headers)
+            this.installDirectory.set(installDirectory)
+            installDirectoryPath.set(installDirectory.map { it.asPath().normalizedPathString() })
+            installedHeaderPaths.set(
+                installOutput.map { output ->
+                    output.headers.map { it.portablePathString() }.sorted()
+                },
+            )
+            installedArchivePaths.set(
+                installOutput.map { output ->
+                    output.archives
+                        .map { it.relativePath(output.libraryDirectory.parent).portablePathString() }
+                        .sorted()
+                },
+            )
+            installedPkgConfigFiles.from(
+                installDirectory.map { directory ->
+                    directory.asFileTree.matching {
+                        include(INSTALLED_PKG_CONFIG_PATTERNS)
+                    }
+                },
+            )
+            definitionFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/$cinteropName.def"))
+        }
     }
 
     private fun Project.getKonanPropertyOverrides(
@@ -240,6 +277,8 @@ class CMakeImportPlugin : Plugin<Project> {
     internal companion object {
         private const val DEFAULT_BUILD_TYPE = "Release"
         private const val CMAKE_CACHE_FILE_NAME = "CMakeCache.txt"
+        private const val GENERATE_STATE_FILE_NAME = "generate.state"
+        private const val BUILD_STATE_FILE_NAME = "build.state"
         private const val CINTEROP_NAME = "cmake"
         private const val KOTLIN_NATIVE_DOWNLOAD_TASK_NAME = "downloadKotlinNativeDistribution"
         private const val KONAN_DATA_DIR_GRADLE_PROPERTY = "konan.data.dir"
@@ -247,6 +286,13 @@ class CMakeImportPlugin : Plugin<Project> {
         private const val USER_HOME_SYSTEM_PROPERTY = "user.home"
         private const val KONAN_HOME_DIRECTORY_NAME = ".konan"
         private const val KOTLIN_NATIVE_DEPENDENCIES_DIRECTORY_NAME = "dependencies"
+        private const val INSTALLED_HEADERS_PATTERN = "${CMakeInstallScanner.INCLUDE_DIRECTORY_NAME}/**"
+        private val INSTALLED_ARCHIVE_PATTERNS = CMakeInstallScanner.STATIC_ARCHIVE_EXTENSIONS.map { extension ->
+            "${CMakeInstallScanner.LIBRARY_DIRECTORY_NAME}/**/*.$extension"
+        }
+        private val INSTALLED_PKG_CONFIG_PATTERNS = CMakeInstallScanner.PKG_CONFIG_FILE_EXTENSIONS.map { extension ->
+            "${CMakeInstallScanner.LIBRARY_DIRECTORY_NAME}/**/*.$extension"
+        }
 
         @Suppress("UnstableApiUsage")
         internal val PROBLEM_GROUP = ProblemGroup.create("cmake-import", "CMake Import plugin")

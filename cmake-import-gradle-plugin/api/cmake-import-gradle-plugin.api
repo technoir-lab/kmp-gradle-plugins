@@ -31,8 +31,6 @@ public abstract class io/technoirlab/cmake/import/tasks/CMakeBuildTask : io/tech
 	public abstract fun getCmakeBuildType ()Lorg/gradle/api/provider/Property;
 	public abstract fun getCmakeTarget ()Lorg/gradle/api/provider/Property;
 	public abstract fun getConfigureDirectory ()Lorg/gradle/api/file/DirectoryProperty;
-	public abstract fun getGenerateOutputDirectory ()Lorg/gradle/api/file/DirectoryProperty;
-	public abstract fun getSourceDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 }
 
 public abstract class io/technoirlab/cmake/import/tasks/CMakeGenerateCInteropDefinitionTask : org/gradle/api/DefaultTask {
@@ -49,7 +47,6 @@ public abstract class io/technoirlab/cmake/import/tasks/CMakeGenerateTask : io/t
 	public abstract fun getCmakeDefines ()Lorg/gradle/api/provider/MapProperty;
 	public abstract fun getCmakeGenerator ()Lorg/gradle/api/provider/Property;
 	public abstract fun getConfigureDirectory ()Lorg/gradle/api/file/DirectoryProperty;
-	public abstract fun getGenerateOutputDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 	public abstract fun getSourceDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 	public abstract fun getToolchainFile ()Lorg/gradle/api/file/RegularFileProperty;
 }
@@ -57,9 +54,7 @@ public abstract class io/technoirlab/cmake/import/tasks/CMakeGenerateTask : io/t
 public abstract class io/technoirlab/cmake/import/tasks/CMakeInstallTask : io/technoirlab/cmake/import/tasks/BaseCMakeTask {
 	public abstract fun getCmakeBuildType ()Lorg/gradle/api/provider/Property;
 	public abstract fun getCmakeComponent ()Lorg/gradle/api/provider/Property;
-	public abstract fun getCmakeTarget ()Lorg/gradle/api/provider/Property;
 	public abstract fun getConfigureDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 	public abstract fun getInstallDirectory ()Lorg/gradle/api/file/DirectoryProperty;
-	public abstract fun getSourceDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 }
 

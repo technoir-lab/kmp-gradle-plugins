@@ -1,18 +1,22 @@
 package io.technoirlab.cmake.import.tasks
 
 import io.technoirlab.cmake.import.internal.CMakeRunner
+import io.technoirlab.cmake.import.internal.CMakeTaskStateManager
+import io.technoirlab.gradle.asPath
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.LocalState
-import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 import org.gradle.work.DisableCachingByDefault
 import javax.inject.Inject
+import kotlin.io.path.deleteIfExists
 
 /**
  * Builds a target from a generated CMake build system.
@@ -28,13 +32,9 @@ abstract class CMakeBuildTask @Inject internal constructor(
     @get:Input
     abstract val cmakeBuildType: Property<String>
 
-    @get:InputDirectory
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val sourceDirectory: DirectoryProperty
-
-    @get:InputDirectory
+    @get:InputFile
     @get:PathSensitive(PathSensitivity.NONE)
-    abstract val generateOutputDirectory: DirectoryProperty
+    internal abstract val generateStateFile: RegularFileProperty
 
     /**
      * CMake's non-relocatable build tree.
@@ -42,19 +42,26 @@ abstract class CMakeBuildTask @Inject internal constructor(
     @get:LocalState
     abstract val configureDirectory: DirectoryProperty
 
+    @get:Input
+    internal abstract val configureDirectoryPath: Property<String>
+
     /**
-     * Empty directory recording successful completion without overlapping other task outputs.
+     * Records successful execution without overlapping CMake's build tree.
      */
-    @get:OutputDirectory
-    internal abstract val buildOutputDirectory: DirectoryProperty
+    @get:OutputFile
+    internal abstract val buildStateFile: RegularFileProperty
 
     @TaskAction
     internal fun build() {
         val target = cmakeTarget.get()
         val buildType = cmakeBuildType.get()
-        val configureDirectory = configureDirectory.get().asFile.toPath()
+        val configureDirectory = configureDirectory.get().asPath()
+        val stateFile = buildStateFile.get().asPath()
+        val stateManager = CMakeTaskStateManager()
 
+        stateFile.deleteIfExists()
         val cmakeRunner = CMakeRunner(execOperations)
         cmakeRunner.build(configureDirectory, target, buildType)
+        stateManager.write(stateFile, stateManager.create())
     }
 }

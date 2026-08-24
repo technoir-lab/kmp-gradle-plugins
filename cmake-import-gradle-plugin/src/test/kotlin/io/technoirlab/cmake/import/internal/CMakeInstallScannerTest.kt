@@ -27,21 +27,24 @@ class CMakeInstallScannerTest {
     }
 
     @Test
-    fun `finds supported header extensions recursively and case insensitively`() {
+    fun `finds supported header extensions recursively in lowercase and uppercase`() {
         val includeDirectory = (installDirectory / "include").createDirectories()
-        (includeDirectory / "hello.h").createFile()
         val nestedDirectory = (includeDirectory / "detail").createDirectories()
         val headers = listOf(
-            Path("hello.h"),
-            Path("detail/one.H"),
-            Path("detail/two.hh"),
-            Path("detail/three.hpp"),
-            Path("detail/four.hxx"),
-        )
-        (nestedDirectory / "one.H").createFile()
-        (nestedDirectory / "two.hh").createFile()
-        (nestedDirectory / "three.hpp").createFile()
-        (nestedDirectory / "four.hxx").createFile()
+            "lower-h.h",
+            "upper-h.H",
+            "lower-hh.hh",
+            "upper-hh.HH",
+            "lower-hpp.hpp",
+            "upper-hpp.HPP",
+            "lower-hxx.hxx",
+            "upper-hxx.HXX",
+        ).map { fileName ->
+            (nestedDirectory / fileName).createFile()
+            Path("detail/$fileName")
+        }
+        (nestedDirectory / "ignored-one.Hpp").createFile()
+        (nestedDirectory / "ignored-two.hPp").createFile()
 
         val output = scanner.scan(installDirectory)
 
@@ -63,33 +66,40 @@ class CMakeInstallScannerTest {
     }
 
     @Test
-    fun `finds static archives recursively and ignores other library files`() {
+    fun `finds lowercase and uppercase static archive suffixes recursively`() {
         val libraryDirectory = (installDirectory / "lib").createDirectories()
         val unixArchive = (libraryDirectory / "libhello.a").createFile()
+        val uppercaseUnixArchive = (libraryDirectory / "libworld.A").createFile()
         val nestedDirectory = (libraryDirectory / "nested").createDirectories()
         val windowsArchive = (nestedDirectory / "hello.LIB").createFile()
+        val mixedCaseArchive = (nestedDirectory / "ignored.LiB").createFile()
         (libraryDirectory / "libhello.so").createFile()
         (libraryDirectory / "libhello.a.debug").createFile()
         (nestedDirectory / "hello.dll").createFile()
 
         val output = scanner.scan(installDirectory)
 
-        assertThat(output.archives).containsExactlyInAnyOrder(unixArchive, windowsArchive)
+        assertThat(output.archives)
+            .containsExactlyInAnyOrder(unixArchive, uppercaseUnixArchive, windowsArchive)
+            .doesNotContain(mixedCaseArchive)
     }
 
     @Test
-    fun `finds pkg-config files recursively and case insensitively`() {
+    fun `finds lowercase and uppercase pkg-config suffixes recursively`() {
         val libraryDirectory = (installDirectory / "lib").createDirectories()
         val pkgConfigDirectory = (libraryDirectory / "pkgconfig").createDirectories()
         val pkgConfigFiles = listOf(
             (pkgConfigDirectory / "hello.pc").createFile(),
             (pkgConfigDirectory / "world.PC").createFile(),
         )
+        val mixedCasePkgConfigFile = (pkgConfigDirectory / "ignored.Pc").createFile()
         (pkgConfigDirectory / "README").createFile()
 
         val output = scanner.scan(installDirectory)
 
-        assertThat(output.pkgConfigFiles).containsExactlyInAnyOrderElementsOf(pkgConfigFiles)
+        assertThat(output.pkgConfigFiles)
+            .containsExactlyInAnyOrderElementsOf(pkgConfigFiles)
+            .doesNotContain(mixedCasePkgConfigFile)
     }
 
     @Test
