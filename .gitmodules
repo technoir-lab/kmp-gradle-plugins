@@ -1,0 +1,6 @@
+[submodule "smoke-test/volk/third_party/volk"]
+	path = smoke-test/volk/third_party/volk
+	url = https://github.com/zeux/volk.git
+[submodule "smoke-test/sdl/third_party/SDL"]
+	path = smoke-test/sdl/third_party/SDL
+	url = https://github.com/libsdl-org/SDL.git
