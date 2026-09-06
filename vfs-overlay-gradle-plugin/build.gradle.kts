@@ -24,6 +24,8 @@ gradlePlugin {
 }
 
 dependencies {
+    implementation(project(":kotlin-native-utils"))
+
     implementation(libs.gradle.extensions)
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.kotlinx.serialization.json)

@@ -11,6 +11,7 @@ public abstract interface class io/technoirlab/vfsoverlay/api/VfsOverlayExtensio
 	public abstract fun getKotlinNativeDependenciesDir ()Lorg/gradle/api/provider/Provider;
 	public abstract fun getMappings ()Lorg/gradle/api/provider/MapProperty;
 	public abstract fun mapping (Ljava/io/File;Ljava/io/File;)V
+	public abstract fun mapping (Lorg/gradle/api/file/Directory;Lorg/gradle/api/file/Directory;)V
 	public abstract fun mapping (Lorg/gradle/api/provider/Provider;Lorg/gradle/api/provider/Provider;)V
 }
 
