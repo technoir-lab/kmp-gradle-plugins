@@ -6,7 +6,6 @@ gradlePluginConfig {
     packageName = "io.technoirlab.cmake.import"
 
     buildFeatures {
-        abiValidation = true
         serialization = true
     }
 

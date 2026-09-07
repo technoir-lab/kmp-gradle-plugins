@@ -4,7 +4,7 @@ pluginManagement {
         mavenCentral()
     }
     plugins {
-        id("io.technoirlab.conventions.kotlin-multiplatform-application") version "v55"
+        id("io.technoirlab.conventions.kotlin-multiplatform-application") version "v56"
     }
 
     includeBuild("..")
