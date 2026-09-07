@@ -6,7 +6,6 @@ gradlePluginConfig {
     packageName = "io.technoirlab.vfsoverlay"
 
     buildFeatures {
-        abiValidation = true
         serialization = true
     }
 
