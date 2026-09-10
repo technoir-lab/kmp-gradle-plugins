@@ -1,14 +1,16 @@
-package io.technoirlab.cmake.import.internal
+package io.technoirlab.kotlin.native.utils
 
-import org.jetbrains.kotlin.konan.file.use
 import java.nio.file.Path
 import java.util.Properties
 import kotlin.io.path.bufferedReader
 
-internal object KonanProperties {
-    const val KONAN_PROPERTIES_PATH = "konan/konan.properties"
-
+/**
+ * Loads Kotlin/Native distribution properties and parses compiler property overrides.
+ */
+object KonanProperties {
     private const val OPTION = "-Xoverride-konan-properties"
+
+    const val KONAN_PROPERTIES_PATH = "konan/konan.properties"
 
     fun load(file: Path, overrides: Map<String, String>): Properties = file.bufferedReader().use { reader ->
         Properties().apply {

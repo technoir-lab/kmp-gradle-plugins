@@ -1,0 +1,14 @@
+public final class io/technoirlab/kotlin/native/utils/KonanProperties {
+	public static final field INSTANCE Lio/technoirlab/kotlin/native/utils/KonanProperties;
+	public static final field KONAN_PROPERTIES_PATH Ljava/lang/String;
+	public final fun load (Ljava/nio/file/Path;Ljava/util/Map;)Ljava/util/Properties;
+	public final fun parse (Ljava/util/List;)Ljava/util/Map;
+	public final fun select (Ljava/util/Map;Ljava/util/List;)Ljava/util/Map;
+}
+
+public final class io/technoirlab/kotlin/native/utils/KotlinNativeLayout {
+	public fun <init> (Lorg/gradle/api/provider/ProviderFactory;Lorg/gradle/api/file/ProjectLayout;)V
+	public final fun getDataDirectory ()Lorg/gradle/api/provider/Provider;
+	public final fun getDependenciesDirectory ()Lorg/gradle/api/provider/Provider;
+}
+

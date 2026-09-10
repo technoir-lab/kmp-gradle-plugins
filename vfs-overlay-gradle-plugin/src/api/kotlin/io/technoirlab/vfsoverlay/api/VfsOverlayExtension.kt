@@ -1,5 +1,6 @@
 package io.technoirlab.vfsoverlay.api
 
+import org.gradle.api.file.Directory
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Provider
 import java.io.File
@@ -10,7 +11,7 @@ import java.io.File
  * Example usage:
  * ```kotlin
  * vfsOverlay {
- *     mapping(File("/original/path"), File("/virtual/path"))
+ *     mapping(layout.projectDirectory.dir("original"), layout.projectDirectory.dir("virtual"))
  * }
  * ```
  */
@@ -24,12 +25,17 @@ interface VfsOverlayExtension {
     /**
      * Path to the Kotlin/Native dependencies directory.
      */
-    val kotlinNativeDependenciesDir: Provider<File>
+    val kotlinNativeDependenciesDir: Provider<Directory>
 
     /**
      * Adds a file mapping from a source (original) path to a target (virtual) path.
      */
     fun mapping(source: File, target: File)
+
+    /**
+     * Adds a directory mapping from a source (original) directory to a target (virtual) directory.
+     */
+    fun mapping(source: Directory, target: Directory)
 
     /**
      * Adds a file mapping from a source (original) path to a target (virtual) path.

@@ -1,4 +1,4 @@
-package io.technoirlab.cmake.import.internal
+package io.technoirlab.kotlin.native.utils
 
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -6,6 +6,7 @@ import org.assertj.core.data.MapEntry.entry
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
+import kotlin.io.path.div
 import kotlin.io.path.writeText
 
 class KonanPropertiesTest {
@@ -20,7 +21,7 @@ class KonanPropertiesTest {
 
     @Test
     fun `loads properties and applies overrides`(@TempDir temporaryDirectory: Path) {
-        val propertiesFile = temporaryDirectory.resolve("konan.properties")
+        val propertiesFile = temporaryDirectory / "konan.properties"
         propertiesFile.writeText(
             """
             retained=distribution

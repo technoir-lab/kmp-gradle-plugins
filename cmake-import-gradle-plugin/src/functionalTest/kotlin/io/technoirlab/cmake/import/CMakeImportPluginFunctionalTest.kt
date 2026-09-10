@@ -109,7 +109,7 @@ class CMakeImportPluginFunctionalTest {
             tasks.register("printCmakeNativeDependenciesDirectory") {
                 doLast {
                     val toolchainTask = tasks.named("cmakeGenerateToolchain$suffix").get()
-                    println("nativeDependencies=" + toolchainTask.inputs.properties["kotlinNativeDependenciesDirectory"])
+                    println("nativeDependencies=" + toolchainTask.inputs.properties["kotlinNativeDependenciesDirectoryPath"])
                 }
             }
             """.trimIndent(),
@@ -228,15 +228,22 @@ class CMakeImportPluginFunctionalTest {
     @Test
     fun `repeated CMake lifecycle tasks are up to date`() {
         val suffix = hostTargetSuffix()
+        val downloadTask = ":kmp-application:downloadKotlinNativeDistribution"
         val toolchainTask = ":kmp-application:cmakeGenerateToolchain$suffix"
         val generateTask = ":kmp-application:cmakeGenerate$suffix"
         val buildTask = ":kmp-application:cmakeBuild$suffix"
         val installTask = ":kmp-application:cmakeInstall$suffix"
         val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
+        val marker = gradleRunner.root.project("kmp-application").buildDir / "konan.txt"
+        assertThat(marker).doesNotExist()
 
-        gradleRunner.build(definitionTask)
+        val firstResult = gradleRunner.build(definitionTask)
         val repeatResult = gradleRunner.build(definitionTask)
 
+        assertThat(firstResult.task(downloadTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(firstResult.tasks).extracting<String> { it.path }.containsSubsequence(downloadTask, toolchainTask)
+        assertThat(marker).exists()
+        assertThat(repeatResult.output).contains("Reusing configuration cache.")
         assertThat(repeatResult.task(toolchainTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
         assertThat(repeatResult.task(generateTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
         assertThat(repeatResult.task(buildTask)?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)

@@ -2,7 +2,6 @@ package io.technoirlab.cmake.import
 
 import io.technoirlab.cmake.import.api.CMakeImportExtension
 import io.technoirlab.cmake.import.internal.CMakeInstallScanner
-import io.technoirlab.cmake.import.internal.KonanProperties
 import io.technoirlab.cmake.import.internal.normalizedPathString
 import io.technoirlab.cmake.import.internal.portablePathString
 import io.technoirlab.cmake.import.internal.relativePath
@@ -15,6 +14,8 @@ import io.technoirlab.core.capitalized
 import io.technoirlab.gradle.asPath
 import io.technoirlab.gradle.setDisallowChanges
 import io.technoirlab.gradle.whenPluginApplied
+import io.technoirlab.kotlin.native.utils.KonanProperties
+import io.technoirlab.kotlin.native.utils.KotlinNativeLayout
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
@@ -109,16 +110,17 @@ class CMakeImportPlugin : Plugin<Project> {
         extension: CMakeImportExtension,
     ): TaskProvider<CMakeGenerateToolchainTask> {
         val nativeDistributionTask = tasks.named<KotlinNativeDownloadTask>(KOTLIN_NATIVE_DOWNLOAD_TASK_NAME)
+        val nativeLayout = KotlinNativeLayout(providers, layout)
+        val nativePropertiesFile = nativeDistributionTask.flatMap { it.nativeDirectoryLocation }
+            .map { marker ->
+                File(marker.asFile.readText().trim(), KonanProperties.KONAN_PROPERTIES_PATH)
+            }
         return tasks.register<CMakeGenerateToolchainTask>("cmakeGenerateToolchain${target.name.capitalized()}") {
             konanTarget.setDisallowChanges(target.konanTarget)
-            kotlinNativeDependenciesDirectory.set(getKotlinNativeDependenciesFolder(providers))
+            kotlinNativeDependenciesDirectory.set(nativeLayout.dependenciesDirectory)
+            kotlinNativeDependenciesDirectoryPath.set(kotlinNativeDependenciesDirectory.map { it.asFile.path })
             konanPropertyOverrides.set(getKonanPropertyOverrides(target, extension.buildType))
-            nativeHomeMarker.set(nativeDistributionTask.flatMap { it.nativeDirectoryLocation })
-            konanPropertiesFile.set(
-                nativeDistributionTask.flatMap {
-                    it.konanHome.file(KonanProperties.KONAN_PROPERTIES_PATH)
-                },
-            )
+            konanPropertiesFile.set(layout.file(nativePropertiesFile))
             toolchainFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/toolchain.cmake"))
         }
     }
@@ -255,13 +257,6 @@ class CMakeImportPlugin : Plugin<Project> {
         }
     }
 
-    private fun getKotlinNativeDependenciesFolder(providers: ProviderFactory): Provider<String> =
-        providers.gradleProperty(KONAN_DATA_DIR_GRADLE_PROPERTY)
-            .map { File(it) }
-            .orElse(providers.environmentVariable(KONAN_DATA_DIR_ENVIRONMENT_VARIABLE).map { File(it) })
-            .orElse(providers.systemProperty(USER_HOME_SYSTEM_PROPERTY).map { File(it, KONAN_HOME_DIRECTORY_NAME) })
-            .map { File(it, KOTLIN_NATIVE_DEPENDENCIES_DIRECTORY_NAME).absolutePath }
-
     @Suppress("UnstableApiUsage")
     private fun ProviderFactory.getCMakeGenerator(): Provider<String> = environmentVariable("CMAKE_GENERATOR")
         .filter { it.isNotBlank() }
@@ -281,11 +276,6 @@ class CMakeImportPlugin : Plugin<Project> {
         private const val BUILD_STATE_FILE_NAME = "build.state"
         private const val CINTEROP_NAME = "cmake"
         private const val KOTLIN_NATIVE_DOWNLOAD_TASK_NAME = "downloadKotlinNativeDistribution"
-        private const val KONAN_DATA_DIR_GRADLE_PROPERTY = "konan.data.dir"
-        private const val KONAN_DATA_DIR_ENVIRONMENT_VARIABLE = "KONAN_DATA_DIR"
-        private const val USER_HOME_SYSTEM_PROPERTY = "user.home"
-        private const val KONAN_HOME_DIRECTORY_NAME = ".konan"
-        private const val KOTLIN_NATIVE_DEPENDENCIES_DIRECTORY_NAME = "dependencies"
         private const val INSTALLED_HEADERS_PATTERN = "${CMakeInstallScanner.INCLUDE_DIRECTORY_NAME}/**"
         private val INSTALLED_ARCHIVE_PATTERNS = CMakeInstallScanner.STATIC_ARCHIVE_EXTENSIONS.map { extension ->
             "${CMakeInstallScanner.LIBRARY_DIRECTORY_NAME}/**/*.$extension"

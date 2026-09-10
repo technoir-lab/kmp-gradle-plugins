@@ -24,20 +24,24 @@ pluginManagement {
 Apply the plugin in a Kotlin Multiplatform module:
 
 ```kotlin
+import org.jetbrains.kotlin.konan.target.HostManager
+
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("io.technoirlab.vfs-overlay")
 }
 
+val vulkanSdk = layout.dir(providers.environmentVariable("VULKAN_SDK").map { File(it) })
+
 vfsOverlay {
     // Example: Use Vulkan headers from Vulkan SDK instead of the ones bundled with the Kotlin/Native Android NDK toolchain.
     mapping(
         source = kotlinNativeDependenciesDir.map {
-            File(it, "target-toolchain-2-${HostManager.hostOs()}-android_ndk/sysroot/usr/include/vulkan")
+            it.dir("target-toolchain-2-${HostManager.hostOs()}-android_ndk/sysroot/usr/include/vulkan").asFile
         },
-        target = providers.environmentVariable("VULKAN_SDK").map {
-            File(it, "${if (HostManager.hostIsMingw) "Include" else "include"}/vulkan")
-        }
+        target = vulkanSdk.map {
+            it.dir("${if (HostManager.hostIsMingw) "Include" else "include"}/vulkan").asFile
+        },
     )
 }
 ```
