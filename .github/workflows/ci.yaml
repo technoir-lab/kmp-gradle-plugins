@@ -43,7 +43,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v6.0.0
         with:
-          java-version: 21
+          java-version: 25
           distribution: corretto
 
       - name: Setup Gradle
@@ -78,7 +78,7 @@ jobs:
           }
 
           Set-Location 'W:\'
-          .\gradlew.bat build --scan
+          .\gradlew.bat build --scan --project-cache-dir "$env:GITHUB_WORKSPACE\.gradle"
 
       - name: Build with Gradle
         if: runner.os != 'Windows'
