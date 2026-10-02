@@ -1,6 +1,6 @@
 [versions]
 assertj = "3.27.7"
-kotlin-gradle-plugin = "2.4.10"
+kotlin-gradle-plugin = "2.4.20"
 
 [libraries]
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
