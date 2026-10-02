@@ -1,8 +1,10 @@
 plugins {
+    `java-library`
     id("io.technoirlab.conventions.gradle-plugin")
 }
 
 gradlePluginConfig {
+    minGradleVersion = "9.1"
     packageName = "io.technoirlab.cmake.import"
 
     buildFeatures {
