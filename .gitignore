@@ -1,5 +1,7 @@
 .gradle/
-.idea/
+.idea/*
+!.idea/externalDependencies.xml
+!.idea/ktlint-plugin.xml
 .kotlin/
 build/
 docs/
