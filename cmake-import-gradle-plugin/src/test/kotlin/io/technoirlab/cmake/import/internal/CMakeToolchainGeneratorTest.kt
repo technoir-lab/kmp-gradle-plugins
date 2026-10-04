@@ -506,7 +506,9 @@ class CMakeToolchainGeneratorTest {
             .waitFor() == 0
     }.getOrDefault(false)
 
-    private fun pkgConfigFile(name: String): String = $$"""
+    @Suppress("ktlint:standard:function-signature")
+    private fun pkgConfigFile(name: String): String =
+        $$"""
         prefix=/usr
         includedir=${prefix}/include
 
@@ -514,7 +516,7 @@ class CMakeToolchainGeneratorTest {
         Description: Test metadata for $$name
         Version: 1.0
         Cflags: -I${includedir}
-    """.trimIndent()
+        """.trimIndent()
 
     private fun Path.cmakeArgument(): String = "[=[$this]=]"
 

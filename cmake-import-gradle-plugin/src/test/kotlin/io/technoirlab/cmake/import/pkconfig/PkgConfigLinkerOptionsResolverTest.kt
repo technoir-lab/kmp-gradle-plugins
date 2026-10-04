@@ -381,11 +381,13 @@ class PkgConfigLinkerOptionsResolverTest {
         assertThat(options).isEmpty()
     }
 
-    private fun validHelloPkgConfig(transitiveOption: String): String = $$"""
+    @Suppress("ktlint:standard:function-signature")
+    private fun validHelloPkgConfig(transitiveOption: String): String =
+        $$"""
         libdir=/install/lib
         Name: hello
         Libs: -L${libdir} -lhello $$transitiveOption
-    """.trimIndent()
+        """.trimIndent()
 
     private fun archive(name: String): Path {
         val directory = (installDirectory / "lib").createDirectories()

@@ -36,7 +36,6 @@ abstract class CMakeGenerateTask @Inject internal constructor(
     private val execOperations: ExecOperations,
     private val fileSystemOperations: FileSystemOperations,
 ) : BaseCMakeTask() {
-
     @get:Input
     @get:Optional
     abstract val cmakeGenerator: Property<String>

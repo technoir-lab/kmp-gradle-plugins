@@ -25,7 +25,6 @@ import kotlin.io.path.deleteIfExists
 abstract class CMakeBuildTask @Inject internal constructor(
     private val execOperations: ExecOperations,
 ) : BaseCMakeTask() {
-
     @get:Input
     abstract val cmakeTarget: Property<String>
 
