@@ -73,11 +73,11 @@ jobs:
           }
 
           Set-Location 'W:\'
-          .\gradlew.bat build --no-daemon --scan --project-cache-dir "$env:GITHUB_WORKSPACE\.gradle"
+          .\gradlew.bat build --no-daemon --project-cache-dir "$env:GITHUB_WORKSPACE\.gradle"
 
       - name: Build with Gradle
         if: runner.os != 'Windows'
-        run: ./gradlew build --scan
+        run: ./gradlew build
 
       - name: Publish test report
         uses: mikepenz/action-junit-report@v6.5.0

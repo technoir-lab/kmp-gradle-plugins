@@ -63,7 +63,6 @@ jobs:
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
           ./gradlew publishAllPublicationsToGithubRepository \
-          --scan \
           -Ppublish.github.username=${{ secrets.GPR_DEPLOY_USER }} \
           -Ppublish.github.password=${{ secrets.GPR_DEPLOY_TOKEN }}
 
@@ -73,7 +72,7 @@ jobs:
           CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-        run: ./gradlew publishAggregationToCentralPortal --scan
+        run: ./gradlew publishAggregationToCentralPortal
 
       - name: Create release
         uses: softprops/action-gh-release@v3.0.3
