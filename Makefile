@@ -1,29 +1,32 @@
+SHELL := sh
+GRADLE := sh ./gradlew
+
 .PHONY: clean check format abi test functional-test docs publish-local help
 .DEFAULT_GOAL := help
 
 clean: ## Remove build outputs
-	@./gradlew clean $(GRADLE_ARGS)
+	@$(GRADLE) clean $(GRADLE_ARGS)
 
 check: ## Run checks
-	@./gradlew check $(GRADLE_ARGS)
+	@$(GRADLE) check $(GRADLE_ARGS)
 
 format: ## Format code and build scripts
-	@./gradlew ktlintFormat sortDependencies $(GRADLE_ARGS)
+	@$(GRADLE) ktlintFormat sortDependencies $(GRADLE_ARGS)
 
 abi: ## Update Kotlin ABI files
-	@./gradlew updateKotlinAbi $(GRADLE_ARGS)
+	@$(GRADLE) updateKotlinAbi $(GRADLE_ARGS)
 
 test: ## Run unit tests
-	@./gradlew test $(GRADLE_ARGS)
+	@$(GRADLE) test $(GRADLE_ARGS)
 
 functional-test: ## Run functional tests
-	@./gradlew functionalTest $(GRADLE_ARGS)
+	@$(GRADLE) functionalTest $(GRADLE_ARGS)
 
 docs: ## Generate API documentation
-	@./gradlew :dokkaGenerate $(GRADLE_ARGS)
+	@$(GRADLE) :dokkaGenerate $(GRADLE_ARGS)
 
 publish-local: ## Publish artifacts to Maven Local
-	@./gradlew publishToMavenLocal $(GRADLE_ARGS)
+	@$(GRADLE) publishToMavenLocal $(GRADLE_ARGS)
 
 help: ## Show this help
 	@printf 'Available targets:\n'
