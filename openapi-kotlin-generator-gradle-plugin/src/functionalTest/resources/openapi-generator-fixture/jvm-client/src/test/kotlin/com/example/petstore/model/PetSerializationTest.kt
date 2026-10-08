@@ -55,6 +55,15 @@ class PetSerializationTest {
         }
 
         @Test
+        fun `numeric enum uses the schema number`() {
+            val decoded = json.decodeFromString<PetRating>("2")
+            val encoded = json.encodeToString(PetRating.VALUE_3)
+
+            assertThat(decoded).isEqualTo(PetRating.VALUE_2)
+            assertThat(encoded).isEqualTo("3")
+        }
+
+        @Test
         fun `standalone enum uses the schema value`() {
             val decoded = json.decodeFromString<Status>("\"available\"")
             val encoded = json.encodeToString(Status.AVAILABLE)

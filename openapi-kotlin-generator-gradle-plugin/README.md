@@ -44,7 +44,8 @@ The plugin configures OpenAPI Generator with:
 - Library: `multiplatform`, using Ktor and custom templates.
 - Serialization library: `kotlinx_serialization`.
 - Date library: `kotlinx-datetime`.
-- Enum property naming: `UPPERCASE`.
+- Enum property naming: `UPPERCASE`. Names that would start with an underscore, such as those of numeric values, are
+  prefixed with `VALUE`, for example `VALUE_1`.
 - Union wrappers: `generateOneOfAnyOfWrappers = true`.
 - Normalization: `REPLACE_ONE_OF_BY_DISCRIMINATOR_MAPPING = true`.
 - Type mappings: base64-encoded strings use `String`; UUIDs use `kotlin.uuid.Uuid`; binary payloads use `ByteArray`;

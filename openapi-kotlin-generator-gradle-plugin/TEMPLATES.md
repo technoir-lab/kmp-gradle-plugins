@@ -48,3 +48,4 @@ the rules below cover only the generator's supported subset. Removing each rule 
 |---|---|
 | Restore `allVars` and `hasEnums` from `vars` when composed schema processing leaves `allVars` empty. | Upstream resets both when `oneOf` or `anyOf` alternatives only add constraints, emitting empty data class constructors and omitting nested enums. |
 | Omit the `HashMap` superclass of models whose schemas set `additionalProperties` and the `ArrayList` superclass of array models. | Both classes are final outside the JVM, so these models failed to compile in common source sets. kotlinx.serialization ignores superclass state, so the inherited entries were never serialized. |
+| Prefix enum entry names that start with an underscore with `VALUE`. | Upstream names numeric entries `_1`, which breaks Kotlin naming conventions and fails the KtLint format task because KtLint cannot correct it. |

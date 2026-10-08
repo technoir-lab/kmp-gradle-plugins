@@ -16,6 +16,13 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
         return model
     }
 
+    override fun toEnumVarName(value: String, datatype: String): String {
+        val name = super.toEnumVarName(value, datatype)
+        // Upstream prefixes names that would start with a digit, such as numeric values, with an underscore. Kotlin
+        // naming conventions require a leading letter, and KtLint cannot correct such names.
+        return if (name.startsWith('_')) "VALUE$name" else name
+    }
+
     // Upstream extends HashMap for schemas with additionalProperties and ArrayList for array models. Both classes are final
     // outside the JVM, and kotlinx.serialization would neither read nor write the inherited entries.
     override fun addParentContainer(model: CodegenModel, name: String, schema: Schema<*>) = Unit

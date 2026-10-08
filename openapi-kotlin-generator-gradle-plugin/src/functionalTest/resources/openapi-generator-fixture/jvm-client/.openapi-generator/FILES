@@ -10,6 +10,7 @@ src/main/kotlin/com/example/petstore/model/PetList.kt
 src/main/kotlin/com/example/petstore/model/PetLocation.kt
 src/main/kotlin/com/example/petstore/model/PetProfileChoice.kt
 src/main/kotlin/com/example/petstore/model/PetProfileMatch.kt
+src/main/kotlin/com/example/petstore/model/PetRating.kt
 src/main/kotlin/com/example/petstore/model/PetRecord.kt
 src/main/kotlin/com/example/petstore/model/PetReference.kt
 src/main/kotlin/com/example/petstore/model/PetSearch.kt

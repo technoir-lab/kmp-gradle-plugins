@@ -242,3 +242,7 @@ components:
           items:
             type: string
             format: uri
+    PetRating:
+      type: integer
+      format: int32
+      enum: [1, 2, 3]
