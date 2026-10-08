@@ -121,6 +121,20 @@ class PetApi(private val httpClient: HttpClient) {
         }.body()
 
     /**
+     * Import pets from another source
+     * @param source
+     */
+    suspend fun import(
+        source: String,
+    ): Unit =
+        httpClient.request(
+            "/pets/import",
+        ) {
+            method = HttpMethod.parse("POST")
+                url.parameters.append("source", source)
+        }.body()
+
+    /**
      * List an owner&#39;s pets
      * @param ownerName
      * @param nickname
@@ -148,9 +162,13 @@ class PetApi(private val httpClient: HttpClient) {
     /**
      * List all pets
      * @param pageSize
+     * @param field Field to sort pets by.
+     * @param `in` Where the pets live.
      */
     suspend fun listPets(
         pageSize: PageSizeListPets? = PageSizeListPets.VALUE_20,
+        field: String? = null,
+        `in`: InListPets? = null,
     ): List<Pet> =
         httpClient.request(
             "/pets",
@@ -159,6 +177,12 @@ class PetApi(private val httpClient: HttpClient) {
             accept(ContentType.parse("application/json"))
             pageSize?.let {
                 url.parameters.append("pageSize", pageSize.toString())
+            }
+            field?.let {
+                url.parameters.append("field", field)
+            }
+            `in`?.let {
+                url.parameters.append("in", `in`.toString())
             }
         }.body()
 
@@ -199,6 +223,14 @@ class PetApi(private val httpClient: HttpClient) {
         VALUE_50(50);
 
         override fun toString(): String = value.toString()
+    }
+
+    enum class InListPets(val value: String) {
+        INDOORS("indoors"),
+
+        OUTDOORS("outdoors");
+
+        override fun toString(): String = value
     }
 
 }

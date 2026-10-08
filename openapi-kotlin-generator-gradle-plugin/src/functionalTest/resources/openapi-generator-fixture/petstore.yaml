@@ -16,6 +16,17 @@ paths:
             format: int64
             enum: [10, 20, 50]
             default: 20
+        - name: field
+          in: query
+          description: Field to sort pets by.
+          schema:
+            type: string
+        - name: in
+          in: query
+          description: Where the pets live.
+          schema:
+            type: string
+            enum: [indoors, outdoors]
       responses:
         '200':
           description: All pets
@@ -42,6 +53,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
+  /pets/import:
+    post:
+      tags: [Pet]
+      operationId: import
+      summary: Import pets from another source
+      parameters:
+        - name: source
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: The pets were imported
   /pets/{petId}:
     get:
       tags: [Pet]
@@ -259,6 +284,10 @@ components:
         status:
           type: string
           enum: [available, pending]
+        for:
+          type: string
+          description: What the pets are listed for.
+          enum: [adoption, fostering]
       anyOf:
         - required: [name]
         - required: [status]

@@ -47,6 +47,11 @@ The plugin configures OpenAPI Generator with:
 - Date library: `kotlinx-datetime`.
 - Enum property naming: `UPPERCASE`. Names that would start with an underscore, such as those of numeric values, are
   prefixed with `VALUE`, for example `VALUE_1`.
+- Reserved words: Kotlin's hard keywords, such as `for` and `in`. Property and parameter names that are hard keywords are
+  escaped with backticks, and operation names are prefixed with `call`. Soft and modifier keywords, such as `field`,
+  `import`, and `operator`, are used as names without backticks.
+- Enum class names: nested enums use the Pascal case name of their property, such as `PetSearch.For` for a property named
+  `for`; enum parameters add the operation name, such as `PetApi.InListPets`.
 - Union wrappers: `generateOneOfAnyOfWrappers = true`.
 - Normalization: `REPLACE_ONE_OF_BY_DISCRIMINATOR_MAPPING = true`.
 - Type mappings: base64-encoded strings use `String`; UUIDs use `kotlin.uuid.Uuid`; binary payloads use `ByteArray`;

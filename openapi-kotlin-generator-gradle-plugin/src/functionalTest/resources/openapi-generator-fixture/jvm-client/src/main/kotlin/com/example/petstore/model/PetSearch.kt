@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
  *
  * @param name Name to search for.
  * @param status
+ * @param `for` What the pets are listed for.
  */
 @Serializable
 data class PetSearch(
@@ -23,6 +24,12 @@ data class PetSearch(
 
     @SerialName(value = "status")
     val status: PetSearch.Status? = null,
+
+    /**
+     * What the pets are listed for.
+     */
+    @SerialName(value = "for")
+    val `for`: PetSearch.For? = null,
 ) {
 
     /**
@@ -35,6 +42,22 @@ data class PetSearch(
 
         @SerialName(value = "pending")
         PENDING("pending");
+
+        override fun toString(): String = value
+    }
+
+    /**
+     * What the pets are listed for.
+     *
+     * Values: ADOPTION,FOSTERING
+     */
+    @Serializable
+    enum class For(val value: String) {
+        @SerialName(value = "adoption")
+        ADOPTION("adoption"),
+
+        @SerialName(value = "fostering")
+        FOSTERING("fostering");
 
         override fun toString(): String = value
     }

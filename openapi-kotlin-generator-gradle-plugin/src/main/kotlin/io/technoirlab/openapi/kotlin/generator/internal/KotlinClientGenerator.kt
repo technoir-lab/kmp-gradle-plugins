@@ -15,6 +15,11 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
     init {
         // Recognize Kotlin built-in types by the names used in generated declarations.
         languageSpecificPrimitives.addAll(languageSpecificPrimitives.map(::unqualifiedType))
+        // Upstream also reserves soft and modifier keywords, such as field and operator, identifiers such as it, and the
+        // name of its ApiResponse infrastructure class, which is not generated. Kotlin accepts these names wherever the
+        // templates emit them, so reserving them only added backticks and renamed operations and models, such as import
+        // to callImport.
+        reservedWords = HARD_KEYWORDS.toMutableSet()
     }
 
     override fun processOpts() {
@@ -47,6 +52,22 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
         (composedSchemas?.oneOf.orEmpty() + composedSchemas?.anyOf.orEmpty()).forEach { addImports(model, it) }
         return model
     }
+
+    override fun fromProperty(
+        name: String,
+        schema: Schema<*>?,
+        required: Boolean,
+        schemaIsFromAdditionalProperties: Boolean,
+    ): CodegenProperty? {
+        val property = super.fromProperty(name, schema, required, schemaIsFromAdditionalProperties) ?: return null
+        // Templates declare and reference nested enum classes by this name.
+        property.nameInPascalCase = unescapedTypeName(property.nameInPascalCase)
+        return property
+    }
+
+    // Upstream returns the property's Pascal case name, which also forms datatypeWithEnum, enumName, and enum defaults,
+    // including those of enum parameters.
+    override fun toEnumName(property: CodegenProperty): String = unescapedTypeName(super.toEnumName(property))
 
     override fun fromRequestBody(body: RequestBody, imports: MutableSet<String>, bodyParameterName: String?): CodegenParameter? {
         val parameter = super.fromRequestBody(body, imports, bodyParameterName) ?: return null
@@ -92,6 +113,14 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
     // outside the JVM, and kotlinx.serialization would neither read nor write the inherited entries.
     override fun addParentContainer(model: CodegenModel, name: String, schema: Schema<*>) = Unit
 
+    // Upstream derives Pascal case names from escaped names, so a property named `for` produced an enum class named `For`
+    // in backticks. Keep the backticks only for names that are not plain identifiers. Reserved words are lowercase, so
+    // Pascal case names never match them.
+    private fun unescapedTypeName(name: String): String {
+        val unescaped = name.removeSurrounding("`")
+        return if (IDENTIFIER.matches(unescaped)) unescaped else name
+    }
+
     // Whether request templates can use the value, or every item of a list, as text without conversion. Optional
     // parameters are used only after a null check.
     private fun CodegenParameter.hasStringValue(): Boolean {
@@ -120,6 +149,14 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
     private companion object {
         private const val INT64_FORMAT = "int64"
         private const val STRING_VALUE_EXTENSION = "x-string-value"
+        private val IDENTIFIER = Regex("[A-Za-z][A-Za-z0-9_]*")
         private val QUALIFIED_TYPE = Regex("(?<![\\w.])(?:\\w+\\.)+\\w+(?![\\w.])")
+
+        // Kotlin's hard keywords, which are never identifiers unless escaped.
+        private val HARD_KEYWORDS = setOf(
+            "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in", "interface", "is", "null",
+            "object", "package", "return", "super", "this", "throw", "true", "try", "typealias", "typeof", "val", "var",
+            "when", "while",
+        )
     }
 }
