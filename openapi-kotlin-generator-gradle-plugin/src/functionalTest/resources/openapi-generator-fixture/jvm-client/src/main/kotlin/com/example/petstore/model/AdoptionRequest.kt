@@ -13,8 +13,8 @@ import kotlinx.serialization.Serializable
  * An adopter chooses either a cat or a dog.
  *
  * @param adopterName Name of the person adopting the pet.
- * @param cat 
- * @param dog 
+ * @param cat
+ * @param dog
  */
 @Serializable
 data class AdoptionRequest (

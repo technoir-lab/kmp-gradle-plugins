@@ -10,11 +10,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 
- *
- * @param id 
- * @param record 
- * @param archived 
+ * @param id
+ * @param record
+ * @param archived
  */
 @Serializable
 data class Shelter (

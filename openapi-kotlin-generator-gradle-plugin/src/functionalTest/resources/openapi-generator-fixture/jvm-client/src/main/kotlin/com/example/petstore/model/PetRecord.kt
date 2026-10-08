@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 /**
  * An availability record with arbitrary additional details.
  *
- * @param status 
+ * @param status
  */
 @Serializable
 data class PetRecord (
@@ -22,8 +22,6 @@ data class PetRecord (
 ) {
 
     /**
-     * 
-     *
      * Values: AVAILABLE,PENDING
      */
     @Serializable

@@ -23,7 +23,7 @@ import io.ktor.http.encodeURLPathPart
 class PetApi(private val httpClient: HttpClient) {
     /**
      * Add a new pet
-     * @param pet 
+     * @param pet
      */
     suspend fun addPet(
         pet: Pet,
@@ -39,10 +39,10 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * Add a note about a pet
-     * @param petId 
-     * @param text 
-     * @param tags 
-     * @param priority 
+     * @param petId
+     * @param text
+     * @param tags
+     * @param priority
      */
     suspend fun addPetNote(
         petId: Long,
@@ -68,7 +68,7 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * Remove a pet
-     * @param petId 
+     * @param petId
      */
     suspend fun deletePet(
         petId: Long,
@@ -82,12 +82,12 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * Find a pet by ID
-     * @param petId 
-     * @param includeDetails 
-     * @param xRequestID 
-     * @param sessionId 
-     * @param requestUri 
-     * @param requestUuid 
+     * @param petId
+     * @param includeDetails
+     * @param xRequestID
+     * @param sessionId
+     * @param requestUri
+     * @param requestUuid
      */
     suspend fun getPetById(
         petId: Long,
@@ -122,9 +122,9 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * List an owner&#39;s pets
-     * @param ownerName 
-     * @param nickname 
-     * @param tags 
+     * @param ownerName
+     * @param nickname
+     * @param tags
      */
     suspend fun listOwnerPets(
         ownerName: String,
@@ -147,7 +147,7 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * List all pets
-     * @param pageSize 
+     * @param pageSize
      */
     suspend fun listPets(
         pageSize: PageSizeListPets? = PageSizeListPets.VALUE_20,
@@ -164,10 +164,10 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * Update a pet&#39;s profile
-     * @param petId 
-     * @param bio 
-     * @param nicknames 
-     * @param age 
+     * @param petId
+     * @param bio
+     * @param nicknames
+     * @param age
      */
     suspend fun updatePetProfile(
         petId: Long,

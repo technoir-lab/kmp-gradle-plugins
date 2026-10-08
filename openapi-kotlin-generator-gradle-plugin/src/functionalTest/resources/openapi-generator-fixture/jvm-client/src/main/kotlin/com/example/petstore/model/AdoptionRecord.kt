@@ -8,9 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 
- *
- * @param id 
+ * @param id
  */
 @Serializable
 data class AdoptionRecord (

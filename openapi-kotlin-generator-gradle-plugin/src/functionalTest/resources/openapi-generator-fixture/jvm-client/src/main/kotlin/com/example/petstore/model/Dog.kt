@@ -10,11 +10,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 
- *
- * @param id 
- * @param name 
- * @param barkVolume 
+ * @param id
+ * @param name
+ * @param barkVolume
  */
 @Serializable
 @SerialName(value = "dog")

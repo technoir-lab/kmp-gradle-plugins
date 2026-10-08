@@ -8,10 +8,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 
- *
- * @param name 
- * @param nickname 
+ * @param name
+ * @param nickname
  */
 @Serializable
 data class PetSummary (

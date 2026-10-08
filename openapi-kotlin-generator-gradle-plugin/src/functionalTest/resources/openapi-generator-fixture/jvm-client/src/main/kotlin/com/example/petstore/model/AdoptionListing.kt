@@ -9,10 +9,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 
- *
  * @param page The listing's web page.
- * @param fee 
+ * @param fee
  */
 @Serializable
 @SerialName(value = "AdoptionListing")

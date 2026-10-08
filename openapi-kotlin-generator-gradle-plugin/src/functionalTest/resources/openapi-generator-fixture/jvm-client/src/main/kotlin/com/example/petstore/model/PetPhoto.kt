@@ -9,12 +9,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 
- *
- * @param content 
- * @param thumbnail 
- * @param tags 
- * @param rating 
+ * @param content
+ * @param thumbnail
+ * @param tags
+ * @param rating
  */
 @Serializable
 data class PetPhoto (

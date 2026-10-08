@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
  * Search by name, availability, or both.
  *
  * @param name Name to search for.
- * @param status 
+ * @param status
  */
 @Serializable
 data class PetSearch (
@@ -28,8 +28,6 @@ data class PetSearch (
 ) {
 
     /**
-     * 
-     *
      * Values: AVAILABLE,PENDING
      */
     @Serializable

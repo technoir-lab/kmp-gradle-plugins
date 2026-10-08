@@ -8,9 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 
- *
- * @param notes 
+ * @param notes
  */
 @Serializable
 data class ShelterAdoptionRecord (

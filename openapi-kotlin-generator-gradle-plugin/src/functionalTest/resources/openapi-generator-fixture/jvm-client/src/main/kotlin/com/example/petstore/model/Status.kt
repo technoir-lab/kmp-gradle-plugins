@@ -11,8 +11,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * 
- *
  * Values: AVAILABLE,PENDING,SOLD
  */
 @Serializable

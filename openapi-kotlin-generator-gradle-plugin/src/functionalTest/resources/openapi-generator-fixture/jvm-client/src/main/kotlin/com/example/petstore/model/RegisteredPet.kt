@@ -8,11 +8,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 
- *
- * @param name 
- * @param microchipId 
- * @param nickname 
+ * @param name
+ * @param microchipId
+ * @param nickname
  */
 @Serializable
 data class RegisteredPet (

@@ -11,8 +11,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * 
- *
  * Values: VALUE_1,VALUE_2,VALUE_3
  */
 @Serializable(with = PetRatingSerializer::class)

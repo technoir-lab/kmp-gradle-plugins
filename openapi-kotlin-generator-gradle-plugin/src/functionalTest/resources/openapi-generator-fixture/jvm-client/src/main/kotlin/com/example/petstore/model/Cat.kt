@@ -9,11 +9,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 
- *
- * @param id 
- * @param name 
- * @param livesRemaining 
+ * @param id
+ * @param name
+ * @param livesRemaining
  */
 @Serializable
 @SerialName(value = "cat")

@@ -8,9 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 
- *
- * @param tags 
+ * @param tags
  */
 @Serializable
 data class PetTags (
@@ -21,8 +19,6 @@ data class PetTags (
 ) {
 
     /**
-     * 
-     *
      * Values: FRIENDLY,SHY
      */
     @Serializable
