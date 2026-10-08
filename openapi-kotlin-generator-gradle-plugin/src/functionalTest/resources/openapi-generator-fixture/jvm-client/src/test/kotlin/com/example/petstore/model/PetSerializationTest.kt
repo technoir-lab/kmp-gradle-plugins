@@ -42,6 +42,19 @@ class PetSerializationTest {
         }
 
         @Test
+        fun `object with additional properties serializes its declared properties`() {
+            val record = PetRecord(PetRecord.Status.AVAILABLE)
+            val input = """{"status":"available"}"""
+            val expectedJson = json.parseToJsonElement(input)
+
+            val decoded = json.decodeFromString<PetRecord>(input)
+            val encoded = json.encodeToJsonElement(record)
+
+            assertThat(decoded).isEqualTo(record)
+            assertThat(encoded).isEqualTo(expectedJson)
+        }
+
+        @Test
         fun `standalone enum uses the schema value`() {
             val decoded = json.decodeFromString<Status>("\"available\"")
             val encoded = json.encodeToString(Status.AVAILABLE)

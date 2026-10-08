@@ -15,4 +15,8 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
         }
         return model
     }
+
+    // Upstream extends HashMap for schemas with additionalProperties and ArrayList for array models. Both classes are final
+    // outside the JVM, and kotlinx.serialization would neither read nor write the inherited entries.
+    override fun addParentContainer(model: CodegenModel, name: String, schema: Schema<*>) = Unit
 }

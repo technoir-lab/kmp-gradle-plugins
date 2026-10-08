@@ -116,6 +116,7 @@ components:
           type: integer
     Dog:
       type: object
+      additionalProperties: true
       required: [species, id, name, barkVolume]
       properties:
         species:
@@ -158,3 +159,12 @@ components:
       anyOf:
         - required: [name]
         - required: [status]
+    PetRecord:
+      description: An availability record with arbitrary additional details.
+      type: object
+      additionalProperties: true
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [available, pending]

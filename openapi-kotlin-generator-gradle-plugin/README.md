@@ -58,6 +58,10 @@ The plugin configures OpenAPI Generator with:
 Object schemas whose `oneOf` or `anyOf` alternatives only add constraints, such as `required`, generate a data class
 with the properties the schema declares. The generated class does not enforce those constraints.
 
+Object schemas that declare properties and set `additionalProperties` to `true` or a schema generate a data class with
+the declared properties. The class neither extends a map nor retains additional properties: decoding drops them when the
+`Json` instance ignores unknown keys and fails otherwise.
+
 Named `oneOf` schemas with a discriminator support model alternatives referenced with `$ref` and generate sealed class
 hierarchies. Use the generated subclasses directly; the discriminator property in JSON identifies the subtype, using
 the schema's explicit or inferred mapping. Subtype selection follows that property even when alternatives overlap.
