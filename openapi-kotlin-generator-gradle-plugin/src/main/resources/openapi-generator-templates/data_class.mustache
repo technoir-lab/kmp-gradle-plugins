@@ -55,10 +55,11 @@ import kotlinx.parcelize.Parcelize
 {{/parcelizeModels}}
 {{/multiplatform}}
 {{#multiplatform}}
-import kotlinx.serialization.*
-import kotlinx.serialization.descriptors.*
-import kotlinx.serialization.encoding.*
+import kotlinx.serialization.Required
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 {{#discriminator}}
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.JsonClassDiscriminator
 {{/discriminator}}
 {{/multiplatform}}

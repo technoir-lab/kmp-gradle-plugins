@@ -18,4 +18,5 @@ the checked-in client, then review its diff.
 
 | Templates | Change | Reason |
 |---|---|---|
+| `data_class`, `enum_class` | Import kotlinx.serialization declarations explicitly. | KtLint cannot correct wildcard imports, so formatting failed generation. |
 | `data_class_*_var`, `interface_*_var`, `data_class` | Put property and enum entry annotations on separate lines, and omit blank lines between class annotations. | Kotlin conventions place annotations on their own lines, directly above the declaration; generated sources follow them even without KtLint. Upstream emits a blank line after `@Serializable` and another before the discriminator annotations of sealed classes. |

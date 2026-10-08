@@ -2,6 +2,7 @@ package io.technoirlab.openapi.kotlin.generator
 
 import io.technoirlab.gradle.test.kit.GradleProject
 import io.technoirlab.gradle.test.kit.GradleRunnerExtension
+import io.technoirlab.gradle.test.kit.buildScript
 import io.technoirlab.gradle.test.kit.kotlinFile
 import io.technoirlab.gradle.test.kit.replaceText
 import org.assertj.core.api.Assertions.assertThat
@@ -39,6 +40,16 @@ class OpenApiKotlinGeneratorPluginFunctionalTest {
         val result = gradleRunner.build(":jvm-client:test")
 
         assertThat(result.task(":jvm-client:test")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+    }
+
+    @Test
+    fun `formats the generated client when KtLint is applied`() {
+        val project = gradleRunner.root.project("jvm-client")
+        project.buildScript.replaceText("plugins {\n", "plugins {\n    id(\"org.jlleitschuh.gradle.ktlint\")\n")
+
+        val result = gradleRunner.build(":jvm-client:openApiGenerate")
+
+        assertThat(result.task(":jvm-client:ktlintMainSourceSetFormat")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
     }
 
     @Test
