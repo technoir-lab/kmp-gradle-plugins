@@ -1,13 +1,28 @@
 package io.technoirlab.openapi.kotlin.generator.internal
 
+import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.Schema
 import org.openapitools.codegen.CodegenModel
 import org.openapitools.codegen.languages.KotlinClientCodegen
 
 internal class KotlinClientGenerator : KotlinClientCodegen() {
+    private var originalSchemaNames = emptySet<String>()
+
     init {
         // Recognize Kotlin built-in types by the names used in generated declarations.
         languageSpecificPrimitives.addAll(languageSpecificPrimitives.map(::unqualifiedType))
+    }
+
+    override fun processOpts() {
+        super.processOpts()
+        // The generator input supplies the document before normalization and inline schema resolution.
+        originalSchemaNames = openAPI?.components?.schemas?.keys?.toSet().orEmpty()
+    }
+
+    override fun preprocessOpenAPI(openAPI: OpenAPI) {
+        super.preprocessOpenAPI(openAPI)
+        val schemaNames = openAPI.components?.schemas?.keys.orEmpty().filterNotTo(HashSet()) { it in schemaMapping }
+        modelNameMapping.putAll(ModelNameCollisions(::toModelName).resolve(openAPI, schemaNames, originalSchemaNames))
     }
 
     override fun getSchemaType(schema: Schema<*>?): String = unqualifiedType(super.getSchemaType(schema))

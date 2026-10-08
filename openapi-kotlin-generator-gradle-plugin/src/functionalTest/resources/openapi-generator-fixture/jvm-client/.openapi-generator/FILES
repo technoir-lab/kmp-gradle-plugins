@@ -1,4 +1,5 @@
 src/main/kotlin/com/example/petstore/api/PetApi.kt
+src/main/kotlin/com/example/petstore/model/AdoptionRecord.kt
 src/main/kotlin/com/example/petstore/model/AdoptionRequest.kt
 src/main/kotlin/com/example/petstore/model/Cat.kt
 src/main/kotlin/com/example/petstore/model/Dog.kt
@@ -17,4 +18,6 @@ src/main/kotlin/com/example/petstore/model/PetReference.kt
 src/main/kotlin/com/example/petstore/model/PetSearch.kt
 src/main/kotlin/com/example/petstore/model/PetSummary.kt
 src/main/kotlin/com/example/petstore/model/RegisteredPet.kt
+src/main/kotlin/com/example/petstore/model/Shelter.kt
+src/main/kotlin/com/example/petstore/model/ShelterAdoptionRecord.kt
 src/main/kotlin/com/example/petstore/model/Status.kt

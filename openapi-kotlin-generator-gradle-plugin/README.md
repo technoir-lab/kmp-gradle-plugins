@@ -54,6 +54,10 @@ The plugin configures OpenAPI Generator with:
 - Type names: Kotlin built-in types and collections use their default-import names. Types with an import mapping, such
   as `kotlin.uuid.Uuid` and `kotlin.time.Instant`, use simple names and are imported. Other qualified types retain their
   package names.
+- Model names: component schemas keep their names. When an inline schema's title produces the same class name as another
+  schema, the extracted model is prefixed with the model name of the component or operation that first references it,
+  such as `ShelterAdoptionRecord` for an inline `Adoption Record` declared by `Shelter`, and numbered if that name is
+  also taken.
 - Source directory: `src/commonMain/kotlin` for Kotlin Multiplatform projects and `src/main/kotlin` otherwise, with
   `.api` and `.model` subpackages.
 - Generated content: all APIs and models, plus the `FILES` and `VERSION` metadata files. API and model tests,
