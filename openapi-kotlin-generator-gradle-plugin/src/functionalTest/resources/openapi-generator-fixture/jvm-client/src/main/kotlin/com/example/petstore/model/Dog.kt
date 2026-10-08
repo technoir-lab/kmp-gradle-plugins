@@ -30,6 +30,5 @@ data class Dog(
     val barkVolume: Long,
 ) : Pet() {
 
-
 }
 

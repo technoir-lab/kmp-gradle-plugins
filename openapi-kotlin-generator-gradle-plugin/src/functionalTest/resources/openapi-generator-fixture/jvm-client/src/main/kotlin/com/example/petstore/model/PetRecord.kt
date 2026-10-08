@@ -26,8 +26,10 @@ data class PetRecord(
     enum class Status(val value: String) {
         @SerialName(value = "available")
         AVAILABLE("available"),
+
         @SerialName(value = "pending")
         PENDING("pending");
+
         override fun toString(): String = value
     }
 

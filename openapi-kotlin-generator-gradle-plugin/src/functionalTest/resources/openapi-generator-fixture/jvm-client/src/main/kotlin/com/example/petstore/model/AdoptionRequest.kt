@@ -32,6 +32,5 @@ data class AdoptionRequest(
     val dog: Dog? = null,
 ) {
 
-
 }
 

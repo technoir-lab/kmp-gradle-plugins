@@ -26,6 +26,5 @@ data class RegisteredPet(
     val nickname: String? = null,
 ) {
 
-
 }
 

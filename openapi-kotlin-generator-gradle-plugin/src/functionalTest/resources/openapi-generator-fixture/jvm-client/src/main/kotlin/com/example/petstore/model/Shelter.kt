@@ -26,6 +26,5 @@ data class Shelter(
     val archived: AdoptionRecord? = null,
 ) {
 
-
 }
 

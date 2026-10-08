@@ -16,6 +16,5 @@ data class ShelterAdoptionRecord(
     val notes: String? = null,
 ) {
 
-
 }
 

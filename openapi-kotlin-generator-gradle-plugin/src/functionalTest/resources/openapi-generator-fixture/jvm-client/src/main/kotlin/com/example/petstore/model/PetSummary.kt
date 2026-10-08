@@ -21,6 +21,5 @@ data class PetSummary(
     val nickname: String? = null,
 ) {
 
-
 }
 

@@ -29,6 +29,5 @@ data class Cat(
     val livesRemaining: Long,
 ) : Pet() {
 
-
 }
 

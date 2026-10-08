@@ -27,6 +27,5 @@ data class AdoptionListing(
     val fee: Int,
 ) : Listing() {
 
-
 }
 

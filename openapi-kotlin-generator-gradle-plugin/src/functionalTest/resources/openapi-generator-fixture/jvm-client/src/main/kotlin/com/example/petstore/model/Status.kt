@@ -15,7 +15,6 @@ import kotlinx.serialization.encoding.Encoder
  */
 @Serializable
 enum class Status(val value: String) {
-
     @SerialName(value = "available")
     AVAILABLE("available"),
 
@@ -44,10 +43,10 @@ enum class Status(val value: String) {
          * Returns a valid [Status] for [data], null otherwise.
          */
         fun decode(data: Any?): Status? = data?.let {
-          val normalizedData = "$it".lowercase()
-          entries.firstOrNull { value ->
-            it == value || normalizedData == "$value".lowercase()
-          }
+            val normalizedData = "$it".lowercase()
+            entries.firstOrNull { value ->
+                it == value || normalizedData == "$value".lowercase()
+            }
         }
     }
 }

@@ -17,6 +17,5 @@ data class AdoptionRecord(
     val id: Long,
 ) {
 
-
 }
 

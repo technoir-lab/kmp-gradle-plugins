@@ -63,7 +63,8 @@ import kotlinx.serialization.encoding.Encoder
 {{/moshi}}
 {{/multiplatform}}
 {{#nonPublicApi}}internal {{/nonPublicApi}}{{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}enum class {{classname}}({{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}{{#jackson}}@get:JsonValue {{/jackson}}val value: {{{dataType}}}) {
-{{#allowableValues}}{{#enumVars}}
+{{#allowableValues}}
+{{#enumVars}}
     {{#enumDescription}}
     /**
      * {{.}}
@@ -101,7 +102,12 @@ import kotlinx.serialization.encoding.Encoder
     {{^isArray}}
     {{#name}}{{^isEmpty}}{{&name}}{{/isEmpty}}{{#isEmpty}}_{{/isEmpty}}{{/name}}({{{value}}}){{^-last}},{{/-last}}{{#-last}};{{/-last}}
     {{/isArray}}
-{{/enumVars}}{{/allowableValues}}
+{{^-last}}
+
+{{/-last}}
+{{/enumVars}}
+{{/allowableValues}}
+
     /**
      * Override [toString()] to avoid using the enum variable name as the value, and instead use
      * the actual value defined in the API spec file.
@@ -122,10 +128,10 @@ import kotlinx.serialization.encoding.Encoder
          * Returns a valid [{{classname}}] for [data], null otherwise.
          */
         {{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}fun decode(data: Any?): {{classname}}? = data?.let {
-          val normalizedData = "$it".lowercase()
-          entries.firstOrNull { value ->
-            it == value || normalizedData == "$value".lowercase()
-          }
+            val normalizedData = "$it".lowercase()
+            entries.firstOrNull { value ->
+                it == value || normalizedData == "$value".lowercase()
+            }
         }
 {{/jackson}}
 {{#jackson}}
@@ -208,6 +214,7 @@ internal object {{classname}}Serializer : KSerializer<{{classname}}> {
 {{/kotlinx_serialization}}
 {{#multiplatform}}
 {{^isString}}
+
 internal object {{classname}}Serializer : KSerializer<{{classname}}> {
     override val descriptor = {{dataType}}.serializer().descriptor
 

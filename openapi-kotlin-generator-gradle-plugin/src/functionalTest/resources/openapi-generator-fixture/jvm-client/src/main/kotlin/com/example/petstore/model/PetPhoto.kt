@@ -30,6 +30,5 @@ data class PetPhoto(
     val rating: PetRating? = null,
 ) {
 
-
 }
 

@@ -192,13 +192,11 @@ class PetApi(private val httpClient: HttpClient) {
         }.body()
 
     enum class PageSizeListPets(val value: Long) {
-        
         VALUE_10(10),
-        
+
         VALUE_20(20),
-        
+
         VALUE_50(50);
-        
 
         override fun toString(): String = value.toString()
     }

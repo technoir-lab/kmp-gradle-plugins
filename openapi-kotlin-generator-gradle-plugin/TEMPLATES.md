@@ -26,6 +26,7 @@ the checked-in client, then review its diff.
 | `data_class_*_var`, `interface_*_var` | Document properties with multiline KDoc instead of block comments. | Block comments are not documentation, so IDEs and Dokka ignored property descriptions, including those of abstract properties that class KDoc does not cover. |
 | `data_class`, `enum_class`, `api` | Omit the description paragraph from class, enum, and parameter KDoc when there is no description. | Upstream emits a blank description line and trailing spaces. |
 | `data_class` | Open the constructor directly after the class name, end each parameter with a comma, and omit blank lines at the constructor's boundaries. | Kotlin conventions use trailing commas in multiline declarations and no space before the parameter list. |
+| `enum_class`, `data_class`, `api` | Separate enum entries from each other and from the declarations that follow with one blank line, and precede each nested enum class and the enum serializer object with one. Omit blank lines at the start of enum bodies, and indent `decode` by four spaces. | Each template laid out enums differently: top-level enums opened with a blank line, nested enums had no blank lines between entries, `toString()`, or consecutive enum classes, and API enums contained whitespace-only lines. |
 | `data_class` | Emit the multiplatform superclass constructor call only when the map or array branch has not emitted one. | Upstream emits two calls, such as `Pet()()`, for subclasses whose schemas set `additionalProperties`, which fails to parse. |
 
 ## Union matching

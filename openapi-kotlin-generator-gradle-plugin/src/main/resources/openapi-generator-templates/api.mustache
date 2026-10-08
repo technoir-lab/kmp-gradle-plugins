@@ -141,9 +141,14 @@ import io.ktor.http.encodeURLPathPart
 {{#allParams}}
 {{#isEnum}}
     enum class {{enumName}}{{operationIdCamelCase}}(val value: {{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}String{{/isContainer}}) {
-        {{#allowableValues}}{{#enumVars}}
+        {{#allowableValues}}
+        {{#enumVars}}
         {{&name}}({{{value}}}){{^-last}},{{/-last}}{{#-last}};{{/-last}}
-        {{/enumVars}}{{/allowableValues}}
+{{^-last}}
+
+{{/-last}}
+        {{/enumVars}}
+        {{/allowableValues}}
 
         override fun toString(): String = value{{^isContainer}}{{^isString}}.toString(){{/isString}}{{/isContainer}}
     }

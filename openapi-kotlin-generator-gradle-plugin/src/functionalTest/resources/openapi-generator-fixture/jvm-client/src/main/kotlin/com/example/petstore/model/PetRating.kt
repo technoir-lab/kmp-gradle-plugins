@@ -15,7 +15,6 @@ import kotlinx.serialization.encoding.Encoder
  */
 @Serializable(with = PetRatingSerializer::class)
 enum class PetRating(val value: Int) {
-
     VALUE_1(1),
 
     VALUE_2(2),
@@ -41,13 +40,14 @@ enum class PetRating(val value: Int) {
          * Returns a valid [PetRating] for [data], null otherwise.
          */
         fun decode(data: Any?): PetRating? = data?.let {
-          val normalizedData = "$it".lowercase()
-          entries.firstOrNull { value ->
-            it == value || normalizedData == "$value".lowercase()
-          }
+            val normalizedData = "$it".lowercase()
+            entries.firstOrNull { value ->
+                it == value || normalizedData == "$value".lowercase()
+            }
         }
     }
 }
+
 internal object PetRatingSerializer : KSerializer<PetRating> {
     override val descriptor = Int.serializer().descriptor
 

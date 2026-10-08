@@ -23,8 +23,10 @@ data class PetTags(
     enum class Tags(val value: String) {
         @SerialName(value = "friendly")
         FRIENDLY("friendly"),
+
         @SerialName(value = "shy")
         SHY("shy");
+
         override fun toString(): String = value
     }
 
