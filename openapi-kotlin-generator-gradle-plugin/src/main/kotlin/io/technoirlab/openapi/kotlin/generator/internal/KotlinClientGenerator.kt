@@ -2,6 +2,7 @@ package io.technoirlab.openapi.kotlin.generator.internal
 
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.Schema
+import io.swagger.v3.oas.models.parameters.RequestBody
 import org.openapitools.codegen.CodegenModel
 import org.openapitools.codegen.CodegenParameter
 import org.openapitools.codegen.CodegenProperty
@@ -45,6 +46,17 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
         val composedSchemas = model.composedSchemas
         (composedSchemas?.oneOf.orEmpty() + composedSchemas?.anyOf.orEmpty()).forEach { addImports(model, it) }
         return model
+    }
+
+    override fun fromRequestBody(body: RequestBody, imports: MutableSet<String>, bodyParameterName: String?): CodegenParameter? {
+        val parameter = super.fromRequestBody(body, imports, bodyParameterName) ?: return null
+        // Normalization removes the oneOf of a discriminator base, leaving a schema without a type. Upstream treats such
+        // a request body as any type, which is nullable, even when the body is required.
+        val schema = ModelUtils.getReferencedSchema(openAPI, ModelUtils.getSchemaFromRequestBody(body))
+        if (schema?.discriminator != null) {
+            parameter.isNullable = ModelUtils.isNullable(schema)
+        }
+        return parameter
     }
 
     override fun postProcessParameter(parameter: CodegenParameter) {

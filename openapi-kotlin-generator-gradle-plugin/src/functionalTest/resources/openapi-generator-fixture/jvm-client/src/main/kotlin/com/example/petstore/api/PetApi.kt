@@ -26,7 +26,7 @@ class PetApi(private val httpClient: HttpClient) {
      * @param pet 
      */
     suspend fun addPet(
-        pet: Pet?,
+        pet: Pet,
     ): Pet =
         httpClient.request(
             "/pets",
