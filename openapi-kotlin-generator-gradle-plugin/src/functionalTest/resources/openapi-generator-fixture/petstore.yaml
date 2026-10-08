@@ -168,3 +168,77 @@ components:
         status:
           type: string
           enum: [available, pending]
+    PetReference:
+      description: A pet name or a numeric pet ID.
+      oneOf:
+        - type: string
+        - type: integer
+          format: int64
+    OptionalPetReference:
+      description: A pet name, numeric ID, or no selected pet.
+      nullable: true
+      oneOf:
+        - type: string
+        - type: integer
+          format: int64
+    PetSummary:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        nickname:
+          type: string
+    RegisteredPet:
+      allOf:
+        - $ref: '#/components/schemas/PetSummary'
+        - type: object
+          required: [microchipId]
+          properties:
+            microchipId:
+              type: string
+    PetProfileChoice:
+      description: Exclusive profiles overlap when a microchip ID is present.
+      oneOf:
+        - $ref: '#/components/schemas/PetSummary'
+        - $ref: '#/components/schemas/RegisteredPet'
+    PetProfileMatch:
+      description: A profile may match both the summary and registered pet shapes.
+      anyOf:
+        - $ref: '#/components/schemas/PetSummary'
+        - $ref: '#/components/schemas/RegisteredPet'
+    PetList:
+      description: A list of pet names or summaries, ambiguous when empty.
+      oneOf:
+        - type: array
+          items:
+            type: string
+        - type: array
+          items:
+            $ref: '#/components/schemas/PetSummary'
+    PetInventory:
+      description: An inventory note or pet counts grouped by species.
+      oneOf:
+        - type: string
+        - type: object
+          additionalProperties:
+            type: integer
+            format: int32
+    PetArrival:
+      description: Days until a pet arrives or its exact arrival time.
+      oneOf:
+        - type: integer
+          format: int32
+        - type: string
+          format: date-time
+    PetLocation:
+      description: A pet's web page, shelter number, or list of web pages.
+      oneOf:
+        - type: string
+          format: uri
+        - type: integer
+          format: int32
+        - type: array
+          items:
+            type: string
+            format: uri

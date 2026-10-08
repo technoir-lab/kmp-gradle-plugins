@@ -2,7 +2,17 @@ src/main/kotlin/com/example/petstore/api/PetApi.kt
 src/main/kotlin/com/example/petstore/model/AdoptionRequest.kt
 src/main/kotlin/com/example/petstore/model/Cat.kt
 src/main/kotlin/com/example/petstore/model/Dog.kt
+src/main/kotlin/com/example/petstore/model/OptionalPetReference.kt
 src/main/kotlin/com/example/petstore/model/Pet.kt
+src/main/kotlin/com/example/petstore/model/PetArrival.kt
+src/main/kotlin/com/example/petstore/model/PetInventory.kt
+src/main/kotlin/com/example/petstore/model/PetList.kt
+src/main/kotlin/com/example/petstore/model/PetLocation.kt
+src/main/kotlin/com/example/petstore/model/PetProfileChoice.kt
+src/main/kotlin/com/example/petstore/model/PetProfileMatch.kt
 src/main/kotlin/com/example/petstore/model/PetRecord.kt
+src/main/kotlin/com/example/petstore/model/PetReference.kt
 src/main/kotlin/com/example/petstore/model/PetSearch.kt
+src/main/kotlin/com/example/petstore/model/PetSummary.kt
+src/main/kotlin/com/example/petstore/model/RegisteredPet.kt
 src/main/kotlin/com/example/petstore/model/Status.kt

@@ -19,8 +19,26 @@ the checked-in client, then review its diff.
 | Templates | Change | Reason |
 |---|---|---|
 | `data_class`, `enum_class` | Import kotlinx.serialization declarations explicitly. | KtLint cannot correct wildcard imports, so formatting failed generation. |
+| `oneof_class`, `anyof_class`, `union_class` | Render both wrapper kinds with one serializer that resolves each alternative's serializer from the `Json` instance's module and enforces the matching rules below. | Upstream wrappers fail to compile for collection and date-time alternatives, cannot encode `Long` or map alternatives, cannot decode `null` for nullable unions, and decode the first alternative that succeeds, dropping fields of overlapping alternatives. |
 | `data_class_*_var`, `interface_*_var`, `data_class` | Put property and enum entry annotations on separate lines, and omit blank lines between class annotations. | Kotlin conventions place annotations on their own lines, directly above the declaration; generated sources follow them even without KtLint. Upstream emits a blank line after `@Serializable` and another before the discriminator annotations of sealed classes. |
 | `data_class` | Emit the multiplatform superclass constructor call only when the map or array branch has not emitted one. | Upstream emits two calls, such as `Pet()()`, for subclasses whose schemas set `additionalProperties`, which fails to parse. |
+
+## Union matching
+
+The [OpenAPI composition rules](https://spec.openapis.org/oas/v3.0.3.html#schema-object) motivate the matching counts;
+the rules below cover only the generator's supported subset. Removing each rule fails the listed fixture tests.
+
+| Rule | Evidence |
+|---|---|
+| Resolve serializers with `json.serializersModule.serializer<T>()`. | Collection and instant alternatives compile and round-trip. |
+| Check collection element and map key and value types before encoding. | 4 tests. JVM bridge methods would otherwise narrow `Long` map values to `Int`. |
+| Count matches on read and write: exactly one for `oneOf`, at least one for `anyOf`. | 2 tests for the write side: empty lists and overlapping objects. |
+| Match with a strict copy of the caller's `Json` that ignores unknown keys and encodes defaults and nulls. | 2 tests: overlapping objects must both match, and optional fields holding default values must survive re-encoding. |
+| Compare the JSON kinds of decoded and re-encoded values recursively. | 4 tests: quoted numbers and numbers read as strings. |
+| Select the first match that retains the most input fields at any depth. | 2 tests: overlapping `anyOf` alternatives, with and without unknown fields. |
+| Fail if the selected match drops an input field, unless the caller's `Json` ignores unknown keys. | 10 tests, 5 with each setting. Regular models drop unknown keys under the same condition. Read the setting before switching to the strict copy, which always ignores unknown keys. |
+| Skip primitive serializers for objects and arrays. | 10 tests. Primitive serializers throw `IndexOutOfBoundsException` for these shapes. |
+| Treat `ClassCastException` during encoding as a mismatch. | 2 tests with list elements of the wrong type. |
 
 ## Generator adjustments
 

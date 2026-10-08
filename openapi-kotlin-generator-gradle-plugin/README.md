@@ -67,6 +67,20 @@ hierarchies. Use the generated subclasses directly; the discriminator property i
 the schema's explicit or inferred mapping. Subtype selection follows that property even when alternatives overlap.
 Inline unions with a discriminator and `anyOf` schemas with a discriminator are unsupported.
 
+Unions without a discriminator support primitive, collection, and model alternatives through generated wrapper classes.
+Pass the chosen value to the wrapper constructor and access it through `actualInstance`. JSON contains the value
+directly, without an extra wrapper object. For example, a wrapper holding a string serializes as a JSON string.
+
+For these wrappers, both encoding and decoding require exactly one matching alternative for `oneOf`, or at least one
+for `anyOf`. Decoding selects the first matching alternative that retains the most input fields, including nested
+fields. If it cannot retain every field, decoding drops the others when the `Json` instance ignores unknown keys and
+fails otherwise, as for regular models. The dropped fields can include a field that another alternative declares but
+whose value that alternative rejects. Values must have the expected JSON types; lenient parsing and value coercion do
+not relax union matching. Set `nullable: true` on the union schema to allow null.
+
+Union support does not provide full JSON Schema validation. Numeric bounds and `additionalProperties: false` are not
+fully enforced.
+
 ## Templates
 
 Run `./extract-templates.sh` to extract upstream templates using the `openapi-generator` CLI and replace matching files
