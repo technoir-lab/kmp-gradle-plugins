@@ -19,7 +19,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AdoptionRequest (
 
-    /* Name of the person adopting the pet. */
+    /**
+     * Name of the person adopting the pet.
+     */
     @SerialName(value = "adopterName")
     @Required
     val adopterName: String,

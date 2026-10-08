@@ -16,7 +16,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PetSearch (
 
-    /* Name to search for. */
+    /**
+     * Name to search for.
+     */
     @SerialName(value = "name")
     val name: String? = null,
 

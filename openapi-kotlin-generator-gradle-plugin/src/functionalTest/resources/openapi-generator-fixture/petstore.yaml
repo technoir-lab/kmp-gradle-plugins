@@ -271,6 +271,28 @@ components:
         status:
           type: string
           enum: [available, pending]
+    Listing:
+      description: A pet listing published on a web page.
+      type: object
+      required: [kind, page]
+      properties:
+        kind:
+          type: string
+        page:
+          type: string
+          format: uri
+          description: The listing's web page.
+      discriminator:
+        propertyName: kind
+    AdoptionListing:
+      allOf:
+        - $ref: '#/components/schemas/Listing'
+        - type: object
+          required: [fee]
+          properties:
+            fee:
+              type: integer
+              format: int32
     PetReference:
       description: A pet name or a numeric pet ID.
       oneOf:

@@ -1,8 +1,10 @@
 src/main/kotlin/com/example/petstore/api/PetApi.kt
+src/main/kotlin/com/example/petstore/model/AdoptionListing.kt
 src/main/kotlin/com/example/petstore/model/AdoptionRecord.kt
 src/main/kotlin/com/example/petstore/model/AdoptionRequest.kt
 src/main/kotlin/com/example/petstore/model/Cat.kt
 src/main/kotlin/com/example/petstore/model/Dog.kt
+src/main/kotlin/com/example/petstore/model/Listing.kt
 src/main/kotlin/com/example/petstore/model/OptionalPetReference.kt
 src/main/kotlin/com/example/petstore/model/Pet.kt
 src/main/kotlin/com/example/petstore/model/PetArrival.kt
