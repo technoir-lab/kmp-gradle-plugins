@@ -8,6 +8,14 @@ paths:
       tags: [Pet]
       operationId: listPets
       summary: List all pets
+      parameters:
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            format: int64
+            enum: [10, 20, 50]
+            default: 20
       responses:
         '200':
           description: All pets

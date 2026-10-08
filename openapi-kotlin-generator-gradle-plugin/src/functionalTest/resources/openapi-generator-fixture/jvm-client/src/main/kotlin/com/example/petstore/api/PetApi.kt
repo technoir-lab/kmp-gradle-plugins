@@ -93,14 +93,31 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * List all pets
+     * @param pageSize 
      */
     suspend fun listPets(
+        pageSize: PageSizeListPets? = PageSizeListPets.VALUE_20,
     ): List<Pet> =
         httpClient.request(
             "/pets",
         ) {
             method = HttpMethod.parse("GET")
             accept(ContentType.parse("application/json"))
+            pageSize?.let {
+                url.parameters.append("pageSize", pageSize.toString())
+            }
         }.body()
+
+    enum class PageSizeListPets(val value: Long) {
+        
+        VALUE_10(10),
+        
+        VALUE_20(20),
+        
+        VALUE_50(50);
+        
+
+        override fun toString(): String = value.toString()
+    }
 
 }

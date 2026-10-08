@@ -3,7 +3,9 @@ package io.technoirlab.openapi.kotlin.generator.internal
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.Schema
 import org.openapitools.codegen.CodegenModel
+import org.openapitools.codegen.CodegenProperty
 import org.openapitools.codegen.languages.KotlinClientCodegen
+import org.openapitools.codegen.utils.ModelUtils
 
 internal class KotlinClientGenerator : KotlinClientCodegen() {
     private var originalSchemaNames = emptySet<String>()
@@ -50,6 +52,14 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
             else -> datatype
         }
         return super.toEnumValue(value, enumType)
+    }
+
+    override fun toDefaultValue(property: CodegenProperty, schema: Schema<*>): String? {
+        val defaultValue = super.toDefaultValue(property, schema)
+        // A Long enum default selects the entry with the same value, but upstream adds an L suffix that entry values lack.
+        val referencedSchema = ModelUtils.getReferencedSchema(openAPI, schema)
+        val isLongEnum = !referencedSchema.enum.isNullOrEmpty() && ModelUtils.isLongSchema(referencedSchema)
+        return if (isLongEnum) defaultValue?.removeSuffix("L") else defaultValue
     }
 
     override fun toEnumVarName(value: String, datatype: String): String {

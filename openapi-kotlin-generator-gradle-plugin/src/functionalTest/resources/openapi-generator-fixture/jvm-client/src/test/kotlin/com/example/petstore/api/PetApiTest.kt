@@ -88,6 +88,18 @@ class PetApiTest {
         assertThat(request.headers[HttpHeaders.Cookie]).isNull()
     }
 
+    @Test
+    fun `listPets sends the default page size`() = runTest {
+        responseBody = "[]"
+
+        val result = petApi.listPets()
+
+        assertThat(result).isEmpty()
+        assertThat(engine.requestHistory).hasSize(1)
+        val request = engine.requestHistory.single()
+        assertThat(request.url).isEqualTo(Url("https://petstore.example/pets?pageSize=20"))
+    }
+
     @ParameterizedTest
     @MethodSource("pets")
     fun `addPet sends the pet subtype as JSON and decodes the response`(input: String, pet: Pet) = runTest {
