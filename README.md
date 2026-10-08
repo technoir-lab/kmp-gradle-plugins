@@ -7,6 +7,7 @@ Gradle plugins and utilities for Kotlin Multiplatform projects.
 
 - [CMake import plugin](cmake-import-gradle-plugin/README.md)
 - [Kotlin/Native utilities](kotlin-native-utils/)
+- [OpenAPI Kotlin generator plugin](openapi-kotlin-generator-gradle-plugin/README.md)
 - [VFS overlay plugin](vfs-overlay-gradle-plugin/README.md)
 
 The plugins are published to Maven Central.

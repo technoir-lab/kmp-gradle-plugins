@@ -1,0 +1,5 @@
+src/main/kotlin/com/example/petstore/api/PetApi.kt
+src/main/kotlin/com/example/petstore/model/Cat.kt
+src/main/kotlin/com/example/petstore/model/Dog.kt
+src/main/kotlin/com/example/petstore/model/Pet.kt
+src/main/kotlin/com/example/petstore/model/Status.kt

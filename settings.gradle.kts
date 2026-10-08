@@ -39,4 +39,5 @@ globalSettings {
 
 include(":cmake-import-gradle-plugin")
 include(":kotlin-native-utils")
+include(":openapi-kotlin-generator-gradle-plugin")
 include(":vfs-overlay-gradle-plugin")

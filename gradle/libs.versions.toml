@@ -1,12 +1,18 @@
 [versions]
 assertj = "3.27.7"
 kotlin-gradle-plugin = "2.4.21"
+openapi-generator = "7.26.0"
+swagger-models = "2.2.54"
 
 [libraries]
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+common-conventions = { module = "io.technoirlab.conventions:common-conventions" }
 core-utils = { module = "io.technoirlab.conventions:core-utils" }
 gradle-extensions = { module = "io.technoirlab.conventions:gradle-extensions" }
 gradle-test-kit = { module = "io.technoirlab.conventions:gradle-test-kit" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-gradle-plugin" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json" }
+openapi-generator-core = { module = "org.openapitools:openapi-generator", version.ref = "openapi-generator" }
+openapi-generator-gradle-plugin = { module = "org.openapitools:openapi-generator-gradle-plugin", version.ref = "openapi-generator" }
+swagger-models = { module = "io.swagger.core.v3:swagger-models", version.ref = "swagger-models" }

@@ -1,0 +1,21 @@
+public final class io/technoirlab/openapi/kotlin/generator/OpenApiKotlinGeneratorPlugin : org/gradle/api/Plugin {
+	public fun <init> ()V
+	public synthetic fun apply (Ljava/lang/Object;)V
+	public fun apply (Lorg/gradle/api/Project;)V
+}
+
+public abstract interface annotation class io/technoirlab/openapi/kotlin/generator/api/OpenApiKotlinGeneratorDsl : java/lang/annotation/Annotation {
+}
+
+public abstract interface class io/technoirlab/openapi/kotlin/generator/api/OpenApiKotlinGeneratorExtension {
+	public static final field Companion Lio/technoirlab/openapi/kotlin/generator/api/OpenApiKotlinGeneratorExtension$Companion;
+	public static final field NAME Ljava/lang/String;
+	public abstract fun getPackageName ()Lorg/gradle/api/provider/Property;
+	public abstract fun getPublicApi ()Lorg/gradle/api/provider/Property;
+	public abstract fun getSpecUrl ()Lorg/gradle/api/provider/Property;
+}
+
+public final class io/technoirlab/openapi/kotlin/generator/api/OpenApiKotlinGeneratorExtension$Companion {
+	public static final field NAME Ljava/lang/String;
+}
+

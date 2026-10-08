@@ -1,0 +1,132 @@
+openapi: 3.0.3
+info:
+  title: Petstore
+  version: 1.0.0
+paths:
+  /pets:
+    get:
+      tags: [Pet]
+      operationId: listPets
+      summary: List all pets
+      responses:
+        '200':
+          description: All pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+    post:
+      tags: [Pet]
+      operationId: addPet
+      summary: Add a new pet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
+      responses:
+        '200':
+          description: The pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+  /pets/{petId}:
+    get:
+      tags: [Pet]
+      operationId: getPetById
+      summary: Find a pet by ID
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: includeDetails
+          in: query
+          schema:
+            type: boolean
+        - name: X-Request-ID
+          in: header
+          schema:
+            type: string
+        - name: sessionId
+          in: cookie
+          schema:
+            type: string
+        - name: requestUri
+          in: query
+          schema:
+            type: string
+            format: uri
+        - name: requestUuid
+          in: header
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+    delete:
+      tags: [Pet]
+      operationId: deletePet
+      summary: Remove a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: The pet was removed
+components:
+  schemas:
+    Pet:
+      description: A cat or dog identified by its species.
+      oneOf:
+        - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Dog'
+      discriminator:
+        propertyName: species
+        mapping:
+          cat: '#/components/schemas/Cat'
+          dog: '#/components/schemas/Dog'
+    Cat:
+      type: object
+      required: [species, id, name, livesRemaining]
+      properties:
+        species:
+          type: string
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        livesRemaining:
+          type: integer
+    Dog:
+      type: object
+      required: [species, id, name, barkVolume]
+      properties:
+        species:
+          type: string
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        barkVolume:
+          type: integer
+    Status:
+      type: string
+      enum: [available, pending, sold]
