@@ -13,8 +13,6 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  *
  */
 @Serializable
-
-
 @OptIn(ExperimentalSerializationApi::class)
 @JsonClassDiscriminator(discriminator = "species")
 sealed class Pet {

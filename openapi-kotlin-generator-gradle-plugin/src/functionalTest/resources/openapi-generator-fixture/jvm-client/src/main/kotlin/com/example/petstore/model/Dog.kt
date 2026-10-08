@@ -16,15 +16,20 @@ import kotlinx.serialization.encoding.*
  * @param barkVolume 
  */
 @Serializable
-
 @SerialName(value = "dog")
 data class Dog (
 
-    @SerialName(value = "id") @Required val id: kotlin.Long,
+    @SerialName(value = "id")
+    @Required
+    val id: kotlin.Long,
 
-    @SerialName(value = "name") @Required val name: kotlin.String,
+    @SerialName(value = "name")
+    @Required
+    val name: kotlin.String,
 
-    @SerialName(value = "barkVolume") @Required val barkVolume: kotlin.Int
+    @SerialName(value = "barkVolume")
+    @Required
+    val barkVolume: kotlin.Int
 
 ) : Pet() {
 

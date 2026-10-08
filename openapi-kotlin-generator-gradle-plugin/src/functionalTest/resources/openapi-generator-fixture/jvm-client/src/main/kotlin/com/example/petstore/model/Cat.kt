@@ -16,15 +16,20 @@ import kotlinx.serialization.encoding.*
  * @param livesRemaining 
  */
 @Serializable
-
 @SerialName(value = "cat")
 data class Cat (
 
-    @SerialName(value = "id") @Required val id: kotlin.Long,
+    @SerialName(value = "id")
+    @Required
+    val id: kotlin.Long,
 
-    @SerialName(value = "name") @Required val name: kotlin.String,
+    @SerialName(value = "name")
+    @Required
+    val name: kotlin.String,
 
-    @SerialName(value = "livesRemaining") @Required val livesRemaining: kotlin.Int
+    @SerialName(value = "livesRemaining")
+    @Required
+    val livesRemaining: kotlin.Int
 
 ) : Pet() {
 
