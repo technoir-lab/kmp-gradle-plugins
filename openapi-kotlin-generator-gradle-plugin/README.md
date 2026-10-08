@@ -51,6 +51,8 @@ The plugin configures OpenAPI Generator with:
 - Normalization: `REPLACE_ONE_OF_BY_DISCRIMINATOR_MAPPING = true`.
 - Type mappings: base64-encoded strings use `String`; UUIDs use `kotlin.uuid.Uuid`; binary payloads use `ByteArray`;
   untyped objects and `AnyType` use `kotlinx.serialization.json.JsonElement`.
+- Integers use `Long` unless they declare `format: int32`, which uses `Int`. An integer without a format is unbounded, and
+  APIs such as GitHub's omit `int64` from identifiers that exceed the `Int` range.
 - Type names: Kotlin built-in types and collections use their default-import names. Types with an import mapping, such
   as `kotlin.uuid.Uuid` and `kotlin.time.Instant`, use simple names and are imported. Other qualified types retain their
   package names.

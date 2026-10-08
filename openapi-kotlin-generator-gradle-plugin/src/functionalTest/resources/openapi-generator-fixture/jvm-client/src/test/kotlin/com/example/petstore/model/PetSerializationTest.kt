@@ -42,6 +42,19 @@ class PetSerializationTest {
         }
 
         @Test
+        fun `integer without a format accepts values beyond the Int range`() {
+            val shelter = Shelter(id = 4294967296L)
+            val input = """{"id":4294967296}"""
+            val expectedJson = json.parseToJsonElement(input)
+
+            val decoded = json.decodeFromString<Shelter>(input)
+            val encoded = json.encodeToJsonElement(shelter)
+
+            assertThat(decoded).isEqualTo(shelter)
+            assertThat(encoded).isEqualTo(expectedJson)
+        }
+
+        @Test
         fun `object with additional properties serializes its declared properties`() {
             val record = PetRecord(PetRecord.Status.AVAILABLE)
             val input = """{"status":"available"}"""

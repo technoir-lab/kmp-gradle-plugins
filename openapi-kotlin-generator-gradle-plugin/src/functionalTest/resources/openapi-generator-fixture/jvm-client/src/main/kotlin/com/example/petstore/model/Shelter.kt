@@ -12,11 +12,15 @@ import kotlinx.serialization.Serializable
 /**
  * 
  *
+ * @param id 
  * @param record 
  * @param archived 
  */
 @Serializable
 data class Shelter (
+
+    @SerialName(value = "id")
+    val id: Long? = null,
 
     @SerialName(value = "record")
     val record: ShelterAdoptionRecord? = null,

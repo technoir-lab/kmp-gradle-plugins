@@ -23,6 +23,7 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
 
     override fun preprocessOpenAPI(openAPI: OpenAPI) {
         super.preprocessOpenAPI(openAPI)
+        SchemaTraversal { schema, _ -> widenUnformattedInteger(schema) }.traverse(openAPI)
         val schemaNames = openAPI.components?.schemas?.keys.orEmpty().filterNotTo(HashSet()) { it in schemaMapping }
         modelNameMapping.putAll(ModelNameCollisions(::toModelName).resolve(openAPI, schemaNames, originalSchemaNames))
     }
@@ -73,6 +74,13 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
     // outside the JVM, and kotlinx.serialization would neither read nor write the inherited entries.
     override fun addParentContainer(model: CodegenModel, name: String, schema: Schema<*>) = Unit
 
+    private fun widenUnformattedInteger(schema: Schema<*>) {
+        // An integer without a format is unbounded; APIs commonly omit int64 for identifiers.
+        if (schema.`$ref` == null && ModelUtils.isIntegerSchema(schema) && schema.format == null) {
+            schema.format = INT64_FORMAT
+        }
+    }
+
     private fun unqualifiedType(type: String): String = type.replace(QUALIFIED_TYPE) { match ->
         val qualifiedName = match.value
         val packageName = qualifiedName.substringBeforeLast('.')
@@ -85,6 +93,7 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
     }
 
     private companion object {
+        private const val INT64_FORMAT = "int64"
         private val QUALIFIED_TYPE = Regex("(?<![\\w.])(?:\\w+\\.)+\\w+(?![\\w.])")
     }
 }

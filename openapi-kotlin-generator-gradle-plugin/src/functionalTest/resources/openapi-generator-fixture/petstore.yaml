@@ -274,6 +274,8 @@ components:
     Shelter:
       type: object
       properties:
+        id:
+          type: integer
         record:
           title: Adoption Record
           type: object

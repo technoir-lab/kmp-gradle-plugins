@@ -29,7 +29,7 @@ data class Cat (
 
     @SerialName(value = "livesRemaining")
     @Required
-    val livesRemaining: Int
+    val livesRemaining: Long
 
 ) : Pet() {
 

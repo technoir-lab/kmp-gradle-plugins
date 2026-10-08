@@ -30,7 +30,7 @@ data class Dog (
 
     @SerialName(value = "barkVolume")
     @Required
-    val barkVolume: Int
+    val barkVolume: Long
 
 ) : Pet() {
 
