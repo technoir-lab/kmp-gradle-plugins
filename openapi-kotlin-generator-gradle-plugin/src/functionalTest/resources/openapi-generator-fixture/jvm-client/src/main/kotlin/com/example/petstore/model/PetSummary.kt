@@ -18,10 +18,10 @@ data class PetSummary (
 
     @SerialName(value = "name")
     @Required
-    val name: kotlin.String,
+    val name: String,
 
     @SerialName(value = "nickname")
-    val nickname: kotlin.String? = null
+    val nickname: String? = null
 
 ) {
 

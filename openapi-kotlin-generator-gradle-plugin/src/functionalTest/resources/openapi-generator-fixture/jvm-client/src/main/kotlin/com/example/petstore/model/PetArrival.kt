@@ -2,6 +2,7 @@
 
 package com.example.petstore.model
 
+import kotlin.time.Instant
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -37,8 +38,8 @@ data class PetArrival(val actualInstance: Any? = null) {
                 throw SerializationException("PetArrival does not allow null")
             }
             val element =
-                encodeCandidate<kotlin.Int>(jsonEncoder.json, value.actualInstance) ?:
-                encodeCandidate<kotlin.time.Instant>(jsonEncoder.json, value.actualInstance) ?:
+                encodeCandidate<Int>(jsonEncoder.json, value.actualInstance) ?:
+                encodeCandidate<Instant>(jsonEncoder.json, value.actualInstance) ?:
                 throw SerializationException("Unsupported value for PetArrival")
             select(strictJson(jsonEncoder.json), element, ignoreUnknownKeys = false)
             jsonEncoder.encodeJsonElement(element)
@@ -65,8 +66,8 @@ data class PetArrival(val actualInstance: Any? = null) {
                 throw SerializationException("PetArrival does not allow null")
             }
             val matches = mutableListOf<Pair<Any, JsonElement>>()
-            decodeCandidate<kotlin.Int>(json, element)?.let(matches::add)
-            decodeCandidate<kotlin.time.Instant>(json, element)?.let(matches::add)
+            decodeCandidate<Int>(json, element)?.let(matches::add)
+            decodeCandidate<Instant>(json, element)?.let(matches::add)
             if (matches.size != 1) {
                 throw SerializationException("PetArrival requires exactly one matching alternative; found ${matches.size}")
             }

@@ -8,6 +8,7 @@ src/main/kotlin/com/example/petstore/model/PetArrival.kt
 src/main/kotlin/com/example/petstore/model/PetInventory.kt
 src/main/kotlin/com/example/petstore/model/PetList.kt
 src/main/kotlin/com/example/petstore/model/PetLocation.kt
+src/main/kotlin/com/example/petstore/model/PetPhoto.kt
 src/main/kotlin/com/example/petstore/model/PetProfileChoice.kt
 src/main/kotlin/com/example/petstore/model/PetProfileMatch.kt
 src/main/kotlin/com/example/petstore/model/PetRating.kt

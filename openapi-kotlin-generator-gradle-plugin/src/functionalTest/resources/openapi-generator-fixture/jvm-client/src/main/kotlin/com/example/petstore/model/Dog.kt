@@ -3,6 +3,7 @@
 package com.example.petstore.model
 
 import com.example.petstore.model.Pet
+import kotlinx.serialization.json.JsonElement
 
 import kotlinx.serialization.Required
 import kotlinx.serialization.SerialName
@@ -21,15 +22,15 @@ data class Dog (
 
     @SerialName(value = "id")
     @Required
-    val id: kotlin.Long,
+    val id: Long,
 
     @SerialName(value = "name")
     @Required
-    val name: kotlin.String,
+    val name: String,
 
     @SerialName(value = "barkVolume")
     @Required
-    val barkVolume: kotlin.Int
+    val barkVolume: Int
 
 ) : Pet() {
 

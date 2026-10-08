@@ -16,7 +16,7 @@ import kotlinx.serialization.encoding.Encoder
  * Values: VALUE_1,VALUE_2,VALUE_3
  */
 @Serializable(with = PetRatingSerializer::class)
-enum class PetRating(val value: kotlin.Int) {
+enum class PetRating(val value: Int) {
 
     VALUE_1(1),
 
@@ -31,18 +31,18 @@ enum class PetRating(val value: kotlin.Int) {
      * This solves a problem when the variable name and its value are different, and ensures that
      * the client sends the correct enum values to the server always.
      */
-    override fun toString(): kotlin.String = value.toString()
+    override fun toString(): String = value.toString()
 
     companion object {
         /**
          * Converts the provided [data] to a [String] on success, null otherwise.
          */
-        fun encode(data: kotlin.Any?): kotlin.String? = if (data is PetRating) "$data" else null
+        fun encode(data: Any?): String? = if (data is PetRating) "$data" else null
 
         /**
          * Returns a valid [PetRating] for [data], null otherwise.
          */
-        fun decode(data: kotlin.Any?): PetRating? = data?.let {
+        fun decode(data: Any?): PetRating? = data?.let {
           val normalizedData = "$it".lowercase()
           entries.firstOrNull { value ->
             it == value || normalizedData == "$value".lowercase()
@@ -51,16 +51,16 @@ enum class PetRating(val value: kotlin.Int) {
     }
 }
 internal object PetRatingSerializer : KSerializer<PetRating> {
-    override val descriptor = kotlin.Int.serializer().descriptor
+    override val descriptor = Int.serializer().descriptor
 
     override fun deserialize(decoder: Decoder): PetRating {
-        val value = decoder.decodeSerializableValue(kotlin.Int.serializer())
+        val value = decoder.decodeSerializableValue(Int.serializer())
         return PetRating.entries.firstOrNull { it.value == value }
             ?: throw IllegalArgumentException("Unknown enum value: $value")
     }
 
     override fun serialize(encoder: Encoder, value: PetRating) {
-        encoder.encodeSerializableValue(kotlin.Int.serializer(), value.value)
+        encoder.encodeSerializableValue(Int.serializer(), value.value)
     }
 }
 

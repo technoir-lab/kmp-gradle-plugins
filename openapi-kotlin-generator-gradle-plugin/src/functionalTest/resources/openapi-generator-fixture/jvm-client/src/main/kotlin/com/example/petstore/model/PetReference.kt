@@ -37,8 +37,8 @@ data class PetReference(val actualInstance: Any? = null) {
                 throw SerializationException("PetReference does not allow null")
             }
             val element =
-                encodeCandidate<kotlin.String>(jsonEncoder.json, value.actualInstance) ?:
-                encodeCandidate<kotlin.Long>(jsonEncoder.json, value.actualInstance) ?:
+                encodeCandidate<String>(jsonEncoder.json, value.actualInstance) ?:
+                encodeCandidate<Long>(jsonEncoder.json, value.actualInstance) ?:
                 throw SerializationException("Unsupported value for PetReference")
             select(strictJson(jsonEncoder.json), element, ignoreUnknownKeys = false)
             jsonEncoder.encodeJsonElement(element)
@@ -65,8 +65,8 @@ data class PetReference(val actualInstance: Any? = null) {
                 throw SerializationException("PetReference does not allow null")
             }
             val matches = mutableListOf<Pair<Any, JsonElement>>()
-            decodeCandidate<kotlin.String>(json, element)?.let(matches::add)
-            decodeCandidate<kotlin.Long>(json, element)?.let(matches::add)
+            decodeCandidate<String>(json, element)?.let(matches::add)
+            decodeCandidate<Long>(json, element)?.let(matches::add)
             if (matches.size != 1) {
                 throw SerializationException("PetReference requires exactly one matching alternative; found ${matches.size}")
             }

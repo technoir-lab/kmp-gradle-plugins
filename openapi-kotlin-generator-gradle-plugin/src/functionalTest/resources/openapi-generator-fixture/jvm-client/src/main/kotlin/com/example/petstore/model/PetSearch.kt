@@ -18,7 +18,7 @@ data class PetSearch (
 
     /* Name to search for. */
     @SerialName(value = "name")
-    val name: kotlin.String? = null,
+    val name: String? = null,
 
     @SerialName(value = "status")
     val status: PetSearch.Status? = null
@@ -31,12 +31,12 @@ data class PetSearch (
      * Values: AVAILABLE,PENDING
      */
     @Serializable
-    enum class Status(val value: kotlin.String) {
+    enum class Status(val value: String) {
         @SerialName(value = "available")
         AVAILABLE("available"),
         @SerialName(value = "pending")
         PENDING("pending");
-        override fun toString(): kotlin.String = value
+        override fun toString(): String = value
     }
 
 }

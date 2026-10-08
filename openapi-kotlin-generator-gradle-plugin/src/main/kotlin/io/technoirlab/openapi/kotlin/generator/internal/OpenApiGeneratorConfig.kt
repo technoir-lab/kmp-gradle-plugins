@@ -28,6 +28,8 @@ internal object OpenApiGeneratorConfig {
         // Keep binary schemas independent of the generator's infrastructure wrappers.
         "file" to "kotlin.ByteArray",
         "binary" to "kotlin.ByteArray",
+        // Type declarations look up shortened type names again, and the multiplatform library maps ByteArray to a wrapper.
+        "ByteArray" to "kotlin.ByteArray",
         "string+byte" to "kotlin.String",
         "AnyType" to "JsonElement",
         "object" to "JsonElement",

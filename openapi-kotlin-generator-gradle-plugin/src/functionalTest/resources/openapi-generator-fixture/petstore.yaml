@@ -242,6 +242,23 @@ components:
           items:
             type: string
             format: uri
+    PetPhoto:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          format: binary
+        thumbnail:
+          type: string
+          format: byte
+        tags:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        rating:
+          $ref: '#/components/schemas/PetRating'
     PetRating:
       type: integer
       format: int32

@@ -27,12 +27,12 @@ data class PetRecord (
      * Values: AVAILABLE,PENDING
      */
     @Serializable
-    enum class Status(val value: kotlin.String) {
+    enum class Status(val value: String) {
         @SerialName(value = "available")
         AVAILABLE("available"),
         @SerialName(value = "pending")
         PENDING("pending");
-        override fun toString(): kotlin.String = value
+        override fun toString(): String = value
     }
 
 }

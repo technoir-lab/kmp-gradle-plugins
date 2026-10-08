@@ -40,7 +40,8 @@ Multiplatform projects, declare them for `commonMain`.
 
 The plugin configures OpenAPI Generator with:
 
-- Generator: a `KotlinClientCodegen` subclass that corrects model data before rendering.
+- Generator: a `KotlinClientCodegen` subclass that corrects model data before rendering and emits unqualified type
+  names.
 - Library: `multiplatform`, using Ktor and custom templates.
 - Serialization library: `kotlinx_serialization`.
 - Date library: `kotlinx-datetime`.
@@ -50,6 +51,9 @@ The plugin configures OpenAPI Generator with:
 - Normalization: `REPLACE_ONE_OF_BY_DISCRIMINATOR_MAPPING = true`.
 - Type mappings: base64-encoded strings use `String`; UUIDs use `kotlin.uuid.Uuid`; binary payloads use `ByteArray`;
   untyped objects and `AnyType` use `kotlinx.serialization.json.JsonElement`.
+- Type names: Kotlin built-in types and collections use their default-import names. Types with an import mapping, such
+  as `kotlin.uuid.Uuid` and `kotlin.time.Instant`, use simple names and are imported. Other qualified types retain their
+  package names.
 - Source directory: `src/commonMain/kotlin` for Kotlin Multiplatform projects and `src/main/kotlin` otherwise, with
   `.api` and `.model` subpackages.
 - Generated content: all APIs and models, plus the `FILES` and `VERSION` metadata files. API and model tests,

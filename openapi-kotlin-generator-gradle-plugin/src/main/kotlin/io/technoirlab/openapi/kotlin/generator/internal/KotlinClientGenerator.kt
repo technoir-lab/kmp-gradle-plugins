@@ -5,6 +5,15 @@ import org.openapitools.codegen.CodegenModel
 import org.openapitools.codegen.languages.KotlinClientCodegen
 
 internal class KotlinClientGenerator : KotlinClientCodegen() {
+    init {
+        // Recognize Kotlin built-in types by the names used in generated declarations.
+        languageSpecificPrimitives.addAll(languageSpecificPrimitives.map(::unqualifiedType))
+    }
+
+    override fun getSchemaType(schema: Schema<*>?): String = unqualifiedType(super.getSchemaType(schema))
+
+    override fun getTypeDeclaration(schema: Schema<*>?): String = unqualifiedType(super.getTypeDeclaration(schema))
+
     override fun fromModel(name: String, schema: Schema<*>): CodegenModel? {
         val model = super.fromModel(name, schema) ?: return null
         // Composed schema processing resets allVars and hasEnums when oneOf or anyOf alternatives only add constraints,
@@ -13,7 +22,19 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
             model.allVars = model.vars
             model.hasEnums = model.vars.any { it.isEnum }
         }
+        // Import the types of scalar union alternatives, which upstream only imports for collections.
+        val composedSchemas = model.composedSchemas
+        (composedSchemas?.oneOf.orEmpty() + composedSchemas?.anyOf.orEmpty()).forEach { addImports(model, it) }
         return model
+    }
+
+    override fun toEnumValue(value: String, datatype: String): String {
+        // Upstream recognizes numeric and Boolean enum values by their qualified Kotlin types.
+        val enumType = when (datatype) {
+            "Int", "Long", "Boolean", "Double", "Float" -> "kotlin.$datatype"
+            else -> datatype
+        }
+        return super.toEnumValue(value, enumType)
     }
 
     override fun toEnumVarName(value: String, datatype: String): String {
@@ -26,4 +47,19 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
     // Upstream extends HashMap for schemas with additionalProperties and ArrayList for array models. Both classes are final
     // outside the JVM, and kotlinx.serialization would neither read nor write the inherited entries.
     override fun addParentContainer(model: CodegenModel, name: String, schema: Schema<*>) = Unit
+
+    private fun unqualifiedType(type: String): String = type.replace(QUALIFIED_TYPE) { match ->
+        val qualifiedName = match.value
+        val packageName = qualifiedName.substringBeforeLast('.')
+        val simpleName = qualifiedName.substringAfterLast('.')
+        if (packageName == "kotlin" || packageName == "kotlin.collections" || importMapping[simpleName] == qualifiedName) {
+            simpleName
+        } else {
+            qualifiedName
+        }
+    }
+
+    private companion object {
+        private val QUALIFIED_TYPE = Regex("(?<![\\w.])(?:\\w+\\.)+\\w+(?![\\w.])")
+    }
 }

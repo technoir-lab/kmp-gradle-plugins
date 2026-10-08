@@ -21,15 +21,15 @@ data class Cat (
 
     @SerialName(value = "id")
     @Required
-    val id: kotlin.Long,
+    val id: Long,
 
     @SerialName(value = "name")
     @Required
-    val name: kotlin.String,
+    val name: String,
 
     @SerialName(value = "livesRemaining")
     @Required
-    val livesRemaining: kotlin.Int
+    val livesRemaining: Int
 
 ) : Pet() {
 

@@ -3,6 +3,7 @@
 package com.example.petstore.api
 
 import com.example.petstore.model.Pet
+import kotlin.uuid.Uuid
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
@@ -41,7 +42,7 @@ class PetApi(private val httpClient: HttpClient) {
      * @param petId 
      */
     suspend fun deletePet(
-        petId: kotlin.Long,
+        petId: Long,
     ): Unit =
         httpClient.request(
             "/pets/{petId}"
@@ -60,12 +61,12 @@ class PetApi(private val httpClient: HttpClient) {
      * @param requestUuid 
      */
     suspend fun getPetById(
-        petId: kotlin.Long,
-        includeDetails: kotlin.Boolean? = null,
-        xRequestID: kotlin.String? = null,
-        sessionId: kotlin.String? = null,
-        requestUri: kotlin.String? = null,
-        requestUuid: kotlin.uuid.Uuid? = null,
+        petId: Long,
+        includeDetails: Boolean? = null,
+        xRequestID: String? = null,
+        sessionId: String? = null,
+        requestUri: String? = null,
+        requestUuid: Uuid? = null,
     ): Pet =
         httpClient.request(
             "/pets/{petId}"
@@ -94,7 +95,7 @@ class PetApi(private val httpClient: HttpClient) {
      * List all pets
      */
     suspend fun listPets(
-    ): kotlin.collections.List<Pet> =
+    ): List<Pet> =
         httpClient.request(
             "/pets",
         ) {

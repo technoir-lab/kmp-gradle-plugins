@@ -179,7 +179,7 @@ import {{packageName}}.infrastructure.ITransformForStorage
     {{/enumVars}}
     {{/allowableValues}}
     {{#multiplatform}}
-        override fun toString(): kotlin.String = value{{^isString}}.toString(){{/isString}}
+        override fun toString(): String = value{{^isString}}.toString(){{/isString}}
     {{/multiplatform}}
     }
     {{#kotlinx_serialization}}

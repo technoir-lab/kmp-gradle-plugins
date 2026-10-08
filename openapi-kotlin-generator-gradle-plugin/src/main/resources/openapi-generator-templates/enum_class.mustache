@@ -107,19 +107,19 @@ import kotlinx.serialization.encoding.Encoder
      * This solves a problem when the variable name and its value are different, and ensures that
      * the client sends the correct enum values to the server always.
      */
-    override fun toString(): kotlin.String = value{{^isString}}.toString(){{/isString}}
+    override fun toString(): String = value{{^isString}}.toString(){{/isString}}
 
     {{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}companion object {
         /**
          * Converts the provided [data] to a [String] on success, null otherwise.
          */
-        {{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}fun encode(data: kotlin.Any?): kotlin.String? = if (data is {{classname}}) "$data" else null
+        {{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}fun encode(data: Any?): String? = if (data is {{classname}}) "$data" else null
 
 {{^jackson}}
         /**
          * Returns a valid [{{classname}}] for [data], null otherwise.
          */
-        {{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}fun decode(data: kotlin.Any?): {{classname}}? = data?.let {
+        {{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}fun decode(data: Any?): {{classname}}? = data?.let {
           val normalizedData = "$it".lowercase()
           entries.firstOrNull { value ->
             it == value || normalizedData == "$value".lowercase()
@@ -135,7 +135,7 @@ import kotlinx.serialization.encoding.Encoder
          */
         @JvmStatic
         @JsonCreator
-        {{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}fun decode(data: kotlin.Any?): {{classname}}{{#isNullable}}?{{/isNullable}} {
+        {{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}fun decode(data: Any?): {{classname}}{{#isNullable}}?{{/isNullable}} {
           if (data == null) {
 {{#isNullable}}
             return null
@@ -159,7 +159,7 @@ import kotlinx.serialization.encoding.Encoder
          * Jackson deserialization uses [decode], which is strict.
          */
         @JvmStatic
-        {{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}fun decodeOrNull(data: kotlin.Any?): {{classname}}? = data?.let {
+        {{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}fun decodeOrNull(data: Any?): {{classname}}? = data?.let {
           val normalizedData = "$it".lowercase()
           entries.firstOrNull { value ->
             it == value || normalizedData == "$value".lowercase()

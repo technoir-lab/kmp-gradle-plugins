@@ -22,7 +22,7 @@ data class AdoptionRequest (
     /* Name of the person adopting the pet. */
     @SerialName(value = "adopterName")
     @Required
-    val adopterName: kotlin.String,
+    val adopterName: String,
 
     @SerialName(value = "cat")
     val cat: Cat? = null,

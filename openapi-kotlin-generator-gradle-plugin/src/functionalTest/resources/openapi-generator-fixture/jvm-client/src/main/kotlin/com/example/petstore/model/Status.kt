@@ -16,7 +16,7 @@ import kotlinx.serialization.encoding.Encoder
  * Values: AVAILABLE,PENDING,SOLD
  */
 @Serializable
-enum class Status(val value: kotlin.String) {
+enum class Status(val value: String) {
 
     @SerialName(value = "available")
     AVAILABLE("available"),
@@ -34,18 +34,18 @@ enum class Status(val value: kotlin.String) {
      * This solves a problem when the variable name and its value are different, and ensures that
      * the client sends the correct enum values to the server always.
      */
-    override fun toString(): kotlin.String = value
+    override fun toString(): String = value
 
     companion object {
         /**
          * Converts the provided [data] to a [String] on success, null otherwise.
          */
-        fun encode(data: kotlin.Any?): kotlin.String? = if (data is Status) "$data" else null
+        fun encode(data: Any?): String? = if (data is Status) "$data" else null
 
         /**
          * Returns a valid [Status] for [data], null otherwise.
          */
-        fun decode(data: kotlin.Any?): Status? = data?.let {
+        fun decode(data: Any?): Status? = data?.let {
           val normalizedData = "$it".lowercase()
           entries.firstOrNull { value ->
             it == value || normalizedData == "$value".lowercase()
