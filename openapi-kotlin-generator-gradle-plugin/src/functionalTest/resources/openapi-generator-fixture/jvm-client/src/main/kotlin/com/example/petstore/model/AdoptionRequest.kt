@@ -17,8 +17,7 @@ import kotlinx.serialization.Serializable
  * @param dog
  */
 @Serializable
-data class AdoptionRequest (
-
+data class AdoptionRequest(
     /**
      * Name of the person adopting the pet.
      */
@@ -30,8 +29,7 @@ data class AdoptionRequest (
     val cat: Cat? = null,
 
     @SerialName(value = "dog")
-    val dog: Dog? = null
-
+    val dog: Dog? = null,
 ) {
 
 

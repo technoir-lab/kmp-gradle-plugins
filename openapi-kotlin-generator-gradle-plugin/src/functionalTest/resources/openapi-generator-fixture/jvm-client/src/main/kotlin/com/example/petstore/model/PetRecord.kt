@@ -13,12 +13,10 @@ import kotlinx.serialization.Serializable
  * @param status
  */
 @Serializable
-data class PetRecord (
-
+data class PetRecord(
     @SerialName(value = "status")
     @Required
-    val status: PetRecord.Status
-
+    val status: PetRecord.Status,
 ) {
 
     /**

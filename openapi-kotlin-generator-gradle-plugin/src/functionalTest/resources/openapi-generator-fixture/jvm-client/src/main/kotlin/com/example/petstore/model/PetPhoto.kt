@@ -15,8 +15,7 @@ import kotlinx.serialization.Serializable
  * @param rating
  */
 @Serializable
-data class PetPhoto (
-
+data class PetPhoto(
     @SerialName(value = "content")
     @Required
     val content: ByteArray,
@@ -28,8 +27,7 @@ data class PetPhoto (
     val tags: Set<String>? = null,
 
     @SerialName(value = "rating")
-    val rating: PetRating? = null
-
+    val rating: PetRating? = null,
 ) {
 
 

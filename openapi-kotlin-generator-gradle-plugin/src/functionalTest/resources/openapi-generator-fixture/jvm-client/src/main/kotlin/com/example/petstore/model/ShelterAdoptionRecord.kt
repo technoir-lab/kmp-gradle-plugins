@@ -11,11 +11,9 @@ import kotlinx.serialization.Serializable
  * @param notes
  */
 @Serializable
-data class ShelterAdoptionRecord (
-
+data class ShelterAdoptionRecord(
     @SerialName(value = "notes")
-    val notes: String? = null
-
+    val notes: String? = null,
 ) {
 
 

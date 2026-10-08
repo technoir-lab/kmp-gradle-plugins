@@ -15,8 +15,7 @@ import kotlinx.serialization.Serializable
  * @param archived
  */
 @Serializable
-data class Shelter (
-
+data class Shelter(
     @SerialName(value = "id")
     val id: Long? = null,
 
@@ -24,8 +23,7 @@ data class Shelter (
     val record: ShelterAdoptionRecord? = null,
 
     @SerialName(value = "archived")
-    val archived: AdoptionRecord? = null
-
+    val archived: AdoptionRecord? = null,
 ) {
 
 

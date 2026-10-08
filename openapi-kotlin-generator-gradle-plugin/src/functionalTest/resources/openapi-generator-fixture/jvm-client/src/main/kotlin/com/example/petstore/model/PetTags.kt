@@ -11,11 +11,9 @@ import kotlinx.serialization.Serializable
  * @param tags
  */
 @Serializable
-data class PetTags (
-
+data class PetTags(
     @SerialName(value = "tags")
-    val tags: List<PetTags.Tags>? = null
-
+    val tags: List<PetTags.Tags>? = null,
 ) {
 
     /**

@@ -12,15 +12,13 @@ import kotlinx.serialization.Serializable
  * @param nickname
  */
 @Serializable
-data class PetSummary (
-
+data class PetSummary(
     @SerialName(value = "name")
     @Required
     val name: String,
 
     @SerialName(value = "nickname")
-    val nickname: String? = null
-
+    val nickname: String? = null,
 ) {
 
 

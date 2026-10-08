@@ -14,8 +14,7 @@ import kotlinx.serialization.Serializable
  * @param status
  */
 @Serializable
-data class PetSearch (
-
+data class PetSearch(
     /**
      * Name to search for.
      */
@@ -23,8 +22,7 @@ data class PetSearch (
     val name: String? = null,
 
     @SerialName(value = "status")
-    val status: PetSearch.Status? = null
-
+    val status: PetSearch.Status? = null,
 ) {
 
     /**

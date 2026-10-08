@@ -13,8 +13,7 @@ import kotlinx.serialization.Serializable
  * @param nickname
  */
 @Serializable
-data class RegisteredPet (
-
+data class RegisteredPet(
     @SerialName(value = "name")
     @Required
     val name: String,
@@ -24,8 +23,7 @@ data class RegisteredPet (
     val microchipId: String,
 
     @SerialName(value = "nickname")
-    val nickname: String? = null
-
+    val nickname: String? = null,
 ) {
 
 

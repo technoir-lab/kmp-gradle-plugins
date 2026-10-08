@@ -16,8 +16,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 @SerialName(value = "dog")
-data class Dog (
-
+data class Dog(
     @SerialName(value = "id")
     @Required
     val id: Long,
@@ -28,8 +27,7 @@ data class Dog (
 
     @SerialName(value = "barkVolume")
     @Required
-    val barkVolume: Long
-
+    val barkVolume: Long,
 ) : Pet() {
 
 

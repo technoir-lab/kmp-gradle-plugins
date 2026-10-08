@@ -11,12 +11,10 @@ import kotlinx.serialization.Serializable
  * @param id
  */
 @Serializable
-data class AdoptionRecord (
-
+data class AdoptionRecord(
     @SerialName(value = "id")
     @Required
-    val id: Long
-
+    val id: Long,
 ) {
 
 

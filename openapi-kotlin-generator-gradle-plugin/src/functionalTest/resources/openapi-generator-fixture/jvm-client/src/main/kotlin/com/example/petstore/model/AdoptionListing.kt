@@ -14,8 +14,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 @SerialName(value = "AdoptionListing")
-data class AdoptionListing (
-
+data class AdoptionListing(
     /**
      * The listing's web page.
      */
@@ -25,8 +24,7 @@ data class AdoptionListing (
 
     @SerialName(value = "fee")
     @Required
-    val fee: Int
-
+    val fee: Int,
 ) : Listing() {
 
 
