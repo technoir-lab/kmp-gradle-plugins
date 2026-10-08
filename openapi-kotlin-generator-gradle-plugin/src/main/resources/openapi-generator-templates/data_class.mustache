@@ -179,7 +179,7 @@ import {{packageName}}.infrastructure.ITransformForStorage
     {{/enumVars}}
     {{/allowableValues}}
     {{#multiplatform}}
-        override fun toString(): String = value{{^isString}}.toString(){{/isString}}
+        override fun toString(): String = value{{^isContainer}}{{^isString}}.toString(){{/isString}}{{/isContainer}}{{#isContainer}}{{#mostInnerItems}}{{^isString}}.toString(){{/isString}}{{/mostInnerItems}}{{/isContainer}}
     {{/multiplatform}}
     }
     {{#kotlinx_serialization}}

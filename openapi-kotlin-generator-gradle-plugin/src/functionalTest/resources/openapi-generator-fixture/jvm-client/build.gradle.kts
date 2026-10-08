@@ -12,6 +12,12 @@ openApiKotlinGenerator {
     packageName = "com.example.petstore"
 }
 
+kotlin {
+    compilerOptions {
+        allWarningsAsErrors = true
+    }
+}
+
 dependencies {
     implementation(platform(libs.ktor.bom))
     implementation(libs.ktor.client.core)

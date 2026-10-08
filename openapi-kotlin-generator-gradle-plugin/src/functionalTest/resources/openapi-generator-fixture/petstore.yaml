@@ -97,6 +97,101 @@ paths:
       responses:
         '204':
           description: The pet was removed
+  /owners/{ownerName}/pets:
+    get:
+      tags: [Pet]
+      operationId: listOwnerPets
+      summary: List an owner's pets
+      parameters:
+        - name: ownerName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: nickname
+          in: query
+          schema:
+            type: string
+        - name: tags
+          in: query
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: The owner's pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+  /pets/{petId}/notes:
+    post:
+      tags: [Pet]
+      operationId: addPetNote
+      summary: Add a note about a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                priority:
+                  type: integer
+                  format: int32
+      responses:
+        '204':
+          description: The note was added
+  /pets/{petId}/profile:
+    put:
+      tags: [Pet]
+      operationId: updatePetProfile
+      summary: Update a pet's profile
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [bio]
+              properties:
+                bio:
+                  type: string
+                nicknames:
+                  type: array
+                  items:
+                    type: string
+                age:
+                  type: integer
+                  format: int32
+      responses:
+        '204':
+          description: The profile was updated
 components:
   schemas:
     Pet:
@@ -298,3 +393,11 @@ components:
         id:
           type: integer
           format: int64
+    PetTags:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+            enum: [friendly, shy]

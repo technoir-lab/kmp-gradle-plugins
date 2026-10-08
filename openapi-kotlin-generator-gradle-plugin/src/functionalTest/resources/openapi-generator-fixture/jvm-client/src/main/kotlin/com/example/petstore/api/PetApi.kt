@@ -38,6 +38,35 @@ class PetApi(private val httpClient: HttpClient) {
         }.body()
 
     /**
+     * Add a note about a pet
+     * @param petId 
+     * @param text 
+     * @param tags 
+     * @param priority 
+     */
+    suspend fun addPetNote(
+        petId: Long,
+        text: String,
+        tags: List<String>? = null,
+        priority: Int? = null,
+    ): Unit =
+        httpClient.request(
+            "/pets/{petId}/notes"
+                .replace("{" + "petId" + "}", petId.toString().encodeURLPathPart()),
+        ) {
+            method = HttpMethod.parse("POST")
+            setBody(FormDataContent(Parameters.build {
+                    append("text", text)
+                tags?.let {
+                    appendAll("tags", tags)
+                }
+                priority?.let {
+                    append("priority", priority.toString())
+                }
+            }))
+        }.body()
+
+    /**
      * Remove a pet
      * @param petId 
      */
@@ -78,7 +107,7 @@ class PetApi(private val httpClient: HttpClient) {
                 url.parameters.append("includeDetails", includeDetails.toString())
             }
             requestUri?.let {
-                url.parameters.append("requestUri", requestUri.toString())
+                url.parameters.append("requestUri", requestUri)
             }
             xRequestID?.let {
                 header("X-Request-ID", xRequestID)
@@ -88,6 +117,31 @@ class PetApi(private val httpClient: HttpClient) {
             }
             sessionId?.let {
                 cookie("sessionId", sessionId)
+            }
+        }.body()
+
+    /**
+     * List an owner&#39;s pets
+     * @param ownerName 
+     * @param nickname 
+     * @param tags 
+     */
+    suspend fun listOwnerPets(
+        ownerName: String,
+        nickname: String? = null,
+        tags: List<String>? = null,
+    ): List<Pet> =
+        httpClient.request(
+            "/owners/{ownerName}/pets"
+                .replace("{" + "ownerName" + "}", ownerName.encodeURLPathPart()),
+        ) {
+            method = HttpMethod.parse("GET")
+            accept(ContentType.parse("application/json"))
+            nickname?.let {
+                url.parameters.append("nickname", nickname)
+            }
+            tags?.let {
+                url.parameters.appendAll("tags", tags)
             }
         }.body()
 
@@ -106,6 +160,35 @@ class PetApi(private val httpClient: HttpClient) {
             pageSize?.let {
                 url.parameters.append("pageSize", pageSize.toString())
             }
+        }.body()
+
+    /**
+     * Update a pet&#39;s profile
+     * @param petId 
+     * @param bio 
+     * @param nicknames 
+     * @param age 
+     */
+    suspend fun updatePetProfile(
+        petId: Long,
+        bio: String,
+        nicknames: List<String>? = null,
+        age: Int? = null,
+    ): Unit =
+        httpClient.request(
+            "/pets/{petId}/profile"
+                .replace("{" + "petId" + "}", petId.toString().encodeURLPathPart()),
+        ) {
+            method = HttpMethod.parse("PUT")
+            setBody(MultiPartFormDataContent(formData {
+                    append("bio", bio)
+                nicknames?.let {
+                    nicknames.forEach { append("nicknames", it) }
+                }
+                age?.let {
+                    append("age", age.toString())
+                }
+            }))
         }.body()
 
     enum class PageSizeListPets(val value: Long) {

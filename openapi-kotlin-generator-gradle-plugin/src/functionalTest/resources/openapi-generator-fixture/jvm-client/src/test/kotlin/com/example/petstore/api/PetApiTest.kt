@@ -100,6 +100,47 @@ class PetApiTest {
         assertThat(request.url).isEqualTo(Url("https://petstore.example/pets?pageSize=20"))
     }
 
+    @Test
+    fun `listOwnerPets sends string parameters as text`() = runTest {
+        responseBody = "[]"
+
+        val result = petApi.listOwnerPets("Ann Lee", "Mo", listOf("friendly", "shy"))
+
+        assertThat(result).isEmpty()
+        assertThat(engine.requestHistory).hasSize(1)
+        val request = engine.requestHistory.single()
+        assertThat(request.url).isEqualTo(Url("https://petstore.example/owners/Ann%20Lee/pets?nickname=Mo&tags=friendly&tags=shy"))
+    }
+
+    @Test
+    fun `addPetNote sends a URL-encoded form`() = runTest {
+        responseBody = ""
+
+        petApi.addPetNote(1L, "Likes naps", listOf("calm", "quiet"), 2)
+
+        assertThat(engine.requestHistory).hasSize(1)
+        val request = engine.requestHistory.single()
+        assertThat(request.method).isEqualTo(HttpMethod.Post)
+        assertThat(request.body.contentType?.withoutParameters()).isEqualTo(ContentType.Application.FormUrlEncoded)
+        assertThat(request.body.toByteArray().decodeToString()).isEqualTo("text=Likes+naps&tags=calm&tags=quiet&priority=2")
+    }
+
+    @Test
+    fun `updatePetProfile sends a multipart form`() = runTest {
+        responseBody = ""
+
+        petApi.updatePetProfile(1L, "Sleeps a lot", listOf("Mo", "Momo"), 3)
+
+        assertThat(engine.requestHistory).hasSize(1)
+        val request = engine.requestHistory.single()
+        assertThat(request.method).isEqualTo(HttpMethod.Put)
+        assertThat(request.body.contentType?.withoutParameters()).isEqualTo(ContentType.MultiPart.FormData)
+        val parts = MULTIPART_PART.findAll(request.body.toByteArray().decodeToString())
+            .map { it.groupValues[1] to it.groupValues[2] }
+            .toList()
+        assertThat(parts).containsExactly("bio" to "Sleeps a lot", "nicknames" to "Mo", "nicknames" to "Momo", "age" to "3")
+    }
+
     @ParameterizedTest
     @MethodSource("pets")
     fun `addPet sends the pet subtype as JSON and decodes the response`(input: String, pet: Pet) = runTest {
@@ -122,4 +163,8 @@ class PetApiTest {
         arguments("""{"species":"cat","id":4294967296,"name":"Mochi","livesRemaining":9}""", Cat(4294967296L, "Mochi", 9)),
         arguments("""{"species":"dog","id":4294967296,"name":"Rex","barkVolume":3}""", Dog(4294967296L, "Rex", 3)),
     )
+
+    private companion object {
+        private val MULTIPART_PART = Regex("name=\"([^\"]+)\"\r\n(?:.+\r\n)*\r\n(.*)\r\n")
+    }
 }

@@ -17,6 +17,7 @@ src/main/kotlin/com/example/petstore/model/PetRecord.kt
 src/main/kotlin/com/example/petstore/model/PetReference.kt
 src/main/kotlin/com/example/petstore/model/PetSearch.kt
 src/main/kotlin/com/example/petstore/model/PetSummary.kt
+src/main/kotlin/com/example/petstore/model/PetTags.kt
 src/main/kotlin/com/example/petstore/model/RegisteredPet.kt
 src/main/kotlin/com/example/petstore/model/Shelter.kt
 src/main/kotlin/com/example/petstore/model/ShelterAdoptionRecord.kt
