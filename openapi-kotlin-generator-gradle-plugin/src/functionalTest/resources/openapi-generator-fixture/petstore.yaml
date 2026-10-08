@@ -130,3 +130,31 @@ components:
     Status:
       type: string
       enum: [available, pending, sold]
+    AdoptionRequest:
+      description: An adopter chooses either a cat or a dog.
+      type: object
+      required: [adopterName]
+      properties:
+        adopterName:
+          type: string
+          description: Name of the person adopting the pet.
+        cat:
+          $ref: '#/components/schemas/Cat'
+        dog:
+          $ref: '#/components/schemas/Dog'
+      oneOf:
+        - required: [cat]
+        - required: [dog]
+    PetSearch:
+      description: Search by name, availability, or both.
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name to search for.
+        status:
+          type: string
+          enum: [available, pending]
+      anyOf:
+        - required: [name]
+        - required: [status]

@@ -40,7 +40,7 @@ Multiplatform projects, declare them for `commonMain`.
 
 The plugin configures OpenAPI Generator with:
 
-- Generator: a `KotlinClientCodegen` subclass.
+- Generator: a `KotlinClientCodegen` subclass that corrects model data before rendering.
 - Library: `multiplatform`, using Ktor and custom templates.
 - Serialization library: `kotlinx_serialization`.
 - Date library: `kotlinx-datetime`.
@@ -54,6 +54,9 @@ The plugin configures OpenAPI Generator with:
 - Generated content: all APIs and models, plus the `FILES` and `VERSION` metadata files. API and model tests,
   documentation, supporting source files, build scripts, and the Gradle wrapper are disabled or excluded.
 - Visibility: public by default, or internal when `publicApi` is `false`.
+
+Object schemas whose `oneOf` or `anyOf` alternatives only add constraints, such as `required`, generate a data class
+with the properties the schema declares. The generated class does not enforce those constraints.
 
 Named `oneOf` schemas with a discriminator support model alternatives referenced with `$ref` and generate sealed class
 hierarchies. Use the generated subclasses directly; the discriminator property in JSON identifies the subtype, using

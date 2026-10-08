@@ -16,6 +16,32 @@ class PetSerializationTest {
     @Nested
     inner class Models {
         @Test
+        fun `composed object retains its declared properties`() {
+            val request = AdoptionRequest("Sam", cat = Cat(1L, "Mochi", 9))
+            val input = """{"adopterName":"Sam","cat":{"id":1,"name":"Mochi","livesRemaining":9}}"""
+            val expectedJson = json.parseToJsonElement(input)
+
+            val decoded = json.decodeFromString<AdoptionRequest>(input)
+            val encoded = json.encodeToJsonElement(request)
+
+            assertThat(decoded).isEqualTo(request)
+            assertThat(encoded).isEqualTo(expectedJson)
+        }
+
+        @Test
+        fun `composed object retains its property enum`() {
+            val search = PetSearch("Mochi", PetSearch.Status.PENDING)
+            val input = """{"name":"Mochi","status":"pending"}"""
+            val expectedJson = json.parseToJsonElement(input)
+
+            val decoded = json.decodeFromString<PetSearch>(input)
+            val encoded = json.encodeToJsonElement(search)
+
+            assertThat(decoded).isEqualTo(search)
+            assertThat(encoded).isEqualTo(expectedJson)
+        }
+
+        @Test
         fun `standalone enum uses the schema value`() {
             val decoded = json.decodeFromString<Status>("\"available\"")
             val encoded = json.encodeToString(Status.AVAILABLE)
