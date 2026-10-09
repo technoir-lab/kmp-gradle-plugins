@@ -2,6 +2,7 @@ package com.example.petstore.model
 
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToJsonElement
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -280,6 +281,19 @@ class UnionSerializationTest {
         }
 
         @ParameterizedTest
+        @MethodSource("notes")
+        fun `note supports text or free-form details`(input: String, value: Any) {
+            val note = PetNote(value)
+            val expectedJson = json.parseToJsonElement(input)
+
+            val decoded = json.decodeFromString<PetNote>(input)
+            val encoded = json.encodeToJsonElement(note)
+
+            assertThat(decoded).isEqualTo(note)
+            assertThat(encoded).isEqualTo(expectedJson)
+        }
+
+        @ParameterizedTest
         @MethodSource("invalidInventories")
         fun `map encoding checks erased key and value types without narrowing numbers`(value: Map<*, *>) {
             val inventory = PetInventory(value)
@@ -304,6 +318,11 @@ class UnionSerializationTest {
             arguments("\"No pets available\"", "No pets available"),
             arguments("{}", emptyMap<String, Int>()),
             arguments("""{"cat":2,"dog":2147483647}""", mapOf("cat" to 2, "dog" to Int.MAX_VALUE)),
+        )
+
+        private fun notes() = listOf(
+            arguments("\"Prefers fish\"", "Prefers fish"),
+            arguments("""{"diet":"fish","meals":2}""", mapOf("diet" to JsonPrimitive("fish"), "meals" to JsonPrimitive(2))),
         )
 
         private fun invalidInventories() = listOf(

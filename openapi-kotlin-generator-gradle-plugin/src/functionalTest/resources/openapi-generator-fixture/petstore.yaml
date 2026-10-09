@@ -378,6 +378,12 @@ components:
           additionalProperties:
             type: integer
             format: int32
+    PetNote:
+      description: A plain note or free-form note details.
+      oneOf:
+        - type: string
+        - type: object
+          additionalProperties: true
     PetArrival:
       description: Days until a pet arrives or its exact arrival time.
       oneOf:

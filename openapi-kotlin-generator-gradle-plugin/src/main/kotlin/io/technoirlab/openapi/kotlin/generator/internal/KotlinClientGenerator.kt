@@ -50,6 +50,10 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
         // Import the types of scalar union alternatives, which upstream only imports for collections.
         val composedSchemas = model.composedSchemas
         (composedSchemas?.oneOf.orEmpty() + composedSchemas?.anyOf.orEmpty()).forEach { addImports(model, it) }
+        // The union template imports JsonElement for its serializer, and Kotlin rejects a second import of the same name.
+        if (model.oneOf.isNotEmpty() || model.anyOf.isNotEmpty()) {
+            model.imports.remove(JSON_ELEMENT_TYPE)
+        }
         return model
     }
 
@@ -152,6 +156,7 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
 
     private companion object {
         private const val INT64_FORMAT = "int64"
+        private const val JSON_ELEMENT_TYPE = "JsonElement"
         private const val STRING_VALUE_EXTENSION = "x-string-value"
         private val IDENTIFIER = Regex("[A-Za-z][A-Za-z0-9_]*")
         private val QUALIFIED_TYPE = Regex("(?<![\\w.])(?:\\w+\\.)+\\w+(?![\\w.])")
