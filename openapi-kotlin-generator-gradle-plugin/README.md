@@ -94,8 +94,9 @@ fails otherwise, as for regular models. The dropped fields can include a field t
 whose value that alternative rejects. Values must have the expected JSON types; lenient parsing and value coercion do
 not relax union matching. Set `nullable: true` on the union schema to allow null.
 
-Union support does not provide full JSON Schema validation. Numeric bounds and `additionalProperties: false` are not
-fully enforced.
+Union support does not provide full JSON Schema validation. Numeric bounds are not enforced, and
+`additionalProperties: false` applies only to the alternatives themselves: such an alternative matches only objects
+without other properties, so an empty-object alternative matches only `{}`.
 
 ## Templates
 

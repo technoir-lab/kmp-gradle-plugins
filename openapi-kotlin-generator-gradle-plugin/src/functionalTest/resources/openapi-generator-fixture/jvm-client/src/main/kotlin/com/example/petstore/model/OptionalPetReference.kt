@@ -116,10 +116,15 @@ data class OptionalPetReference(val actualInstance: Any? = null) {
             }
         }
 
-        private inline fun <reified T : Any> decodeCandidate(json: Json, element: JsonElement): Pair<Any, JsonElement>? {
+        private inline fun <reified T : Any> decodeCandidate(
+            json: Json,
+            element: JsonElement,
+            closedObject: Boolean = false,
+        ): Pair<Any, JsonElement>? {
             val serializer = json.serializersModule.serializer<T>()
             // Primitive serializers can throw IndexOutOfBoundsException for arrays and objects.
             if (serializer.descriptor.kind is PrimitiveKind && element !is JsonPrimitive) return null
+            if (closedObject && !hasOnlyDeclaredProperties(serializer.descriptor, element)) return null
             return try {
                 val value = json.decodeFromJsonElement(serializer, element)
                 val encoded = json.encodeToJsonElement(serializer, value)
@@ -127,6 +132,15 @@ data class OptionalPetReference(val actualInstance: Any? = null) {
             } catch (_: IllegalArgumentException) {
                 null
             }
+        }
+
+        // Alternatives that disallow additional properties match only objects whose properties they declare.
+        private fun hasOnlyDeclaredProperties(descriptor: SerialDescriptor, element: JsonElement): Boolean {
+            if (element !is JsonObject) return false
+            // Objects without declared properties map to JsonElement rather than to a class.
+            if (descriptor.kind != StructureKind.CLASS) return element.isEmpty()
+            val declared = List(descriptor.elementsCount, descriptor::getElementName)
+            return declared.containsAll(element.keys)
         }
 
         private fun matchesShape(input: JsonElement, encoded: JsonElement, allowUnknownKeys: Boolean): Boolean = when {

@@ -2,6 +2,7 @@ package com.example.petstore.model
 
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToJsonElement
 import org.assertj.core.api.Assertions.assertThat
@@ -197,6 +198,32 @@ class UnionSerializationTest {
                 .isInstanceOf(SerializationException::class.java)
                 .hasMessageContaining("at least one")
         }
+
+        @ParameterizedTest
+        @MethodSource("identities")
+        fun `alternatives that disallow additional properties match only objects without them`(input: String, value: Any) {
+            val identity = PetIdentity(value)
+            val expectedJson = json.parseToJsonElement(input)
+
+            val decoded = json.decodeFromString<PetIdentity>(input)
+            val encoded = json.encodeToJsonElement(identity)
+
+            assertThat(decoded).isEqualTo(identity)
+            assertThat(encoded).isEqualTo(expectedJson)
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = ["""{"name":"Mochi"}""", """{"nickname":"Mo"}""", "\"Mochi\"", "[]"])
+        fun `alternatives that disallow additional properties reject values without exactly one match`(input: String) {
+            assertThatThrownBy { json.decodeFromString<PetIdentity>(input) }
+                .isInstanceOf(SerializationException::class.java)
+                .hasMessageContaining("exactly one")
+        }
+
+        private fun identities() = listOf(
+            arguments("""{"name":"Mochi","nickname":"Mo"}""", PetSummary("Mochi", "Mo")),
+            arguments("{}", JsonObject(emptyMap())),
+        )
 
         private fun profiles() = listOf(
             arguments("""{"name":"Mochi"}""", PetSummary("Mochi")),

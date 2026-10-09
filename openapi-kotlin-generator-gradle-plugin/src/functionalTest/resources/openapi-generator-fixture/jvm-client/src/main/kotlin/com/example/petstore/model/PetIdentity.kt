@@ -2,8 +2,8 @@
 
 package com.example.petstore.model
 
+import com.example.petstore.model.PetName
 import com.example.petstore.model.PetSummary
-import com.example.petstore.model.RegisteredPet
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -25,33 +25,34 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.serializer
 
 /**
- * A profile may match both the summary and registered pet shapes.
+ * A pet summary, exactly a pet name, or an empty object for an unidentified pet.
  */
-@Serializable(with = PetProfileMatch.PetProfileMatchSerializer::class)
-data class PetProfileMatch(val actualInstance: Any? = null) {
-    object PetProfileMatchSerializer : KSerializer<PetProfileMatch> {
-        override val descriptor = buildClassSerialDescriptor("PetProfileMatch")
+@Serializable(with = PetIdentity.PetIdentitySerializer::class)
+data class PetIdentity(val actualInstance: Any? = null) {
+    object PetIdentitySerializer : KSerializer<PetIdentity> {
+        override val descriptor = buildClassSerialDescriptor("PetIdentity")
 
-        override fun serialize(encoder: Encoder, value: PetProfileMatch) {
+        override fun serialize(encoder: Encoder, value: PetIdentity) {
             val jsonEncoder = encoder as? JsonEncoder
-                ?: throw SerializationException("PetProfileMatch can only be serialized with Json")
+                ?: throw SerializationException("PetIdentity can only be serialized with Json")
             if (value.actualInstance == null) {
-                throw SerializationException("PetProfileMatch does not allow null")
+                throw SerializationException("PetIdentity does not allow null")
             }
             val element =
                 encodeCandidate<PetSummary>(jsonEncoder.json, value.actualInstance) ?:
-                encodeCandidate<RegisteredPet>(jsonEncoder.json, value.actualInstance) ?:
-                throw SerializationException("Unsupported value for PetProfileMatch")
+                encodeCandidate<PetName>(jsonEncoder.json, value.actualInstance) ?:
+                encodeCandidate<JsonElement>(jsonEncoder.json, value.actualInstance) ?:
+                throw SerializationException("Unsupported value for PetIdentity")
             select(strictJson(jsonEncoder.json), element, ignoreUnknownKeys = false)
             jsonEncoder.encodeJsonElement(element)
         }
 
-        override fun deserialize(decoder: Decoder): PetProfileMatch {
+        override fun deserialize(decoder: Decoder): PetIdentity {
             val jsonDecoder = decoder as? JsonDecoder
-                ?: throw SerializationException("PetProfileMatch can only be deserialized with Json")
+                ?: throw SerializationException("PetIdentity can only be deserialized with Json")
             val element = jsonDecoder.decodeJsonElement()
             val ignoreUnknownKeys = jsonDecoder.json.configuration.ignoreUnknownKeys
-            return PetProfileMatch(select(strictJson(jsonDecoder.json), element, ignoreUnknownKeys))
+            return PetIdentity(select(strictJson(jsonDecoder.json), element, ignoreUnknownKeys))
         }
 
         private fun strictJson(source: Json): Json = Json(source) {
@@ -64,19 +65,20 @@ data class PetProfileMatch(val actualInstance: Any? = null) {
 
         private fun select(json: Json, element: JsonElement, ignoreUnknownKeys: Boolean): Any? {
             if (element == JsonNull) {
-                throw SerializationException("PetProfileMatch does not allow null")
+                throw SerializationException("PetIdentity does not allow null")
             }
             val matches = mutableListOf<Pair<Any, JsonElement>>()
             decodeCandidate<PetSummary>(json, element)?.let(matches::add)
-            decodeCandidate<RegisteredPet>(json, element)?.let(matches::add)
-            if (matches.isEmpty()) {
-                throw SerializationException("PetProfileMatch requires at least one matching alternative")
+            decodeCandidate<PetName>(json, element, closedObject = true)?.let(matches::add)
+            decodeCandidate<JsonElement>(json, element, closedObject = true)?.let(matches::add)
+            if (matches.size != 1) {
+                throw SerializationException("PetIdentity requires exactly one matching alternative; found ${matches.size}")
             }
             // The first match that retains the most input fields retains all of them if any match does.
             val (value, encoded) = matches.maxBy { retainedFields(element, it.second) }
             // Like regular models, drop fields only when the caller's Json ignores unknown keys.
             if (!ignoreUnknownKeys && !matchesShape(element, encoded, allowUnknownKeys = false)) {
-                throw SerializationException("PetProfileMatch cannot represent this value without losing fields")
+                throw SerializationException("PetIdentity cannot represent this value without losing fields")
             }
             return value
         }

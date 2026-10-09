@@ -44,6 +44,7 @@ the rules below cover only the generator's supported subset. Removing each rule 
 | Select the first match that retains the most input fields at any depth. | 2 tests: overlapping `anyOf` alternatives, with and without unknown fields. |
 | Fail if the selected match drops an input field, unless the caller's `Json` ignores unknown keys. | 10 tests, 5 with each setting. Regular models drop unknown keys under the same condition. Read the setting before switching to the strict copy, which always ignores unknown keys. |
 | Skip primitive serializers for objects and arrays. | 10 tests. Primitive serializers throw `IndexOutOfBoundsException` for these shapes. |
+| Match alternatives marked `x-closed-object` only against objects whose properties they declare. | 4 tests. Alternatives without declared properties map to `JsonElement`, which otherwise matches every value. |
 | Treat `ClassCastException` during encoding as a mismatch. | 2 tests with list elements of the wrong type. |
 
 ## Generator adjustments
@@ -60,6 +61,7 @@ the rules below cover only the generator's supported subset. Removing each rule 
 | Shorten type names that Kotlin imports by default or that match an import mapping, and recognize the shortened built-in types as language primitives. | Upstream qualifies built-in types and expands import mappings in declarations. |
 | Pass qualified numeric and Boolean type names to upstream enum value rendering. | Upstream recognizes these types only by qualified name and otherwise quotes numeric enum values, which fails to compile. |
 | Import the types of scalar union alternatives. | Upstream imports only collection alternatives, so shortened scalar alternatives such as `Instant` were unresolved. |
+| Mark alternatives whose schemas set `additionalProperties: false` with `x-closed-object`. | `union_class` matches them only against objects without other properties. Otherwise an empty-object alternative, such as that of GitHub's commit authors, mapped to `JsonElement` and matched every value, so a `oneOf` with it never had exactly one match for objects. |
 | Remove `JsonElement` from the imports of union models. | `union_class` imports `JsonElement` for its serializer, so unions with alternatives such as `Map<String, JsonElement>` imported it twice, which fails to compile. |
 | Rename schemas whose model names collide, keeping the names of schemas declared in the original document. | Inline schema resolution names extracted schemas after their titles and only avoids exact key matches, so an inline `Adoption Record` and an `adoption-record` component both generated `AdoptionRecord.kt`, and one silently replaced the other. |
 | Render default values of URI schemas as string literals. | Upstream calls `create` on the `URI` import mapping, which the multiplatform library maps to `kotlin.String`, so URI properties with defaults rendered `kotlin.String.create("")` and failed to compile. |

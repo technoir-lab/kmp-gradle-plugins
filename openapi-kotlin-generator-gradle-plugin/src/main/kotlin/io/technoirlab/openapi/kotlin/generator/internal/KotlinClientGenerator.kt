@@ -66,6 +66,10 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
         val property = super.fromProperty(name, schema, required, schemaIsFromAdditionalProperties) ?: return null
         // Templates declare and reference nested enum classes by this name.
         property.nameInPascalCase = unescapedTypeName(property.nameInPascalCase)
+        // Union templates match alternatives that disallow additional properties only against objects without them.
+        if (ModelUtils.getReferencedSchema(openAPI, schema)?.additionalProperties == false) {
+            property.vendorExtensions[CLOSED_OBJECT_EXTENSION] = true
+        }
         return property
     }
 
@@ -155,6 +159,7 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
     }
 
     private companion object {
+        private const val CLOSED_OBJECT_EXTENSION = "x-closed-object"
         private const val INT64_FORMAT = "int64"
         private const val JSON_ELEMENT_TYPE = "JsonElement"
         private const val STRING_VALUE_EXTENSION = "x-string-value"

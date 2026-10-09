@@ -361,6 +361,23 @@ components:
       anyOf:
         - $ref: '#/components/schemas/PetSummary'
         - $ref: '#/components/schemas/RegisteredPet'
+    PetIdentity:
+      description: A pet summary, exactly a pet name, or an empty object for an unidentified pet.
+      oneOf:
+        - $ref: '#/components/schemas/PetSummary'
+        - $ref: '#/components/schemas/PetName'
+        - $ref: '#/components/schemas/EmptyObject'
+    PetName:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+      additionalProperties: false
+    EmptyObject:
+      type: object
+      properties: {}
+      additionalProperties: false
     PetList:
       description: A list of pet names or summaries, ambiguous when empty.
       oneOf:

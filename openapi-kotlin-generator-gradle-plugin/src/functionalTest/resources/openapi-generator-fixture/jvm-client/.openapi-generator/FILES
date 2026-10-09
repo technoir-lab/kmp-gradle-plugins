@@ -8,9 +8,11 @@ src/main/kotlin/com/example/petstore/model/Listing.kt
 src/main/kotlin/com/example/petstore/model/OptionalPetReference.kt
 src/main/kotlin/com/example/petstore/model/Pet.kt
 src/main/kotlin/com/example/petstore/model/PetArrival.kt
+src/main/kotlin/com/example/petstore/model/PetIdentity.kt
 src/main/kotlin/com/example/petstore/model/PetInventory.kt
 src/main/kotlin/com/example/petstore/model/PetList.kt
 src/main/kotlin/com/example/petstore/model/PetLocation.kt
+src/main/kotlin/com/example/petstore/model/PetName.kt
 src/main/kotlin/com/example/petstore/model/PetNote.kt
 src/main/kotlin/com/example/petstore/model/PetPhoto.kt
 src/main/kotlin/com/example/petstore/model/PetProfileChoice.kt
