@@ -95,9 +95,13 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
     }
 
     override fun toDefaultValue(property: CodegenProperty, schema: Schema<*>): String? {
+        val referencedSchema = ModelUtils.getReferencedSchema(openAPI, schema)
+        // Upstream calls create on the URI import mapping, which is String in the multiplatform library.
+        if (ModelUtils.isURISchema(referencedSchema) && referencedSchema.default != null) {
+            return "\"${escapeText(referencedSchema.default.toString())}\""
+        }
         val defaultValue = super.toDefaultValue(property, schema)
         // A Long enum default selects the entry with the same value, but upstream adds an L suffix that entry values lack.
-        val referencedSchema = ModelUtils.getReferencedSchema(openAPI, schema)
         val isLongEnum = !referencedSchema.enum.isNullOrEmpty() && ModelUtils.isLongSchema(referencedSchema)
         return if (isLongEnum) defaultValue?.removeSuffix("L") else defaultValue
     }

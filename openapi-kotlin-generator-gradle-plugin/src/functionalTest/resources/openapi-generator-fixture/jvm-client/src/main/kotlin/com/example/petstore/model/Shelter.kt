@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
  * @param id
  * @param record
  * @param archived
+ * @param website
  */
 @Serializable
 data class Shelter(
@@ -24,6 +25,9 @@ data class Shelter(
 
     @SerialName(value = "archived")
     val archived: AdoptionRecord? = null,
+
+    @SerialName(value = "website")
+    val website: String? = "https://petstore.example/shelters",
 ) {
 
 }

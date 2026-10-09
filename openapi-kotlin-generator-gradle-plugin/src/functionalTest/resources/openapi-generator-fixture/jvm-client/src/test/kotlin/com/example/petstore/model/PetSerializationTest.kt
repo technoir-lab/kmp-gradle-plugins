@@ -55,6 +55,13 @@ class PetSerializationTest {
         }
 
         @Test
+        fun `URI property defaults to its string value`() {
+            val shelter = json.decodeFromString<Shelter>("{}")
+
+            assertThat(shelter.website).isEqualTo("https://petstore.example/shelters")
+        }
+
+        @Test
         fun `object with additional properties serializes its declared properties`() {
             val record = PetRecord(PetRecord.Status.AVAILABLE)
             val input = """{"status":"available"}"""

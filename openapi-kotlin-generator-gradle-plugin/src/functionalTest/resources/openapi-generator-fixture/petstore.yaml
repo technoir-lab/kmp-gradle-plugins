@@ -436,6 +436,10 @@ components:
             id:
               type: integer
               format: int64
+        website:
+          type: string
+          format: uri
+          default: https://petstore.example/shelters
     adoption-record:
       title: Adoption Record
       type: object
