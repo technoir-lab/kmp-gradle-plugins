@@ -4,5 +4,6 @@ package io.technoirlab.openapi.kotlin.generator.api
  * Marks OpenAPI Kotlin Generator plugin DSL.
  */
 @DslMarker
+@Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.CLASS)
-annotation class OpenApiKotlinGeneratorDsl
+internal annotation class OpenApiKotlinGeneratorDsl

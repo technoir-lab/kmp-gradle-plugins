@@ -4,9 +4,6 @@ public final class io/technoirlab/openapi/kotlin/generator/OpenApiKotlinGenerato
 	public fun apply (Lorg/gradle/api/Project;)V
 }
 
-public abstract interface annotation class io/technoirlab/openapi/kotlin/generator/api/OpenApiKotlinGeneratorDsl : java/lang/annotation/Annotation {
-}
-
 public abstract interface class io/technoirlab/openapi/kotlin/generator/api/OpenApiKotlinGeneratorExtension {
 	public static final field Companion Lio/technoirlab/openapi/kotlin/generator/api/OpenApiKotlinGeneratorExtension$Companion;
 	public static final field NAME Ljava/lang/String;

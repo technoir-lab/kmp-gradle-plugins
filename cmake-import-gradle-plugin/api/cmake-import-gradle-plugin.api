@@ -4,9 +4,6 @@ public final class io/technoirlab/cmake/import/CMakeImportPlugin : org/gradle/ap
 	public fun apply (Lorg/gradle/api/Project;)V
 }
 
-public abstract interface annotation class io/technoirlab/cmake/import/api/CMakeImportDsl : java/lang/annotation/Annotation {
-}
-
 public abstract interface class io/technoirlab/cmake/import/api/CMakeImportExtension {
 	public static final field Companion Lio/technoirlab/cmake/import/api/CMakeImportExtension$Companion;
 	public static final field NAME Ljava/lang/String;
