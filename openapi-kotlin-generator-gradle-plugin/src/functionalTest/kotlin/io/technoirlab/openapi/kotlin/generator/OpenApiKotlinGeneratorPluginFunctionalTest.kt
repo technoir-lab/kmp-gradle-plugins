@@ -9,12 +9,12 @@ import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
+import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.Path
 import kotlin.io.path.copyToRecursively
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.div
-import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.readText
 import kotlin.io.path.relativeTo
 import kotlin.io.path.walk
@@ -27,12 +27,18 @@ class OpenApiKotlinGeneratorPluginFunctionalTest {
     @Test
     fun `generates the checked-in client`() {
         val project = gradleRunner.root.project("jvm-client")
-        val checkedInClient = project.generatedClient()
+        val checkedInFiles = project.generatedFiles().associateWith { (project.dir / it).readText() }
 
         gradleRunner.build(":jvm-client:openApiGenerate")
         updateCheckedInClient(project)
+        val generatedFiles = project.generatedFiles()
 
-        assertThat(project.generatedClient()).containsExactlyInAnyOrderEntriesOf(checkedInClient)
+        assertThat(generatedFiles).containsExactlyInAnyOrderElementsOf(checkedInFiles.keys)
+        for ((path, content) in checkedInFiles) {
+            assertThat(project.dir / path)
+                .content(Charsets.UTF_8)
+                .isEqualToNormalizingNewlines(content)
+        }
     }
 
     @Test
@@ -86,9 +92,9 @@ class OpenApiKotlinGeneratorPluginFunctionalTest {
         assertThat(compileResult.task(":kmp-client:compileKotlinLinuxX64")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
     }
 
-    private fun GradleProject.generatedClient(): Map<String, String> = GENERATED_DIRS
+    private fun GradleProject.generatedFiles(): List<Path> = GENERATED_DIRS
         .flatMap { (dir / it).walk() }
-        .associate { it.relativeTo(dir).invariantSeparatorsPathString to it.readText() }
+        .map { it.relativeTo(dir) }
 
     // Run with UPDATE_CHECKED_IN_CLIENT=true to replace the fixture's client after an intentional generation change.
     @OptIn(ExperimentalPathApi::class)
