@@ -2,7 +2,7 @@
 assertj = "3.27.7"
 kotlin-gradle-plugin = "2.4.21"
 openapi-generator = "7.26.0"
-swagger-models = "2.2.54"
+swagger-models = "2.2.55"
 
 [libraries]
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
