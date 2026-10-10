@@ -24,7 +24,12 @@ import io.ktor.http.encodeURLPathPart
 {{#nonPublicApi}}internal {{/nonPublicApi}}class {{classname}}(private val httpClient: HttpClient) {
 {{#operation}}
     /**
+     {{#summary}}
      * {{summary}}
+     {{#hasParams}}
+     *
+     {{/hasParams}}
+     {{/summary}}
      {{#allParams}}
      * @param {{{paramName}}}{{#description}} {{.}}{{/description}}
      {{/allParams}}

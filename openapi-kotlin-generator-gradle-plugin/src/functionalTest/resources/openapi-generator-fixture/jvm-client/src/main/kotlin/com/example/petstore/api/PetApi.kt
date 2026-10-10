@@ -23,6 +23,7 @@ import io.ktor.http.encodeURLPathPart
 class PetApi(private val httpClient: HttpClient) {
     /**
      * Add a new pet
+     *
      * @param pet
      */
     suspend fun addPet(
@@ -39,6 +40,7 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * Add a note about a pet
+     *
      * @param petId
      * @param text
      * @param tags
@@ -68,6 +70,7 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * Remove a pet
+     *
      * @param petId
      */
     suspend fun deletePet(
@@ -82,6 +85,7 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * Find a pet by ID
+     *
      * @param petId
      * @param includeDetails
      * @param xRequestID
@@ -121,7 +125,6 @@ class PetApi(private val httpClient: HttpClient) {
         }.body()
 
     /**
-     * Import pets from another source
      * @param source
      */
     suspend fun import(
@@ -136,6 +139,7 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * List an owner&#39;s pets
+     *
      * @param ownerName
      * @param nickname
      * @param tags
@@ -161,6 +165,7 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * List all pets
+     *
      * @param pageSize
      * @param field Field to sort pets by.
      * @param `in` Where the pets live.
@@ -188,6 +193,7 @@ class PetApi(private val httpClient: HttpClient) {
 
     /**
      * Update a pet&#39;s profile
+     *
      * @param petId
      * @param bio
      * @param nicknames
