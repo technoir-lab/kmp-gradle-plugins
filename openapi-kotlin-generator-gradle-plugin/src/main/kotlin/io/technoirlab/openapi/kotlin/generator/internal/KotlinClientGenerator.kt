@@ -7,6 +7,8 @@ import org.openapitools.codegen.CodegenModel
 import org.openapitools.codegen.CodegenParameter
 import org.openapitools.codegen.CodegenProperty
 import org.openapitools.codegen.languages.KotlinClientCodegen
+import org.openapitools.codegen.model.ModelMap
+import org.openapitools.codegen.model.OperationsMap
 import org.openapitools.codegen.utils.ModelUtils
 
 internal class KotlinClientGenerator : KotlinClientCodegen() {
@@ -93,6 +95,34 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
         parameter.vendorExtensions[STRING_VALUE_EXTENSION] = parameter.hasStringValue()
     }
 
+    override fun postProcessOperationsWithModels(objs: OperationsMap, allModels: List<ModelMap>): OperationsMap {
+        val result = super.postProcessOperationsWithModels(objs, allModels)
+        // The model template renders these models with union_class, which holds the value in actualInstance.
+        val unionTypes = allModels.map { it.model }
+            .filter { !it.isEnum && !it.isAlias && (it.oneOf.isNotEmpty() || it.anyOf.isNotEmpty()) }
+            .mapTo(HashSet()) { it.classname }
+        val operations = result.operations
+        var hasUnionParams = false
+        for (operation in operations.operation) {
+            // The parameter list of each location holds copies of the parameters in allParams.
+            val parameters = with(operation) { allParams + pathParams + queryParams + headerParams + cookieParams + formParams }
+            for (parameter in parameters.filterNot { it.isBodyParam }) {
+                val isUnion = parameter.dataType in unionTypes
+                parameter.vendorExtensions[UNION_EXTENSION] = isUnion
+                parameter.vendorExtensions[UNION_ITEMS_EXTENSION] = parameter.isArray && parameter.items?.dataType in unionTypes
+                if (isUnion && parameter.isQueryParam) {
+                    // Send a collection that the union holds like an array parameter with the same style and explode
+                    // settings. Upstream derives the collection format from them only for array schemas.
+                    parameter.collectionFormat = getCollectionFormat(parameter) ?: CSV_COLLECTION_FORMAT
+                    parameter.isCollectionFormatMulti = parameter.collectionFormat == MULTI_COLLECTION_FORMAT
+                }
+                hasUnionParams = hasUnionParams || isUnion
+            }
+        }
+        operations[HAS_UNION_PARAMS_EXTENSION] = hasUnionParams
+        return result
+    }
+
     override fun toEnumValue(value: String, datatype: String): String {
         // Upstream recognizes numeric and Boolean enum values by their qualified Kotlin types.
         val enumType = when (datatype) {
@@ -160,9 +190,14 @@ internal class KotlinClientGenerator : KotlinClientCodegen() {
 
     private companion object {
         private const val CLOSED_OBJECT_EXTENSION = "x-closed-object"
+        private const val CSV_COLLECTION_FORMAT = "csv"
+        private const val HAS_UNION_PARAMS_EXTENSION = "x-has-union-params"
         private const val INT64_FORMAT = "int64"
         private const val JSON_ELEMENT_TYPE = "JsonElement"
+        private const val MULTI_COLLECTION_FORMAT = "multi"
         private const val STRING_VALUE_EXTENSION = "x-string-value"
+        private const val UNION_EXTENSION = "x-union"
+        private const val UNION_ITEMS_EXTENSION = "x-union-items"
         private val IDENTIFIER = Regex("[A-Za-z][A-Za-z0-9_]*")
         private val QUALIFIED_TYPE = Regex("(?<![\\w.])(?:\\w+\\.)+\\w+(?![\\w.])")
 

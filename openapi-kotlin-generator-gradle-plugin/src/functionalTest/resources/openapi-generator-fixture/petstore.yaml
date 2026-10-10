@@ -155,6 +155,72 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Pet'
+  /shelters/{shelter}/pets:
+    get:
+      tags: [Pet]
+      operationId: listShelterPets
+      summary: List a shelter's pets
+      parameters:
+        - name: shelter
+          in: path
+          required: true
+          description: The shelter's numeric ID or its name.
+          schema:
+            oneOf:
+              - type: integer
+              - type: string
+        - name: after
+          in: query
+          description: The pet to continue after, by name or ID.
+          schema:
+            $ref: '#/components/schemas/PetReference'
+        - name: species
+          in: query
+          description: One species, or several.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: ages
+          in: query
+          description: One age in years, or several.
+          explode: false
+          schema:
+            oneOf:
+              - type: integer
+              - type: array
+                items:
+                  type: integer
+        - name: exclude
+          in: query
+          description: Pets to leave out, by name or ID.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/PetReference'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/Status'
+        - name: X-Referring-Pet
+          in: header
+          schema:
+            $ref: '#/components/schemas/PetReference'
+        - name: lastPet
+          in: cookie
+          schema:
+            $ref: '#/components/schemas/PetReference'
+      responses:
+        '200':
+          description: The shelter's pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
   /pets/{petId}/notes:
     post:
       tags: [Pet]
@@ -184,6 +250,15 @@ paths:
                 priority:
                   type: integer
                   format: int32
+                relatedPet:
+                  $ref: '#/components/schemas/PetReference'
+                mentions:
+                  description: Pets the note mentions, by name.
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
       responses:
         '204':
           description: The note was added
@@ -216,6 +291,8 @@ paths:
                 age:
                   type: integer
                   format: int32
+                bestFriend:
+                  $ref: '#/components/schemas/PetReference'
       responses:
         '204':
           description: The profile was updated

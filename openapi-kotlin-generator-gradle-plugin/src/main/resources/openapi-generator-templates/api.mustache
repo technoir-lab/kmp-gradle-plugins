@@ -46,7 +46,7 @@ import io.ktor.http.encodeURLPathPart
     ): {{{returnType}}}{{^returnType}}Unit{{/returnType}} =
         httpClient.request(
             "{{#lambda.escapeDollar}}{{{path}}}{{/lambda.escapeDollar}}"{{#pathParams}}
-                .replace("{" + "{{baseName}}" + "}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}}.encodeURLPathPart()){{/pathParams}},
+                .replace("{" + "{{baseName}}" + "}", {{#vendorExtensions.x-union}}parameterValues({{{paramName}}}.actualInstance).joinToString(","){{/vendorExtensions.x-union}}{{^vendorExtensions.x-union}}{{{paramName}}}{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}}{{/vendorExtensions.x-union}}.encodeURLPathPart()){{/pathParams}},
         ) {
             method = HttpMethod.parse("{{httpMethod}}")
             {{#produces}}
@@ -60,7 +60,7 @@ import io.ktor.http.encodeURLPathPart
             {{/required}}
                 {{#isContainer}}
                 {{#isCollectionFormatMulti}}
-                url.parameters.appendAll("{{baseName}}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.map { it.toString() }{{/vendorExtensions.x-string-value}})
+                url.parameters.appendAll("{{baseName}}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.map { it{{#vendorExtensions.x-union-items}}.actualInstance{{/vendorExtensions.x-union-items}}.toString() }{{/vendorExtensions.x-string-value}})
                 {{/isCollectionFormatMulti}}
                 {{^isCollectionFormatMulti}}
                 url.parameters.append("{{baseName}}", {{{paramName}}}.joinToString(when ("{{collectionFormat}}") {
@@ -68,11 +68,26 @@ import io.ktor.http.encodeURLPathPart
                     "tsv" -> "\t"
                     "pipes" -> "|"
                     else -> ","
-                }))
+                }){{#vendorExtensions.x-union-items}} { it.actualInstance.toString() }{{/vendorExtensions.x-union-items}})
                 {{/isCollectionFormatMulti}}
                 {{/isContainer}}
                 {{^isContainer}}
+                {{#vendorExtensions.x-union}}
+                {{#isCollectionFormatMulti}}
+                url.parameters.appendAll("{{baseName}}", parameterValues({{{paramName}}}.actualInstance))
+                {{/isCollectionFormatMulti}}
+                {{^isCollectionFormatMulti}}
+                url.parameters.append("{{baseName}}", parameterValues({{{paramName}}}.actualInstance).joinToString(when ("{{collectionFormat}}") {
+                    "ssv" -> " "
+                    "tsv" -> "\t"
+                    "pipes" -> "|"
+                    else -> ","
+                }))
+                {{/isCollectionFormatMulti}}
+                {{/vendorExtensions.x-union}}
+                {{^vendorExtensions.x-union}}
                 url.parameters.append("{{baseName}}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}})
+                {{/vendorExtensions.x-union}}
                 {{/isContainer}}
             {{^required}}
             }
@@ -82,7 +97,7 @@ import io.ktor.http.encodeURLPathPart
             {{^required}}
             {{{paramName}}}?.let {
             {{/required}}
-                header("{{baseName}}", {{{paramName}}}{{#isContainer}}.joinToString(","){{/isContainer}})
+                header("{{baseName}}", {{#vendorExtensions.x-union}}parameterValues({{{paramName}}}.actualInstance).joinToString(","){{/vendorExtensions.x-union}}{{^vendorExtensions.x-union}}{{{paramName}}}{{#isContainer}}.joinToString(","){{#vendorExtensions.x-union-items}} { it.actualInstance.toString() }{{/vendorExtensions.x-union-items}}{{/isContainer}}{{/vendorExtensions.x-union}})
             {{^required}}
             }
             {{/required}}
@@ -91,7 +106,7 @@ import io.ktor.http.encodeURLPathPart
             {{^required}}
             {{{paramName}}}?.let {
             {{/required}}
-                cookie("{{baseName}}", {{{paramName}}}{{^isString}}.toString(){{/isString}}{{#isString}}{{#isEnum}}.toString(){{/isEnum}}{{^isEnum}}{{#required}}{{#isNullable}}.toString(){{/isNullable}}{{/required}}{{/isEnum}}{{/isString}})
+                cookie("{{baseName}}", {{#vendorExtensions.x-union}}parameterValues({{{paramName}}}.actualInstance).joinToString(","){{/vendorExtensions.x-union}}{{^vendorExtensions.x-union}}{{{paramName}}}{{^isString}}.toString(){{/isString}}{{#isString}}{{#isEnum}}.toString(){{/isEnum}}{{^isEnum}}{{#required}}{{#isNullable}}.toString(){{/isNullable}}{{/required}}{{/isEnum}}{{/isString}}{{/vendorExtensions.x-union}})
             {{^required}}
             }
             {{/required}}
@@ -114,10 +129,15 @@ import io.ktor.http.encodeURLPathPart
                 {{{paramName}}}?.let {
                 {{/required}}
                     {{#isArray}}
-                    {{{paramName}}}.forEach { append("{{baseName}}", it{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}}) }
+                    {{{paramName}}}.forEach { append("{{baseName}}", it{{^vendorExtensions.x-string-value}}{{#vendorExtensions.x-union-items}}.actualInstance{{/vendorExtensions.x-union-items}}.toString(){{/vendorExtensions.x-string-value}}) }
                     {{/isArray}}
                     {{^isArray}}
+                    {{#vendorExtensions.x-union}}
+                    parameterValues({{{paramName}}}.actualInstance).forEach { append("{{baseName}}", it) }
+                    {{/vendorExtensions.x-union}}
+                    {{^vendorExtensions.x-union}}
                     append("{{baseName}}", {{{paramName}}}{{^isFile}}{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}}{{/isFile}})
+                    {{/vendorExtensions.x-union}}
                     {{/isArray}}
                 {{^required}}
                 }
@@ -132,10 +152,15 @@ import io.ktor.http.encodeURLPathPart
                 {{{paramName}}}?.let {
                 {{/required}}
                     {{#isArray}}
-                    appendAll("{{baseName}}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.map { it.toString() }{{/vendorExtensions.x-string-value}})
+                    appendAll("{{baseName}}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.map { it{{#vendorExtensions.x-union-items}}.actualInstance{{/vendorExtensions.x-union-items}}.toString() }{{/vendorExtensions.x-string-value}})
                     {{/isArray}}
                     {{^isArray}}
+                    {{#vendorExtensions.x-union}}
+                    appendAll("{{baseName}}", parameterValues({{{paramName}}}.actualInstance))
+                    {{/vendorExtensions.x-union}}
+                    {{^vendorExtensions.x-union}}
                     append("{{baseName}}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}})
+                    {{/vendorExtensions.x-union}}
                     {{/isArray}}
                 {{^required}}
                 }
@@ -147,6 +172,12 @@ import io.ktor.http.encodeURLPathPart
         }.body()
 
 {{/operation}}
+{{#x-has-union-params}}
+    // Returns the text of the value that a union parameter holds, or of each item if the value is a collection.
+    private fun parameterValues(value: Any?): List<String> =
+        if (value is Collection<*>) value.map { it.toString() } else listOf(value.toString())
+
+{{/x-has-union-params}}
 {{#operation}}
 {{#allParams}}
 {{#isEnum}}

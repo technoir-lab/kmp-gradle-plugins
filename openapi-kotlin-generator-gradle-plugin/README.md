@@ -87,6 +87,14 @@ Unions without a discriminator support primitive, collection, and model alternat
 Pass the chosen value to the wrapper constructor and access it through `actualInstance`. JSON contains the value
 directly, without an extra wrapper object. For example, a wrapper holding a string serializes as a JSON string.
 
+API methods send the text of the value that a union parameter holds in `actualInstance`. They send a collection like a
+list parameter in the same location: query parameters repeat the field or delimit the items according to `style` and
+`explode`, forms repeat the field, and paths, headers, and cookies separate the items with commas. For example, a path
+parameter holding `"deploy.yml"` sends `deploy.yml`, and a `species` query parameter holding `listOf("cat", "dog")`
+sends `species=cat&species=dog`, or one field with the value `cat,dog` if it sets `explode: false`. Query, header, and
+form lists of union wrappers send the value of each item. Parameters do not support map, model, or nested collection
+alternatives, which would send their Kotlin `toString()` text.
+
 For these wrappers, both encoding and decoding require exactly one matching alternative for `oneOf`, or at least one
 for `anyOf`. Decoding selects the first matching alternative that retains the most input fields, including nested
 fields. If it cannot retain every field, decoding drops the others when the `Json` instance ignores unknown keys and
