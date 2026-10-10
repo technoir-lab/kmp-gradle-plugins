@@ -1,8 +1,14 @@
 package com.example.petstore.api
 
+import com.example.petstore.model.AddPetNoteRequestMentions
 import com.example.petstore.model.Cat
 import com.example.petstore.model.Dog
+import com.example.petstore.model.ListShelterPetsAgesParameter
+import com.example.petstore.model.ListShelterPetsShelterParameter
+import com.example.petstore.model.ListShelterPetsSpeciesParameter
 import com.example.petstore.model.Pet
+import com.example.petstore.model.PetReference
+import com.example.petstore.model.Status
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -18,6 +24,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.entry
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -112,24 +119,105 @@ class PetApiTest {
         assertThat(request.url).isEqualTo(Url("https://petstore.example/owners/Ann%20Lee/pets?nickname=Mo&tags=friendly&tags=shy"))
     }
 
+    @ParameterizedTest
+    @MethodSource("shelters")
+    fun `listShelterPets sends a union path parameter as its value`(shelter: Any, path: String) = runTest {
+        responseBody = "[]"
+
+        val result = petApi.listShelterPets(ListShelterPetsShelterParameter(shelter))
+
+        assertThat(result).isEmpty()
+        assertThat(engine.requestHistory).hasSize(1)
+        val request = engine.requestHistory.single()
+        assertThat(request.url).isEqualTo(Url("https://petstore.example$path"))
+    }
+
+    @Test
+    fun `listShelterPets sends union query parameters as their values`() = runTest {
+        responseBody = "[]"
+
+        petApi.listShelterPets(
+            shelter = ListShelterPetsShelterParameter("Happy Paws"),
+            after = PetReference("Mochi"),
+            species = ListShelterPetsSpeciesParameter("cat"),
+            exclude = listOf(PetReference(4294967296L), PetReference("Rex")),
+            status = Status.AVAILABLE,
+        )
+
+        assertThat(engine.requestHistory).hasSize(1)
+        val request = engine.requestHistory.single()
+        assertThat(request.url.parameters.entries()).containsExactly(
+            entry("after", listOf("Mochi")),
+            entry("species", listOf("cat")),
+            entry("exclude", listOf("4294967296", "Rex")),
+            entry("status", listOf("available")),
+        )
+    }
+
+    @Test
+    fun `listShelterPets sends union header and cookie parameters as their values`() = runTest {
+        responseBody = "[]"
+
+        petApi.listShelterPets(
+            shelter = ListShelterPetsShelterParameter(1L),
+            xReferringPet = PetReference(4294967296L),
+            lastPet = PetReference("Momo"),
+        )
+
+        assertThat(engine.requestHistory).hasSize(1)
+        val request = engine.requestHistory.single()
+        assertThat(request.headers["X-Referring-Pet"]).isEqualTo("4294967296")
+        assertThat(request.headers[HttpHeaders.Cookie]).isEqualTo("lastPet=Momo")
+    }
+
+    @Test
+    fun `listShelterPets sends the list alternative of a union parameter as repeated fields`() = runTest {
+        responseBody = "[]"
+
+        petApi.listShelterPets(ListShelterPetsShelterParameter(1L), species = ListShelterPetsSpeciesParameter(listOf("cat", "dog")))
+
+        assertThat(engine.requestHistory).hasSize(1)
+        val request = engine.requestHistory.single()
+        assertThat(request.url.parameters.getAll("species")).containsExactly("cat", "dog")
+    }
+
+    @Test
+    fun `listShelterPets sends the list alternative of a union parameter that disables explode as comma-separated items`() = runTest {
+        responseBody = "[]"
+
+        petApi.listShelterPets(ListShelterPetsShelterParameter(1L), ages = ListShelterPetsAgesParameter(listOf(1L, 2L)))
+
+        assertThat(engine.requestHistory).hasSize(1)
+        val request = engine.requestHistory.single()
+        assertThat(request.url.parameters.getAll("ages")).containsExactly("1,2")
+    }
+
     @Test
     fun `addPetNote sends a URL-encoded form`() = runTest {
         responseBody = ""
 
-        petApi.addPetNote(1L, "Likes naps", listOf("calm", "quiet"), 2)
+        petApi.addPetNote(
+            petId = 1L,
+            text = "Likes naps",
+            tags = listOf("calm", "quiet"),
+            priority = 2,
+            relatedPet = PetReference(4294967296L),
+            mentions = AddPetNoteRequestMentions(listOf("Mochi", "Rex")),
+        )
 
         assertThat(engine.requestHistory).hasSize(1)
         val request = engine.requestHistory.single()
         assertThat(request.method).isEqualTo(HttpMethod.Post)
         assertThat(request.body.contentType?.withoutParameters()).isEqualTo(ContentType.Application.FormUrlEncoded)
-        assertThat(request.body.toByteArray().decodeToString()).isEqualTo("text=Likes+naps&tags=calm&tags=quiet&priority=2")
+        assertThat(request.body.toByteArray().decodeToString())
+            .isEqualTo("text=Likes+naps&tags=calm&tags=quiet&priority=2&relatedPet=4294967296&mentions=Mochi&mentions=Rex")
     }
 
     @Test
     fun `updatePetProfile sends a multipart form`() = runTest {
         responseBody = ""
 
-        petApi.updatePetProfile(1L, "Sleeps a lot", listOf("Mo", "Momo"), 3)
+        petApi.updatePetProfile(1L, "Sleeps a lot", listOf("Mo", "Momo"), 3, PetReference("Rex"))
 
         assertThat(engine.requestHistory).hasSize(1)
         val request = engine.requestHistory.single()
@@ -138,7 +226,13 @@ class PetApiTest {
         val parts = MULTIPART_PART.findAll(request.body.toByteArray().decodeToString())
             .map { it.groupValues[1] to it.groupValues[2] }
             .toList()
-        assertThat(parts).containsExactly("bio" to "Sleeps a lot", "nicknames" to "Mo", "nicknames" to "Momo", "age" to "3")
+        assertThat(parts).containsExactly(
+            "bio" to "Sleeps a lot",
+            "nicknames" to "Mo",
+            "nicknames" to "Momo",
+            "age" to "3",
+            "bestFriend" to "Rex",
+        )
     }
 
     @ParameterizedTest
@@ -162,6 +256,11 @@ class PetApiTest {
     private fun pets() = listOf(
         arguments("""{"species":"cat","id":4294967296,"name":"Mochi","livesRemaining":9}""", Cat(4294967296L, "Mochi", 9)),
         arguments("""{"species":"dog","id":4294967296,"name":"Rex","barkVolume":3}""", Dog(4294967296L, "Rex", 3)),
+    )
+
+    private fun shelters() = listOf(
+        arguments(4294967296L, "/shelters/4294967296/pets"),
+        arguments("Happy Paws", "/shelters/Happy%20Paws/pets"),
     )
 
     private companion object {

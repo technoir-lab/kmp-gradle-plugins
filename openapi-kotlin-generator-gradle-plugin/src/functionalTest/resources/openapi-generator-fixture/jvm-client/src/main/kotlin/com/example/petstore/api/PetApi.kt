@@ -2,7 +2,13 @@
 
 package com.example.petstore.api
 
+import com.example.petstore.model.AddPetNoteRequestMentions
+import com.example.petstore.model.ListShelterPetsAgesParameter
+import com.example.petstore.model.ListShelterPetsShelterParameter
+import com.example.petstore.model.ListShelterPetsSpeciesParameter
 import com.example.petstore.model.Pet
+import com.example.petstore.model.PetReference
+import com.example.petstore.model.Status
 import kotlin.uuid.Uuid
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -48,12 +54,16 @@ class PetApi(private val httpClient: HttpClient) {
      * @param text
      * @param tags
      * @param priority
+     * @param relatedPet
+     * @param mentions
      */
     suspend fun addPetNote(
         petId: Long,
         text: String,
         tags: List<String>? = null,
         priority: Int? = null,
+        relatedPet: PetReference? = null,
+        mentions: AddPetNoteRequestMentions? = null,
     ): Unit =
         httpClient.request(
             "/pets/{petId}/notes"
@@ -67,6 +77,12 @@ class PetApi(private val httpClient: HttpClient) {
                 }
                 priority?.let {
                     append("priority", priority.toString())
+                }
+                relatedPet?.let {
+                    appendAll("relatedPet", parameterValues(relatedPet.actualInstance))
+                }
+                mentions?.let {
+                    appendAll("mentions", parameterValues(mentions.actualInstance))
                 }
             }))
         }.body()
@@ -195,18 +211,76 @@ class PetApi(private val httpClient: HttpClient) {
         }.body()
 
     /**
+     * List a shelter&#39;s pets
+     *
+     * @param shelter The shelter&#39;s numeric ID or its name.
+     * @param after The pet to continue after, by name or ID.
+     * @param species One species, or several.
+     * @param ages One age in years, or several.
+     * @param exclude Pets to leave out, by name or ID.
+     * @param status
+     * @param xReferringPet
+     * @param lastPet
+     */
+    suspend fun listShelterPets(
+        shelter: ListShelterPetsShelterParameter,
+        after: PetReference? = null,
+        species: ListShelterPetsSpeciesParameter? = null,
+        ages: ListShelterPetsAgesParameter? = null,
+        exclude: List<PetReference>? = null,
+        status: Status? = null,
+        xReferringPet: PetReference? = null,
+        lastPet: PetReference? = null,
+    ): List<Pet> =
+        httpClient.request(
+            "/shelters/{shelter}/pets"
+                .replace("{" + "shelter" + "}", parameterValues(shelter.actualInstance).joinToString(",").encodeURLPathPart()),
+        ) {
+            method = HttpMethod.parse("GET")
+            accept(ContentType.parse("application/json"))
+            after?.let {
+                url.parameters.appendAll("after", parameterValues(after.actualInstance))
+            }
+            species?.let {
+                url.parameters.appendAll("species", parameterValues(species.actualInstance))
+            }
+            ages?.let {
+                url.parameters.append("ages", parameterValues(ages.actualInstance).joinToString(when ("csv") {
+                    "ssv" -> " "
+                    "tsv" -> "\t"
+                    "pipes" -> "|"
+                    else -> ","
+                }))
+            }
+            exclude?.let {
+                url.parameters.appendAll("exclude", exclude.map { it.actualInstance.toString() })
+            }
+            status?.let {
+                url.parameters.append("status", status.toString())
+            }
+            xReferringPet?.let {
+                header("X-Referring-Pet", parameterValues(xReferringPet.actualInstance).joinToString(","))
+            }
+            lastPet?.let {
+                cookie("lastPet", parameterValues(lastPet.actualInstance).joinToString(","))
+            }
+        }.body()
+
+    /**
      * Update a pet&#39;s profile
      *
      * @param petId
      * @param bio
      * @param nicknames
      * @param age
+     * @param bestFriend
      */
     suspend fun updatePetProfile(
         petId: Long,
         bio: String,
         nicknames: List<String>? = null,
         age: Int? = null,
+        bestFriend: PetReference? = null,
     ): Unit =
         httpClient.request(
             "/pets/{petId}/profile"
@@ -221,8 +295,15 @@ class PetApi(private val httpClient: HttpClient) {
                 age?.let {
                     append("age", age.toString())
                 }
+                bestFriend?.let {
+                    parameterValues(bestFriend.actualInstance).forEach { append("bestFriend", it) }
+                }
             }))
         }.body()
+
+    // Returns the text of the value that a union parameter holds, or of each item if the value is a collection.
+    private fun parameterValues(value: Any?): List<String> =
+        if (value is Collection<*>) value.map { it.toString() } else listOf(value.toString())
 
     enum class PageSizeListPets(val value: Long) {
         VALUE_10(10),
