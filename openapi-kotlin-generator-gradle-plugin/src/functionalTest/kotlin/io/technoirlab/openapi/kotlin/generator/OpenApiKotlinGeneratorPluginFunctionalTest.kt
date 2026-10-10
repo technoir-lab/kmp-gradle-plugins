@@ -73,7 +73,9 @@ class OpenApiKotlinGeneratorPluginFunctionalTest {
 
         assertThat(project.kotlinFile("com.example.petstore.api.PetApi")).doesNotExist()
         assertThat(project.kotlinFile("com.example.petstore.model.Pet")).doesNotExist()
-        assertThat(project.kotlinFile("com.example.petstore.api.AnimalApi")).exists()
+        assertThat(project.kotlinFile("com.example.petstore.api.AnimalApi"))
+            .content(Charsets.UTF_8)
+            .containsPattern("""\R\Rclass AnimalApi\(""")
         assertThat(project.kotlinFile("com.example.petstore.model.Animal")).exists()
         assertThat(handwrittenFile).hasContent(handwrittenContent)
     }

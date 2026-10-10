@@ -2,6 +2,9 @@ openapi: 3.0.3
 info:
   title: Petstore
   version: 1.0.0
+tags:
+  - name: Pet
+    description: Manage pets and their owners' records.
 paths:
   /pets:
     get:

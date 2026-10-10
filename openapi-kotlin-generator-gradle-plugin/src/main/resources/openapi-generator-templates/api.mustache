@@ -21,6 +21,11 @@ import io.ktor.http.contentType
 import io.ktor.http.encodeURLPathPart
 
 {{#operations}}
+{{^operationTagDescription.isEmpty}}
+/**
+ * {{{operationTagDescription}}}
+ */
+{{/operationTagDescription.isEmpty}}
 {{#nonPublicApi}}internal {{/nonPublicApi}}class {{classname}}(private val httpClient: HttpClient) {
 {{#operation}}
     /**

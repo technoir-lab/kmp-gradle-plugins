@@ -20,6 +20,9 @@ import io.ktor.http.Parameters
 import io.ktor.http.contentType
 import io.ktor.http.encodeURLPathPart
 
+/**
+ * Manage pets and their owners' records.
+ */
 class PetApi(private val httpClient: HttpClient) {
     /**
      * Add a new pet
