@@ -30,6 +30,9 @@ ktlint_standard_no-empty-first-line-in-class-body = enabled
 ktlint_standard_no-single-line-block-comment = enabled
 ktlint_standard_string-template-indent = enabled
 
+[*.mustache]
+insert_final_newline = false
+
 [*.properties]
 ij_properties_keep_blank_lines = true
 

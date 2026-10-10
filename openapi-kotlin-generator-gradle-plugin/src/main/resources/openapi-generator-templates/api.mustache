@@ -1,0 +1,160 @@
+{{>licenseInfo}}
+package {{apiPackage}}
+
+{{#imports}}
+import {{import}}
+{{/imports}}
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.accept
+import io.ktor.client.request.cookie
+import io.ktor.client.request.header
+import io.ktor.client.request.request
+import io.ktor.client.request.setBody
+import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
+import io.ktor.http.Parameters
+import io.ktor.http.contentType
+import io.ktor.http.encodeURLPathPart
+
+{{#operations}}
+{{#nonPublicApi}}internal {{/nonPublicApi}}class {{classname}}(private val httpClient: HttpClient) {
+{{#operation}}
+    /**
+     * {{summary}}
+     {{#allParams}}
+     * @param {{{paramName}}}{{#description}} {{.}}{{/description}}
+     {{/allParams}}
+     */
+    suspend fun {{operationId}}(
+        {{#allParams}}
+        {{{paramName}}}: {{#isEnum}}{{#isContainer}}List<{{enumName}}{{operationIdCamelCase}}>{{/isContainer}}{{^isContainer}}{{enumName}}{{operationIdCamelCase}}{{/isContainer}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{^required}}?{{/required}}{{#required}}{{#isNullable}}?{{/isNullable}}{{/required}}{{#defaultValue}} = {{#isEnum}}{{#isContainer}}{{{defaultValue}}}{{/isContainer}}{{^isContainer}}{{enumName}}{{operationIdCamelCase}}.{{&enumDefaultValue}}{{/isContainer}}{{/isEnum}}{{^isEnum}}{{{defaultValue}}}{{/isEnum}}{{/defaultValue}}{{^defaultValue}}{{^required}} = null{{/required}}{{/defaultValue}},
+        {{/allParams}}
+    ): {{{returnType}}}{{^returnType}}Unit{{/returnType}} =
+        httpClient.request(
+            "{{#lambda.escapeDollar}}{{{path}}}{{/lambda.escapeDollar}}"{{#pathParams}}
+                .replace("{" + "{{baseName}}" + "}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}}.encodeURLPathPart()){{/pathParams}},
+        ) {
+            method = HttpMethod.parse("{{httpMethod}}")
+            {{#produces}}
+            {{#-first}}
+            accept(ContentType.parse("{{{mediaType}}}"))
+            {{/-first}}
+            {{/produces}}
+            {{#queryParams}}
+            {{^required}}
+            {{{paramName}}}?.let {
+            {{/required}}
+                {{#isContainer}}
+                {{#isCollectionFormatMulti}}
+                url.parameters.appendAll("{{baseName}}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.map { it.toString() }{{/vendorExtensions.x-string-value}})
+                {{/isCollectionFormatMulti}}
+                {{^isCollectionFormatMulti}}
+                url.parameters.append("{{baseName}}", {{{paramName}}}.joinToString(when ("{{collectionFormat}}") {
+                    "ssv" -> " "
+                    "tsv" -> "\t"
+                    "pipes" -> "|"
+                    else -> ","
+                }))
+                {{/isCollectionFormatMulti}}
+                {{/isContainer}}
+                {{^isContainer}}
+                url.parameters.append("{{baseName}}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}})
+                {{/isContainer}}
+            {{^required}}
+            }
+            {{/required}}
+            {{/queryParams}}
+            {{#headerParams}}
+            {{^required}}
+            {{{paramName}}}?.let {
+            {{/required}}
+                header("{{baseName}}", {{{paramName}}}{{#isContainer}}.joinToString(","){{/isContainer}})
+            {{^required}}
+            }
+            {{/required}}
+            {{/headerParams}}
+            {{#cookieParams}}
+            {{^required}}
+            {{{paramName}}}?.let {
+            {{/required}}
+                cookie("{{baseName}}", {{{paramName}}}{{^isString}}.toString(){{/isString}}{{#isString}}{{#isEnum}}.toString(){{/isEnum}}{{^isEnum}}{{#required}}{{#isNullable}}.toString(){{/isNullable}}{{/required}}{{/isEnum}}{{/isString}})
+            {{^required}}
+            }
+            {{/required}}
+            {{/cookieParams}}
+            {{#hasBodyParam}}
+            {{#consumes}}
+            {{#-first}}
+            contentType(ContentType.parse("{{{mediaType}}}"))
+            {{/-first}}
+            {{/consumes}}
+            {{#bodyParam}}
+            setBody({{{paramName}}})
+            {{/bodyParam}}
+            {{/hasBodyParam}}
+            {{#hasFormParams}}
+            {{#isMultipart}}
+            setBody(MultiPartFormDataContent(formData {
+                {{#formParams}}
+                {{^required}}
+                {{{paramName}}}?.let {
+                {{/required}}
+                    {{#isArray}}
+                    {{{paramName}}}.forEach { append("{{baseName}}", it{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}}) }
+                    {{/isArray}}
+                    {{^isArray}}
+                    append("{{baseName}}", {{{paramName}}}{{^isFile}}{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}}{{/isFile}})
+                    {{/isArray}}
+                {{^required}}
+                }
+                {{/required}}
+                {{/formParams}}
+            }))
+            {{/isMultipart}}
+            {{^isMultipart}}
+            setBody(FormDataContent(Parameters.build {
+                {{#formParams}}
+                {{^required}}
+                {{{paramName}}}?.let {
+                {{/required}}
+                    {{#isArray}}
+                    appendAll("{{baseName}}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.map { it.toString() }{{/vendorExtensions.x-string-value}})
+                    {{/isArray}}
+                    {{^isArray}}
+                    append("{{baseName}}", {{{paramName}}}{{^vendorExtensions.x-string-value}}.toString(){{/vendorExtensions.x-string-value}})
+                    {{/isArray}}
+                {{^required}}
+                }
+                {{/required}}
+                {{/formParams}}
+            }))
+            {{/isMultipart}}
+            {{/hasFormParams}}
+        }.body()
+
+{{/operation}}
+{{#operation}}
+{{#allParams}}
+{{#isEnum}}
+    enum class {{enumName}}{{operationIdCamelCase}}(val value: {{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}String{{/isContainer}}) {
+        {{#allowableValues}}
+        {{#enumVars}}
+        {{&name}}({{{value}}}){{^-last}},{{/-last}}{{#-last}};{{/-last}}
+{{^-last}}
+
+{{/-last}}
+        {{/enumVars}}
+        {{/allowableValues}}
+
+        override fun toString(): String = value{{^isContainer}}{{^isString}}.toString(){{/isString}}{{/isContainer}}
+    }
+
+{{/isEnum}}
+{{/allParams}}
+{{/operation}}
+}
+{{/operations}}
