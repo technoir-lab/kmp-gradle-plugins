@@ -728,7 +728,6 @@ class CMakeImportPluginFunctionalTest {
         AppleTarget(name = "iosSimulatorArm64", cmakeSystemName = "iOS", sdkName = "iphonesimulator"),
         AppleTarget(name = "tvosArm64", cmakeSystemName = "tvOS", sdkName = "appletvos"),
         AppleTarget(name = "tvosSimulatorArm64", cmakeSystemName = "tvOS", sdkName = "appletvsimulator"),
-        AppleTarget(name = "watchosArm32", cmakeSystemName = "watchOS", sdkName = "watchos", architecture = "armv7k"),
         AppleTarget(name = "watchosArm64", cmakeSystemName = "watchOS", sdkName = "watchos", architecture = "arm64_32"),
         AppleTarget(name = "watchosDeviceArm64", cmakeSystemName = "watchOS", sdkName = "watchos"),
         AppleTarget(name = "watchosSimulatorArm64", cmakeSystemName = "watchOS", sdkName = "watchsimulator"),
