@@ -35,6 +35,7 @@ import kotlin.io.path.exists
 abstract class CMakeGenerateTask @Inject internal constructor(
     private val execOperations: ExecOperations,
     private val fileSystemOperations: FileSystemOperations,
+    private val problems: Problems,
 ) : BaseCMakeTask() {
     @get:Input
     @get:Optional
@@ -80,10 +81,6 @@ abstract class CMakeGenerateTask @Inject internal constructor(
      */
     @get:OutputFile
     internal abstract val generateStateFile: RegularFileProperty
-
-    // Workaround for https://github.com/gradle/gradle/issues/31958
-    @get:Inject
-    internal abstract val problems: Problems
 
     init {
         outputs.upToDateWhen {

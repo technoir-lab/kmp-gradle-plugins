@@ -39,7 +39,9 @@ import kotlin.io.path.writeText
  */
 @Suppress("UnstableApiUsage")
 @DisableCachingByDefault(because = "C-interop definitions contain absolute installation paths")
-abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor() : DefaultTask() {
+abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
+    private val problems: Problems,
+) : DefaultTask() {
     @get:Internal
     abstract val cmakeComponent: Property<String>
 
@@ -67,10 +69,6 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
 
     @get:OutputFile
     abstract val definitionFile: RegularFileProperty
-
-    // Workaround for https://github.com/gradle/gradle/issues/31958
-    @get:Inject
-    internal abstract val problems: Problems
 
     @TaskAction
     internal fun generate() {
