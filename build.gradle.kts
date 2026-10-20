@@ -4,11 +4,15 @@ plugins {
 
 dependencies {
     dokka(project(":cmake-import-gradle-plugin"))
+    dokka(project(":device-run-core"))
+    dokka(project(":device-run-gradle-plugin"))
     dokka(project(":kotlin-native-utils"))
     dokka(project(":openapi-kotlin-generator-gradle-plugin"))
     dokka(project(":vfs-overlay-gradle-plugin"))
 
     nmcpAggregation(project(":cmake-import-gradle-plugin"))
+    nmcpAggregation(project(":device-run-core"))
+    nmcpAggregation(project(":device-run-gradle-plugin"))
     nmcpAggregation(project(":kotlin-native-utils"))
     nmcpAggregation(project(":openapi-kotlin-generator-gradle-plugin"))
     nmcpAggregation(project(":vfs-overlay-gradle-plugin"))

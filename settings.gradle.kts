@@ -38,6 +38,8 @@ globalSettings {
 }
 
 include(":cmake-import-gradle-plugin")
+include(":device-run-core")
+include(":device-run-gradle-plugin")
 include(":kotlin-native-utils")
 include(":openapi-kotlin-generator-gradle-plugin")
 include(":vfs-overlay-gradle-plugin")

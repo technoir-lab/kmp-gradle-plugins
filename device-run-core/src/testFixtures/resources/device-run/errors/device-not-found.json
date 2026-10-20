@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": 404,
+    "message": "Device not found: projects/example-project/locations/global/devices/no-such-device-35",
+    "status": "NOT_FOUND"
+  }
+}

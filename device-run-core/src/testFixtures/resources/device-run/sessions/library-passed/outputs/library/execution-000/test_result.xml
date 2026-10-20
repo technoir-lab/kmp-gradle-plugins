@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name='' hostname='localhost' tests='5' failures='0' skipped='2' errors='0' time='1.032' timestamp='2026-10-11T09:37:45'>
+    <properties />
+    <testcase name='is ignored' classname='io.technoirlab.device.run.fixture.OutcomesTest' time='0.001'>
+      <skipped />
+    </testcase>
+    <testcase name='is skipped by assumption' classname='io.technoirlab.device.run.fixture.OutcomesTest' time='1.012'>
+      <skipped>org.junit.AssumptionViolatedException: Exercises assumption failure reporting
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at io.technoirlab.device.run.fixture.OutcomesTest.is skipped by assumption(OutcomesTest.kt:24)
+
+      </skipped>
+    </testcase>
+    <testcase name='passes after one second' classname='io.technoirlab.device.run.fixture.OutcomesTest' time='0.019' />
+    <testcase name='squares number[0]' classname='io.technoirlab.device.run.fixture.ParameterizedTest' time='0.0' />
+    <testcase name='squares number[1]' classname='io.technoirlab.device.run.fixture.ParameterizedTest' time='0.0' />
+  </testsuite>
+</testsuites>

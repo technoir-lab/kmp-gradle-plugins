@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="" tests="7" failures="1" flakes="0" errors="0" skipped="2" time="1.112" hostname="localhost">
+  <testcase name="is ignored" classname="io.technoirlab.device.run.fixture.OutcomesTest" time="0.0">
+    <skipped />
+  </testcase>
+  <testcase name="is skipped by assumption" classname="io.technoirlab.device.run.fixture.OutcomesTest" time="1.023">
+    <skipped>org.junit.AssumptionViolatedException: Exercises assumption failure reporting
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at io.technoirlab.device.run.fixture.OutcomesTest.is skipped by assumption(OutcomesTest.kt:24)
+
+org.junit.AssumptionViolatedException: Exercises assumption failure reporting
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at io.technoirlab.device.run.fixture.OutcomesTest.is skipped by assumption(OutcomesTest.kt:24)
+</skipped>
+  </testcase>
+  <testcase name="passes after one second" classname="io.technoirlab.device.run.fixture.OutcomesTest" time="0.012" />
+  <testcase name="squares number[0]" classname="io.technoirlab.device.run.fixture.ParameterizedTest" time="0.0" />
+  <testcase name="squares number[1]" classname="io.technoirlab.device.run.fixture.ParameterizedTest" time="0.05" />
+  <testcase name="writes a file to pull" classname="io.technoirlab.device.run.fixture.ProbeTest" time="0.012" />
+  <testcase name="fails unless reduced to failed tests" classname="io.technoirlab.device.run.fixture.ProbeTest" time="0.015">
+    <failure>java.lang.AssertionError: Fails until a retry runs only failed tests: []
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.device.run.fixture.ProbeTest.fails unless reduced to failed tests(ProbeTest.kt:30)
+
+java.lang.AssertionError: Fails until a retry runs only failed tests: []
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.device.run.fixture.ProbeTest.fails unless reduced to failed tests(ProbeTest.kt:30)
+</failure>
+  </testcase>
+</testsuite>

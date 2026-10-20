@@ -1,0 +1,36 @@
+{
+  "name": "projects/example-project/locations/global/devices/mediumphone-arm-35",
+  "displayName": "Medium Phone, 6.4in/16cm (Arm)",
+  "manufacturer": "Generic",
+  "platform": "ANDROID",
+  "hardwareType": "VIRTUAL",
+  "formFactor": "PHONE",
+  "osVersion": "35",
+  "androidDetails": {
+    "buildType": "user",
+    "supportedAbis": [
+      "arm64-v8a"
+    ]
+  },
+  "primaryScreen": {
+    "densityDpi": 420,
+    "widthPx": 1080,
+    "heightPx": 2400
+  },
+  "supportedProducts": [
+    {
+      "automation": {}
+    },
+    {
+      "deviceStreaming": {}
+    }
+  ],
+  "lifecycle": {
+    "state": "ACTIVE"
+  },
+  "availability": {
+    "capacity": "CAPACITY_HIGH",
+    "available": "AVAILABILITY_HIGH"
+  },
+  "modelCode": "MediumPhone.arm"
+}

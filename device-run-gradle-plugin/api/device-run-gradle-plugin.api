@@ -1,0 +1,114 @@
+public final class io/technoirlab/device/run/gradle/DeviceRunPlugin : org/gradle/api/Plugin {
+	public fun <init> ()V
+	public synthetic fun apply (Ljava/lang/Object;)V
+	public fun apply (Lorg/gradle/api/Project;)V
+}
+
+public final class io/technoirlab/device/run/gradle/DeviceRunSettingsPlugin : org/gradle/api/Plugin {
+	public fun <init> ()V
+	public synthetic fun apply (Ljava/lang/Object;)V
+	public fun apply (Lorg/gradle/api/initialization/Settings;)V
+}
+
+public abstract interface class io/technoirlab/device/run/gradle/api/CaptureOptions {
+	public abstract fun getLogcat ()Lorg/gradle/api/provider/Property;
+	public abstract fun getVideo ()Lorg/gradle/api/provider/Property;
+}
+
+public final class io/technoirlab/device/run/gradle/api/CapturePolicy : java/lang/Enum {
+	public static final field ALWAYS Lio/technoirlab/device/run/gradle/api/CapturePolicy;
+	public static final field DISABLED Lio/technoirlab/device/run/gradle/api/CapturePolicy;
+	public static final field ON_FAILURE Lio/technoirlab/device/run/gradle/api/CapturePolicy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/technoirlab/device/run/gradle/api/CapturePolicy;
+	public static fun values ()[Lio/technoirlab/device/run/gradle/api/CapturePolicy;
+}
+
+public final class io/technoirlab/device/run/gradle/api/DeviceOrientation : java/lang/Enum {
+	public static final field LANDSCAPE Lio/technoirlab/device/run/gradle/api/DeviceOrientation;
+	public static final field PORTRAIT Lio/technoirlab/device/run/gradle/api/DeviceOrientation;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/technoirlab/device/run/gradle/api/DeviceOrientation;
+	public static fun values ()[Lio/technoirlab/device/run/gradle/api/DeviceOrientation;
+}
+
+public abstract interface class io/technoirlab/device/run/gradle/api/DeviceRunDevice : com/android/build/api/dsl/Device {
+	public abstract fun getDeviceId ()Lorg/gradle/api/provider/Property;
+	public abstract fun getLocale ()Lorg/gradle/api/provider/Property;
+	public abstract fun getOrientation ()Lorg/gradle/api/provider/Property;
+}
+
+public abstract interface class io/technoirlab/device/run/gradle/api/DeviceRunExtension {
+	public fun capture (Lorg/gradle/api/Action;)V
+	public fun files (Lorg/gradle/api/Action;)V
+	public abstract fun getCapture ()Lio/technoirlab/device/run/gradle/api/CaptureOptions;
+	public abstract fun getDevices ()Lorg/gradle/api/NamedDomainObjectContainer;
+	public abstract fun getFiles ()Lio/technoirlab/device/run/gradle/api/FileOptions;
+	public abstract fun getInstrumentationTimeout ()Lorg/gradle/api/provider/Property;
+	public abstract fun getLabels ()Lorg/gradle/api/provider/MapProperty;
+	public abstract fun getRetries ()Lio/technoirlab/device/run/gradle/api/RetryOptions;
+	public abstract fun getSharding ()Lio/technoirlab/device/run/gradle/api/ShardingOptions;
+	public abstract fun getStorage ()Lio/technoirlab/device/run/gradle/api/StorageOptions;
+	public abstract fun getWaitTimeout ()Lorg/gradle/api/provider/Property;
+	public fun retries (Lorg/gradle/api/Action;)V
+	public fun sharding (Lorg/gradle/api/Action;)V
+	public fun storage (Lorg/gradle/api/Action;)V
+}
+
+public abstract interface class io/technoirlab/device/run/gradle/api/FileOptions {
+	public abstract fun getPathsToPull ()Lorg/gradle/api/provider/ListProperty;
+	public abstract fun getPush ()Lorg/gradle/api/NamedDomainObjectContainer;
+}
+
+public abstract interface class io/technoirlab/device/run/gradle/api/PushedFile : org/gradle/api/Named {
+	public abstract fun getDestinationPath ()Lorg/gradle/api/provider/Property;
+	public abstract fun getGcsUri ()Lorg/gradle/api/provider/Property;
+	public abstract fun getLocalFile ()Lorg/gradle/api/file/RegularFileProperty;
+}
+
+public abstract interface class io/technoirlab/device/run/gradle/api/RetryOptions {
+	public abstract fun getMaxAttempts ()Lorg/gradle/api/provider/Property;
+	public abstract fun getParallel ()Lorg/gradle/api/provider/Property;
+	public abstract fun getScope ()Lorg/gradle/api/provider/Property;
+}
+
+public final class io/technoirlab/device/run/gradle/api/RetryScope : java/lang/Enum {
+	public static final field FAILED_TEST_CASES Lio/technoirlab/device/run/gradle/api/RetryScope;
+	public static final field SHARD Lio/technoirlab/device/run/gradle/api/RetryScope;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/technoirlab/device/run/gradle/api/RetryScope;
+	public static fun values ()[Lio/technoirlab/device/run/gradle/api/RetryScope;
+}
+
+public abstract interface class io/technoirlab/device/run/gradle/api/ShardingOptions {
+	public abstract fun getSmart ()Lio/technoirlab/device/run/gradle/api/SmartShardingOptions;
+	public abstract fun getStrategy ()Lorg/gradle/api/provider/Property;
+	public abstract fun getUniform ()Lio/technoirlab/device/run/gradle/api/UniformShardingOptions;
+	public fun none ()V
+	public fun smart (Lorg/gradle/api/Action;)V
+	public fun uniform (Lorg/gradle/api/Action;)V
+}
+
+public final class io/technoirlab/device/run/gradle/api/ShardingStrategy : java/lang/Enum {
+	public static final field NONE Lio/technoirlab/device/run/gradle/api/ShardingStrategy;
+	public static final field SMART Lio/technoirlab/device/run/gradle/api/ShardingStrategy;
+	public static final field UNIFORM Lio/technoirlab/device/run/gradle/api/ShardingStrategy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/technoirlab/device/run/gradle/api/ShardingStrategy;
+	public static fun values ()[Lio/technoirlab/device/run/gradle/api/ShardingStrategy;
+}
+
+public abstract interface class io/technoirlab/device/run/gradle/api/SmartShardingOptions {
+	public abstract fun getMaxShardCount ()Lorg/gradle/api/provider/Property;
+	public abstract fun getTargetDuration ()Lorg/gradle/api/provider/Property;
+	public abstract fun getTimingRecordName ()Lorg/gradle/api/provider/Property;
+}
+
+public abstract interface class io/technoirlab/device/run/gradle/api/StorageOptions {
+	public abstract fun getBucket ()Lorg/gradle/api/provider/Property;
+}
+
+public abstract interface class io/technoirlab/device/run/gradle/api/UniformShardingOptions {
+	public abstract fun getShardCount ()Lorg/gradle/api/provider/Property;
+}
+
