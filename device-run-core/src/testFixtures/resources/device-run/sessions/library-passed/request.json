@@ -1,0 +1,51 @@
+{
+  "sessionConfig": {
+    "displayName": "Gradle Device Run smoke",
+    "jobConfigs": [
+      {
+        "displayName": "library",
+        "settings": {
+          "retrySettings": {
+            "flakyTestRetryStrategy": {
+              "flakyTestAttempts": 1
+            }
+          }
+        },
+        "action": {
+          "androidInstrumentationTest": {
+            "testInstallable": {
+              "files": [
+                {
+                  "gcsInputFile": {
+                    "path": "gs://example-bucket/automation/inputs/a4c73c941bbea1b0b45ae21ea1937bb4ba263a4d35df532e9fb447236f066863/fixture-library-androidTest.apk"
+                  }
+                }
+              ]
+            },
+            "testRunnerClass": "androidx.test.runner.AndroidJUnitRunner",
+            "instrumentationTimeout": "60s"
+          }
+        },
+        "allocationConfig": {
+          "deviceConfigs": [
+            {
+              "requirement": {
+                "deviceId": "smallphone-arm-35"
+              },
+              "actions": [
+                {
+                  "androidLogcat": {}
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "outputDirectoryConfig": {
+      "gcsOutputDirectory": {
+        "path": "gs://example-bucket/automation/sessions"
+      }
+    }
+  }
+}

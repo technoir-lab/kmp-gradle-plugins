@@ -1,0 +1,12 @@
+[versions]
+androidx-test = "1.7.0"
+androidx-test-orchestrator = "1.6.1"
+androidx-test-services = "1.6.0"
+junit = "4.13.2"
+
+[libraries]
+androidx-test-orchestrator = { module = "androidx.test:orchestrator", version.ref = "androidx-test-orchestrator" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test" }
+androidx-test-services-app = { module = "androidx.test.services:test-services", version.ref = "androidx-test-services" }
+androidx-test-services-storage = { module = "androidx.test.services:storage", version.ref = "androidx-test-services" }
+junit = { module = "junit:junit", version.ref = "junit" }

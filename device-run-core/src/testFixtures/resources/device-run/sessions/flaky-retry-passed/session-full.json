@@ -1,0 +1,117 @@
+{
+  "name": "projects/example-project/locations/global/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86",
+  "sessionConfig": {
+    "displayName": "probe no-coverage",
+    "jobConfigs": [
+      {
+        "displayName": "mediumPhone",
+        "settings": {
+          "retrySettings": {
+            "flakyTestRetryStrategy": {
+              "flakyTestAttempts": 2,
+              "testReductionMode": "REDUCE_TO_FAILED_TEST_CASES"
+            }
+          }
+        },
+        "action": {
+          "androidInstrumentationTest": {
+            "testInstallable": {
+              "files": [
+                {
+                  "gcsInputFile": {
+                    "path": "gs://example-bucket/automation/inputs/9904e4c89f25ee7183f0dca9aaa3b177875d6567b2203a9b0750d017357a8bbd/app-debug-androidTest.apk"
+                  }
+                }
+              ]
+            },
+            "testRunnerClass": "androidx.test.runner.AndroidJUnitRunner",
+            "testTargets": [
+              "class io.technoirlab.device.run.fixture.OutcomesTest",
+              "class io.technoirlab.device.run.fixture.ParameterizedTest",
+              "class io.technoirlab.device.run.fixture.ProbeTest"
+            ],
+            "additionalTestOptions": {
+              "probeOption": "probe-value"
+            },
+            "instrumentationTimeout": "300s"
+          }
+        },
+        "allocationConfig": {
+          "deviceConfigs": [
+            {
+              "requirement": {
+                "deviceId": "mediumphone-arm-35"
+              },
+              "actions": [
+                {
+                  "androidLogcat": {}
+                },
+                {
+                  "androidInstallPackages": {
+                    "targetApp": {
+                      "files": [
+                        {
+                          "gcsInputFile": {
+                            "path": "gs://example-bucket/automation/inputs/e6456d1edc58b760b929edced40c2e778d77b2ab14bc7bb409352be188a791ac/app-debug.apk"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "androidPushFiles": {
+                    "fileConfigs": [
+                      {
+                        "sourceFile": {
+                          "gcsInputFile": {
+                            "path": "gs://example-bucket/automation/inputs/fa1f29ea65735b49902631b4229fe1205304eeeb526f31951fcf33c33c1c30c0/probe-input.txt"
+                          }
+                        },
+                        "destinationPath": "/sdcard/test-output/probe-input.txt"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "androidPullFiles": {
+                    "paths": [
+                      "/sdcard/test-output",
+                      "/sdcard/Android/data/io.technoirlab.device.run.fixture.application/files"
+                    ]
+                  }
+                },
+                {
+                  "androidRecordVideo": {
+                    "discardOnPass": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "labels": {
+          "project": ":android-application",
+          "variant": "debug",
+          "device": "mediumPhone"
+        }
+      }
+    ],
+    "outputDirectoryConfig": {
+      "gcsOutputDirectory": {
+        "path": "gs://example-bucket/automation/sessions"
+      }
+    }
+  },
+  "sessionReport": {
+    "id": "43a1c9f1-bb7b-4fdd-89f2-116b260a057d",
+    "startTime": "2026-10-11T18:04:48.016Z",
+    "endTime": "2026-10-11T18:06:10.137Z",
+    "status": {
+      "statusType": "DONE"
+    },
+    "result": {
+      "resultType": "PASSED"
+    }
+  }
+}

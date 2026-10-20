@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name='' hostname='localhost' tests='1' failures='0' skipped='0' errors='0' time='0.0' timestamp='2026-10-11T11:05:54'>
+    <properties />
+    <testcase name='fails unless reduced to failed tests' classname='io.technoirlab.device.run.fixture.ProbeTest' time='0.0' />
+  </testsuite>
+</testsuites>

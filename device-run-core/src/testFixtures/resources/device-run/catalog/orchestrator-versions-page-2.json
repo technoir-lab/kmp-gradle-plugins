@@ -1,0 +1,14 @@
+{
+  "softwareVersions": [
+    {
+      "name": "projects/example-project/locations/global/softwareVersions/androidx-test-orchestrator-1-6-1",
+      "softwareType": "ANDROIDX_TEST_ORCHESTRATOR",
+      "displayName": "AndroidX Test Orchestrator 1.6.1",
+      "version": "1.6.1",
+      "lifecycle": {
+        "state": "ACTIVE"
+      },
+      "androidxTestOrchestratorDetails": {}
+    }
+  ]
+}

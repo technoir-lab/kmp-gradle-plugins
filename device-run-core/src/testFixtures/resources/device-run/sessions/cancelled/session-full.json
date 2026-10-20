@@ -1,0 +1,138 @@
+{
+  "name": "projects/example-project/locations/global/sessions/session-cdc93ef3-5ba5-4c3e-b1b7-a04accdd1c70",
+  "sessionConfig": {
+    "displayName": "android-application debug smallPhone",
+    "jobConfigs": [
+      {
+        "displayName": "smallPhone",
+        "settings": {
+          "retrySettings": {
+            "flakyTestRetryStrategy": {
+              "flakyTestAttempts": 1,
+              "testReductionMode": "NO_REDUCTION"
+            }
+          }
+        },
+        "action": {
+          "androidInstrumentationTest": {
+            "testInstallable": {
+              "files": [
+                {
+                  "gcsInputFile": {
+                    "path": "gs://example-bucket/automation/inputs/99b37713a123742c0073d8145b1e569d08d3c09122b8163e2e8f36e9a1110d5c/android-application-debug-androidTest.apk"
+                  }
+                }
+              ]
+            },
+            "testRunnerClass": "androidx.test.runner.AndroidJUnitRunner",
+            "testTargets": [
+              "class io.technoirlab.device.run.fixture.OutcomesTest"
+            ],
+            "instrumentationTimeout": "300s"
+          }
+        },
+        "allocationConfig": {
+          "deviceConfigs": [
+            {
+              "requirement": {
+                "deviceId": "smallphone-arm-35"
+              },
+              "actions": [
+                {
+                  "androidLogcat": {}
+                },
+                {
+                  "androidInstallPackages": {
+                    "targetApp": {
+                      "files": [
+                        {
+                          "gcsInputFile": {
+                            "path": "gs://example-bucket/automation/inputs/e8428b20884d14bca56db100e7c8d46a7188706a55984b06c5a0eb06b58543c2/android-application-debug.apk"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "labels": {
+          "scenario": "outcomes",
+          "project": ":android-application",
+          "variant": "debug",
+          "device": "smallPhone"
+        }
+      }
+    ],
+    "outputDirectoryConfig": {
+      "gcsOutputDirectory": {
+        "path": "gs://example-bucket/automation/sessions"
+      }
+    }
+  },
+  "sessionReport": {
+    "id": "f3ec024d-f008-4e9b-9329-7a1c9fa1dae8",
+    "jobReports": [
+      {
+        "id": "a70fac78-16d1-4d56-bf66-b0c9e9a04b92",
+        "displayName": "smallPhone",
+        "executionReports": [
+          {
+            "id": "b7853f25-c8a1-4340-8a80-ef5c764f4d62",
+            "displayName": "execution-000",
+            "startTime": "2026-10-12T01:30:30.835Z",
+            "endTime": "2026-10-12T01:30:32.132Z",
+            "status": {
+              "statusType": "DONE"
+            },
+            "result": {
+              "resultType": "ERROR",
+              "cause": {
+                "summary": {
+                  "type": "INFRA",
+                  "reason": "PLATFORM_INFRASTRUCTURE_ERROR"
+                }
+              }
+            }
+          }
+        ],
+        "startTime": "2026-10-12T01:30:24.121Z",
+        "endTime": "2026-10-12T01:30:32.960Z",
+        "status": {
+          "statusType": "DONE"
+        },
+        "result": {
+          "resultType": "CANCELLED",
+          "cause": {
+            "summary": {
+              "reason": "CANCELLED",
+              "message": "Execution was cancelled or aborted."
+            }
+          }
+        },
+        "labels": {
+          "device": "smallPhone",
+          "scenario": "outcomes",
+          "project": ":android-application",
+          "variant": "debug"
+        }
+      }
+    ],
+    "startTime": "2026-10-12T01:30:21.066Z",
+    "endTime": "2026-10-12T01:30:35.187Z",
+    "status": {
+      "statusType": "DONE"
+    },
+    "result": {
+      "resultType": "CANCELLED",
+      "cause": {
+        "summary": {
+          "reason": "CANCELLED",
+          "message": "Execution was cancelled or aborted."
+        }
+      }
+    }
+  }
+}

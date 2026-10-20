@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": 400,
+    "message": "Violation in CreateSessionRequest.session.session_config.job_configs[0].settings.retry_settings.flaky_test_retry_strategy.flaky_test_attempts: flaky_test_attempts must be between 1 and 5.",
+    "status": "INVALID_ARGUMENT"
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "name": "projects/example-project/locations/global/sessions/session-b7d3bcbe-fd87-410a-bc46-9d4da624c5ea",
+  "sessionConfig": {
+    "displayName": "android-application debug mediumPhone",
+    "jobConfigs": [
+      {
+        "displayName": "mediumPhone",
+        "settings": {
+          "retrySettings": {
+            "flakyTestRetryStrategy": {
+              "flakyTestAttempts": 2,
+              "testReductionMode": "REDUCE_TO_FAILED_TEST_CASES"
+            }
+          }
+        },
+        "action": {
+          "androidInstrumentationTest": {
+            "testInstallable": {
+              "files": [
+                {
+                  "gcsInputFile": {
+                    "path": "gs://example-bucket/automation/inputs/9904e4c89f25ee7183f0dca9aaa3b177875d6567b2203a9b0750d017357a8bbd/app-debug-androidTest.apk"
+                  }
+                }
+              ]
+            },
+            "testRunnerClass": "androidx.test.runner.AndroidJUnitRunner",
+            "testTargets": [
+              "class io.technoirlab.device.run.fixture.OutcomesTest",
+              "class io.technoirlab.device.run.fixture.ParameterizedTest",
+              "class io.technoirlab.device.run.fixture.ProbeTest"
+            ],
+            "enableCodeCoverage": true,
+            "additionalTestOptions": {
+              "probeOption": "probe-value"
+            },
+            "instrumentationTimeout": "300s"
+          }
+        },
+        "allocationConfig": {
+          "deviceConfigs": [
+            {
+              "requirement": {
+                "deviceId": "mediumphone-arm-35"
+              },
+              "actions": [
+                {
+                  "androidLogcat": {}
+                },
+                {
+                  "androidInstallPackages": {
+                    "targetApp": {
+                      "files": [
+                        {
+                          "gcsInputFile": {
+                            "path": "gs://example-bucket/automation/inputs/e6456d1edc58b760b929edced40c2e778d77b2ab14bc7bb409352be188a791ac/app-debug.apk"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "androidPushFiles": {
+                    "fileConfigs": [
+                      {
+                        "sourceFile": {
+                          "gcsInputFile": {
+                            "path": "gs://example-bucket/automation/inputs/fa1f29ea65735b49902631b4229fe1205304eeeb526f31951fcf33c33c1c30c0/probe-input.txt"
+                          }
+                        },
+                        "destinationPath": "/sdcard/test-output/probe-input.txt"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "androidPullFiles": {
+                    "paths": [
+                      "/sdcard/test-output",
+                      "/sdcard/Android/data/io.technoirlab.device.run.fixture.application/files"
+                    ]
+                  }
+                },
+                {
+                  "androidRecordVideo": {
+                    "discardOnPass": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "labels": {
+          "project": ":android-application",
+          "variant": "debug",
+          "device": "mediumPhone"
+        }
+      }
+    ],
+    "outputDirectoryConfig": {
+      "gcsOutputDirectory": {
+        "path": "gs://example-bucket/automation/sessions"
+      }
+    }
+  },
+  "sessionReport": {
+    "id": "cbcb88af-d705-41e6-8198-fde4f2032e15",
+    "jobReports": [
+      {
+        "id": "56d2cccc-a4cd-41fd-a252-8931da6ad49d",
+        "displayName": "mediumPhone",
+        "executionReports": [
+          {
+            "id": "9575d5b9-6068-49cd-8f9c-42526a364528",
+            "displayName": "execution-000",
+            "startTime": "2026-10-11T18:02:21.031Z",
+            "endTime": "2026-10-11T18:02:44.599Z",
+            "status": {
+              "statusType": "DONE"
+            },
+            "result": {
+              "resultType": "ERROR",
+              "cause": {
+                "summary": {
+                  "type": "INFRA",
+                  "reason": "PLATFORM_INFRASTRUCTURE_ERROR"
+                }
+              }
+            },
+            "outputFiles": [
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-b7d3bcbe-fd87-410a-bc46-9d4da624c5ea/mediumPhone/execution-000/artifacts/sdcard/test-output/probe-input.txt"
+                }
+              },
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-b7d3bcbe-fd87-410a-bc46-9d4da624c5ea/mediumPhone/execution-000/video-1.webm"
+                }
+              },
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-b7d3bcbe-fd87-410a-bc46-9d4da624c5ea/mediumPhone/execution-000/logcat.txt"
+                }
+              }
+            ]
+          }
+        ],
+        "startTime": "2026-10-11T18:01:32.419Z",
+        "endTime": "2026-10-11T18:02:46.603Z",
+        "status": {
+          "statusType": "DONE"
+        },
+        "result": {
+          "resultType": "ERROR",
+          "cause": {
+            "summary": {
+              "reason": "JOB_HAS_ERROR_TESTS",
+              "message": "Job has one or more failed tests. See execution reports for details."
+            }
+          }
+        },
+        "labels": {
+          "device": "mediumPhone",
+          "project": ":android-application",
+          "variant": "debug"
+        }
+      }
+    ],
+    "startTime": "2026-10-11T18:01:29.185Z",
+    "endTime": "2026-10-11T18:02:50.478Z",
+    "status": {
+      "statusType": "DONE"
+    },
+    "result": {
+      "resultType": "ERROR",
+      "cause": {
+        "summary": {
+          "reason": "SESSION_HAS_ERROR_JOBS",
+          "message": "Session has one or more failed jobs. See job reports for details."
+        }
+      }
+    }
+  }
+}

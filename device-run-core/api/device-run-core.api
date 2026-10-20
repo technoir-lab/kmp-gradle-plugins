@@ -1,0 +1,318 @@
+public final class io/technoirlab/device/run/core/DefaultRunnerFactory : io/technoirlab/device/run/core/DeviceRunner$Factory, java/io/Serializable {
+	public fun <init> (Ljava/lang/String;)V
+	public fun create ()Lio/technoirlab/device/run/core/DeviceRunner;
+}
+
+public class io/technoirlab/device/run/core/DeviceRunException : java/lang/RuntimeException {
+}
+
+public abstract interface class io/technoirlab/device/run/core/DeviceRunner : java/lang/AutoCloseable {
+	public abstract fun close ()V
+	public abstract fun preparePushedFiles (Ljava/lang/String;Ljava/util/List;)Ljava/util/List;
+	public abstract fun resolveDevice (Lio/technoirlab/device/run/core/device/DeviceOptions;)Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;
+	public abstract fun runTests (Lio/technoirlab/device/run/core/testrun/TestRunRequest;)Z
+}
+
+public abstract interface class io/technoirlab/device/run/core/DeviceRunner$Factory {
+	public abstract fun create ()Lio/technoirlab/device/run/core/DeviceRunner;
+}
+
+public final class io/technoirlab/device/run/core/DeviceRunnerKt {
+	public static final fun DeviceRunner (Ljava/lang/String;)Lio/technoirlab/device/run/core/DeviceRunner;
+	public static synthetic fun DeviceRunner$default (Ljava/lang/String;ILjava/lang/Object;)Lio/technoirlab/device/run/core/DeviceRunner;
+}
+
+public final class io/technoirlab/device/run/core/InvalidOptionsException : io/technoirlab/device/run/core/DeviceRunException {
+	public final fun getErrors ()Ljava/util/List;
+	public final fun getSummary ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/device/CatalogDeviceSnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/util/List;Ljava/lang/Integer;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Z
+	public final fun component5 ()I
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Ljava/lang/Integer;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/util/List;Ljava/lang/Integer;)Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/util/List;Ljava/lang/Integer;ILjava/lang/Object;)Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAbis ()Ljava/util/List;
+	public final fun getApiLevel ()I
+	public final fun getDeviceId ()Ljava/lang/String;
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getManufacturer ()Ljava/lang/String;
+	public final fun getPhysical ()Z
+	public final fun getScreenDensity ()Ljava/lang/Integer;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/device/CatalogDeviceSnapshotSerializer {
+	public fun <init> ()V
+	public final fun fileName (Ljava/lang/String;)Ljava/lang/String;
+	public final fun read (Ljava/nio/file/Path;)Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;
+	public final fun write (Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;Ljava/nio/file/Path;)V
+}
+
+public final class io/technoirlab/device/run/core/device/DeviceOptions {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/technoirlab/device/run/core/device/DeviceOrientation;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/technoirlab/device/run/core/device/DeviceOrientation;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lio/technoirlab/device/run/core/device/DeviceOrientation;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/technoirlab/device/run/core/device/DeviceOrientation;)Lio/technoirlab/device/run/core/device/DeviceOptions;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/device/DeviceOptions;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/technoirlab/device/run/core/device/DeviceOrientation;ILjava/lang/Object;)Lio/technoirlab/device/run/core/device/DeviceOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDeviceId ()Ljava/lang/String;
+	public final fun getLocale ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getOrientation ()Lio/technoirlab/device/run/core/device/DeviceOrientation;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/device/DeviceOrientation : java/lang/Enum {
+	public static final field LANDSCAPE Lio/technoirlab/device/run/core/device/DeviceOrientation;
+	public static final field PORTRAIT Lio/technoirlab/device/run/core/device/DeviceOrientation;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/technoirlab/device/run/core/device/DeviceOrientation;
+	public static fun values ()[Lio/technoirlab/device/run/core/device/DeviceOrientation;
+}
+
+public final class io/technoirlab/device/run/core/files/PreparedFile {
+	public fun <init> (Ljava/lang/String;Lio/technoirlab/device/run/core/storage/GcsUri;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lio/technoirlab/device/run/core/storage/GcsUri;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Lio/technoirlab/device/run/core/storage/GcsUri;Ljava/lang/String;Ljava/lang/String;)Lio/technoirlab/device/run/core/files/PreparedFile;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/files/PreparedFile;Ljava/lang/String;Lio/technoirlab/device/run/core/storage/GcsUri;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/technoirlab/device/run/core/files/PreparedFile;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getChecksum ()Ljava/lang/String;
+	public final fun getDestinationPath ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getUri ()Lio/technoirlab/device/run/core/storage/GcsUri;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/files/PushManifestSerializer {
+	public fun <init> ()V
+	public final fun read (Ljava/nio/file/Path;)Ljava/util/List;
+	public final fun write (Ljava/util/List;Ljava/nio/file/Path;)V
+}
+
+public final class io/technoirlab/device/run/core/files/PushedFileOptions {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/nio/file/Path;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/nio/file/Path;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/nio/file/Path;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/nio/file/Path;Ljava/lang/String;)Lio/technoirlab/device/run/core/files/PushedFileOptions;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/files/PushedFileOptions;Ljava/lang/String;Ljava/lang/String;Ljava/nio/file/Path;Ljava/lang/String;ILjava/lang/Object;)Lio/technoirlab/device/run/core/files/PushedFileOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDestinationPath ()Ljava/lang/String;
+	public final fun getGcsUri ()Ljava/lang/String;
+	public final fun getLocalFile ()Ljava/nio/file/Path;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/storage/GcsUri {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lio/technoirlab/device/run/core/storage/GcsUri;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/storage/GcsUri;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/technoirlab/device/run/core/storage/GcsUri;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBucket ()Ljava/lang/String;
+	public final fun getObjectName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/testrun/RunOptions {
+	public fun <init> (Ljava/lang/String;Ljava/time/Duration;Lio/technoirlab/device/run/core/testrun/RunOptions$Job;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/time/Duration;Lio/technoirlab/device/run/core/testrun/RunOptions$Job;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/time/Duration;
+	public final fun component3 ()Lio/technoirlab/device/run/core/testrun/RunOptions$Job;
+	public final fun copy (Ljava/lang/String;Ljava/time/Duration;Lio/technoirlab/device/run/core/testrun/RunOptions$Job;)Lio/technoirlab/device/run/core/testrun/RunOptions;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/testrun/RunOptions;Ljava/lang/String;Ljava/time/Duration;Lio/technoirlab/device/run/core/testrun/RunOptions$Job;ILjava/lang/Object;)Lio/technoirlab/device/run/core/testrun/RunOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBucket ()Ljava/lang/String;
+	public final fun getJob ()Lio/technoirlab/device/run/core/testrun/RunOptions$Job;
+	public final fun getWaitTimeout ()Ljava/time/Duration;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/testrun/RunOptions$Capture {
+	public static final field Companion Lio/technoirlab/device/run/core/testrun/RunOptions$Capture$Companion;
+	public fun <init> ()V
+	public fun <init> (Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;)V
+	public synthetic fun <init> (Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+	public final fun component2 ()Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+	public final fun copy (Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;)Lio/technoirlab/device/run/core/testrun/RunOptions$Capture;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/testrun/RunOptions$Capture;Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;ILjava/lang/Object;)Lio/technoirlab/device/run/core/testrun/RunOptions$Capture;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLogcat ()Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+	public final fun getVideo ()Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/testrun/RunOptions$Capture$Companion {
+	public final fun getDEFAULT_LOGCAT ()Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+	public final fun getDEFAULT_VIDEO ()Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+}
+
+public final class io/technoirlab/device/run/core/testrun/RunOptions$Job {
+	public static final field AUTO_ORCHESTRATOR_VERSION Ljava/lang/String;
+	public static final field Companion Lio/technoirlab/device/run/core/testrun/RunOptions$Job$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/time/Duration;Ljava/lang/String;Ljava/util/Map;Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding;Lio/technoirlab/device/run/core/testrun/RunOptions$Retries;Ljava/util/List;Lio/technoirlab/device/run/core/testrun/RunOptions$Capture;)V
+	public synthetic fun <init> (Ljava/time/Duration;Ljava/lang/String;Ljava/util/Map;Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding;Lio/technoirlab/device/run/core/testrun/RunOptions$Retries;Ljava/util/List;Lio/technoirlab/device/run/core/testrun/RunOptions$Capture;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/time/Duration;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun component4 ()Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding;
+	public final fun component5 ()Lio/technoirlab/device/run/core/testrun/RunOptions$Retries;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Lio/technoirlab/device/run/core/testrun/RunOptions$Capture;
+	public final fun copy (Ljava/time/Duration;Ljava/lang/String;Ljava/util/Map;Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding;Lio/technoirlab/device/run/core/testrun/RunOptions$Retries;Ljava/util/List;Lio/technoirlab/device/run/core/testrun/RunOptions$Capture;)Lio/technoirlab/device/run/core/testrun/RunOptions$Job;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/testrun/RunOptions$Job;Ljava/time/Duration;Ljava/lang/String;Ljava/util/Map;Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding;Lio/technoirlab/device/run/core/testrun/RunOptions$Retries;Ljava/util/List;Lio/technoirlab/device/run/core/testrun/RunOptions$Capture;ILjava/lang/Object;)Lio/technoirlab/device/run/core/testrun/RunOptions$Job;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCapture ()Lio/technoirlab/device/run/core/testrun/RunOptions$Capture;
+	public final fun getInstrumentationTimeout ()Ljava/time/Duration;
+	public final fun getLabels ()Ljava/util/Map;
+	public final fun getOrchestratorVersion ()Ljava/lang/String;
+	public final fun getPathsToPull ()Ljava/util/List;
+	public final fun getRetries ()Lio/technoirlab/device/run/core/testrun/RunOptions$Retries;
+	public final fun getSharding ()Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/testrun/RunOptions$Job$Companion {
+	public final fun getDEFAULT_INSTRUMENTATION_TIMEOUT ()Ljava/time/Duration;
+}
+
+public final class io/technoirlab/device/run/core/testrun/RunOptions$Retries {
+	public static final field Companion Lio/technoirlab/device/run/core/testrun/RunOptions$Retries$Companion;
+	public static final field DEFAULT_FLAKY_TEST_ATTEMPTS I
+	public static final field DEFAULT_PARALLEL_RETRY Z
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/Integer;Ljava/lang/Boolean;Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;)V
+	public synthetic fun <init> (Ljava/lang/Integer;Ljava/lang/Boolean;Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/Integer;
+	public final fun component2 ()Ljava/lang/Boolean;
+	public final fun component3 ()Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;
+	public final fun copy (Ljava/lang/Integer;Ljava/lang/Boolean;Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;)Lio/technoirlab/device/run/core/testrun/RunOptions$Retries;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/testrun/RunOptions$Retries;Ljava/lang/Integer;Ljava/lang/Boolean;Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;ILjava/lang/Object;)Lio/technoirlab/device/run/core/testrun/RunOptions$Retries;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFlakyTestAttempts ()Ljava/lang/Integer;
+	public final fun getParallelRetry ()Ljava/lang/Boolean;
+	public final fun getTestReductionMode ()Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/testrun/RunOptions$Retries$Companion {
+	public final fun getDEFAULT_TEST_REDUCTION_MODE ()Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;
+}
+
+public abstract interface class io/technoirlab/device/run/core/testrun/RunOptions$Sharding {
+}
+
+public final class io/technoirlab/device/run/core/testrun/RunOptions$Sharding$None : io/technoirlab/device/run/core/testrun/RunOptions$Sharding {
+	public static final field INSTANCE Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding$None;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/testrun/RunOptions$Sharding$Smart : io/technoirlab/device/run/core/testrun/RunOptions$Sharding {
+	public fun <init> (Ljava/time/Duration;Ljava/lang/String;Ljava/lang/Integer;)V
+	public synthetic fun <init> (Ljava/time/Duration;Ljava/lang/String;Ljava/lang/Integer;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/time/Duration;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun copy (Ljava/time/Duration;Ljava/lang/String;Ljava/lang/Integer;)Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding$Smart;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding$Smart;Ljava/time/Duration;Ljava/lang/String;Ljava/lang/Integer;ILjava/lang/Object;)Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding$Smart;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMaxShardCount ()Ljava/lang/Integer;
+	public final fun getTargetedShardDuration ()Ljava/time/Duration;
+	public final fun getTimingRecordName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/testrun/RunOptions$Sharding$Uniform : io/technoirlab/device/run/core/testrun/RunOptions$Sharding {
+	public fun <init> (Ljava/lang/Integer;)V
+	public final fun component1 ()Ljava/lang/Integer;
+	public final fun copy (Ljava/lang/Integer;)Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding$Uniform;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding$Uniform;Ljava/lang/Integer;ILjava/lang/Object;)Lio/technoirlab/device/run/core/testrun/RunOptions$Sharding$Uniform;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getShardCount ()Ljava/lang/Integer;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/testrun/TestRunRequest {
+	public fun <init> (Lio/technoirlab/device/run/core/testrun/RunOptions;Lio/technoirlab/device/run/core/device/DeviceOptions;Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;Ljava/util/List;Ljava/nio/file/Path;Ljava/util/List;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/nio/file/Path;)V
+	public final fun component1 ()Lio/technoirlab/device/run/core/testrun/RunOptions;
+	public final fun component10 ()Ljava/util/Map;
+	public final fun component11 ()Ljava/util/Map;
+	public final fun component12 ()Ljava/nio/file/Path;
+	public final fun component2 ()Lio/technoirlab/device/run/core/device/DeviceOptions;
+	public final fun component3 ()Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/nio/file/Path;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Ljava/util/Map;
+	public final fun component9 ()Ljava/lang/String;
+	public final fun copy (Lio/technoirlab/device/run/core/testrun/RunOptions;Lio/technoirlab/device/run/core/device/DeviceOptions;Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;Ljava/util/List;Ljava/nio/file/Path;Ljava/util/List;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/nio/file/Path;)Lio/technoirlab/device/run/core/testrun/TestRunRequest;
+	public static synthetic fun copy$default (Lio/technoirlab/device/run/core/testrun/TestRunRequest;Lio/technoirlab/device/run/core/testrun/RunOptions;Lio/technoirlab/device/run/core/device/DeviceOptions;Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;Ljava/util/List;Ljava/nio/file/Path;Ljava/util/List;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/nio/file/Path;ILjava/lang/Object;)Lio/technoirlab/device/run/core/testrun/TestRunRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCatalogDevice ()Lio/technoirlab/device/run/core/device/CatalogDeviceSnapshot;
+	public final fun getDevice ()Lio/technoirlab/device/run/core/device/DeviceOptions;
+	public final fun getInstrumentationRunner ()Ljava/lang/String;
+	public final fun getInstrumentationRunnerArguments ()Ljava/util/Map;
+	public final fun getLabels ()Ljava/util/Map;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getOptions ()Lio/technoirlab/device/run/core/testrun/RunOptions;
+	public final fun getPushedFiles ()Ljava/util/List;
+	public final fun getReportProperties ()Ljava/util/Map;
+	public final fun getResultsDirectory ()Ljava/nio/file/Path;
+	public final fun getTestApk ()Ljava/nio/file/Path;
+	public final fun getTestedApks ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/technoirlab/device/run/core/testrun/job/ArtifactCapture : java/lang/Enum {
+	public static final field ALWAYS Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+	public static final field DISABLED Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+	public static final field ON_FAILURE Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+	public static fun values ()[Lio/technoirlab/device/run/core/testrun/job/ArtifactCapture;
+}
+
+public final class io/technoirlab/device/run/core/testrun/job/TestReductionMode : java/lang/Enum {
+	public static final field NO_REDUCTION Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;
+	public static final field REDUCE_TO_FAILED_TEST_CASES Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;
+	public static fun values ()[Lio/technoirlab/device/run/core/testrun/job/TestReductionMode;
+}
+

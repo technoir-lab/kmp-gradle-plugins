@@ -1,18 +1,48 @@
 [versions]
+android-gradle-plugin = "9.4.1"
+android-test-result-proto = "1.0.7"
 assertj = "3.27.7"
+google-api-client = "2.9.1"
+google-api-services-devicerun = "v1alpha-rev20261006-2.0.0"
+google-api-services-storage = "v1-rev20260926-2.0.0"
+google-auth = "1.54.0"
+google-http-client = "2.2.0"
+gson = "2.14.0"
+guava = "33.7.2-jre"
 kotlin-gradle-plugin = "2.4.21"
 openapi-generator = "7.26.0"
+protobuf = "3.25.5"
+slf4j = "2.0.20"
 swagger-models = "2.2.55"
 
 [libraries]
+android-builder-test-api = { module = "com.android.tools.build:builder-test-api", version.ref = "android-gradle-plugin" }
+android-gradle-api = { module = "com.android.tools.build:gradle-api", version.ref = "android-gradle-plugin" }
+android-gradle-common-api = { module = "com.android.tools.build:gradle-common-api", version.ref = "android-gradle-plugin" }
+android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "android-gradle-plugin" }
+android-test-result-proto = { module = "com.android.tools.androidtest:test-result-proto", version.ref = "android-test-result-proto" }
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 common-conventions = { module = "io.technoirlab.conventions:common-conventions" }
 core-utils = { module = "io.technoirlab.conventions:core-utils" }
+google-api-client = { module = "com.google.api-client:google-api-client" }
+google-api-client-bom = { module = "com.google.api-client:google-api-client-bom", version.ref = "google-api-client" }
+google-api-services-devicerun = { module = "com.google.apis:google-api-services-devicerun", version.ref = "google-api-services-devicerun" }
+google-api-services-storage = { module = "com.google.apis:google-api-services-storage", version.ref = "google-api-services-storage" }
+google-auth-bom = { module = "com.google.auth:google-auth-library-bom", version.ref = "google-auth" }
+google-auth-credentials = { module = "com.google.auth:google-auth-library-credentials" }
+google-auth-oauth2-http = { module = "com.google.auth:google-auth-library-oauth2-http" }
+google-http-client = { module = "com.google.http-client:google-http-client" }
+google-http-client-bom = { module = "com.google.http-client:google-http-client-bom", version.ref = "google-http-client" }
+google-http-client-gson = { module = "com.google.http-client:google-http-client-gson" }
 gradle-extensions = { module = "io.technoirlab.conventions:gradle-extensions" }
 gradle-test-kit = { module = "io.technoirlab.conventions:gradle-test-kit" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-gradle-plugin" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
 openapi-generator-core = { module = "org.openapitools:openapi-generator", version.ref = "openapi-generator" }
 openapi-generator-gradle-plugin = { module = "org.openapitools:openapi-generator-gradle-plugin", version.ref = "openapi-generator" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 swagger-models = { module = "io.swagger.core.v3:swagger-models", version.ref = "swagger-models" }

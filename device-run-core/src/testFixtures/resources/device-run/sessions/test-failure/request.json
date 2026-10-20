@@ -1,0 +1,62 @@
+{
+  "sessionConfig": {
+    "displayName": "probe bare",
+    "outputDirectoryConfig": {
+      "gcsOutputDirectory": {
+        "path": "gs://example-bucket/automation/sessions"
+      }
+    },
+    "jobConfigs": [
+      {
+        "displayName": "mediumPhone",
+        "labels": {
+          "project": ":android-application",
+          "variant": "debug",
+          "device": "mediumPhone"
+        },
+        "action": {
+          "androidInstrumentationTest": {
+            "testInstallable": {
+              "files": [
+                {
+                  "gcsInputFile": {
+                    "path": "gs://example-bucket/automation/inputs/9904e4c89f25ee7183f0dca9aaa3b177875d6567b2203a9b0750d017357a8bbd/app-debug-androidTest.apk"
+                  }
+                }
+              ]
+            },
+            "testRunnerClass": "androidx.test.runner.AndroidJUnitRunner",
+            "instrumentationTimeout": "300s"
+          }
+        },
+        "allocationConfig": {
+          "deviceConfigs": [
+            {
+              "requirement": {
+                "deviceId": "mediumphone-arm-35"
+              },
+              "actions": [
+                {
+                  "androidLogcat": {}
+                },
+                {
+                  "androidInstallPackages": {
+                    "targetApp": {
+                      "files": [
+                        {
+                          "gcsInputFile": {
+                            "path": "gs://example-bucket/automation/inputs/e6456d1edc58b760b929edced40c2e778d77b2ab14bc7bb409352be188a791ac/app-debug.apk"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

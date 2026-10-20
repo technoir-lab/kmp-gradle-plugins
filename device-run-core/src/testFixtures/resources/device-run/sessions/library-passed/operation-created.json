@@ -1,0 +1,12 @@
+{
+  "name": "projects/example-project/locations/global/operations/operation-1791736641517-65d93320c7833-760549bc-2e76ebf7",
+  "metadata": {
+    "@type": "type.googleapis.com/google.cloud.devicerun.v1alpha.OperationMetadata",
+    "createTime": "2026-10-11T16:37:21.885259237Z",
+    "target": "projects/example-project/locations/global/sessions/session-ef52ff2e-1b6e-476e-91b3-ef8a7b75fbde",
+    "verb": "create",
+    "requestedCancellation": false,
+    "apiVersion": "v1alpha"
+  },
+  "done": false
+}

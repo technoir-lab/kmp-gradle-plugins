@@ -1,0 +1,89 @@
+{
+  "kind": "storage#objects",
+  "items": [
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000-rerun-000/artifacts/sdcard/test-output/probe-input.txt",
+      "size": "35",
+      "contentType": "text/plain"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000-rerun-000/instrument.log",
+      "size": "772",
+      "contentType": "text/plain"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000-rerun-000/logcat.txt",
+      "size": "418877",
+      "contentType": "text/plain"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000-rerun-000/test_result.xml",
+      "size": "360",
+      "contentType": "application/xml"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000-rerun-000/video-1.webm",
+      "size": "431109",
+      "contentType": "video/webm"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000/artifacts/sdcard/Android/data/io.technoirlab.device.run.fixture.application/files/probe-output.txt",
+      "size": "193",
+      "contentType": "text/plain"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000/artifacts/sdcard/test-output/probe-input.txt",
+      "size": "35",
+      "contentType": "text/plain"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000/instrument.log",
+      "size": "6469",
+      "contentType": "text/plain"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000/logcat.txt",
+      "size": "448367",
+      "contentType": "text/plain"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000/test_result.xml",
+      "size": "1845",
+      "contentType": "application/xml"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/execution-000/video-1.webm",
+      "size": "555569",
+      "contentType": "video/webm"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-7f0ebc4c-61d5-4677-b6c2-be6033b75a86/mediumPhone/junit.xml",
+      "size": "2424",
+      "contentType": "application/xml"
+    }
+  ]
+}
