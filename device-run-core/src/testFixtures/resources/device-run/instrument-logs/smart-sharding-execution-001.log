@@ -1,0 +1,72 @@
+INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.plan.AssumeBeforeClassTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.rollup.plan.AssumeBeforeClassTest:
+INSTRUMENTATION_STATUS: test=null
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.plan.AssumeBeforeClassTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stack=org.junit.AssumptionViolatedException: Skips the class in @BeforeClass
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at io.technoirlab.rollup.plan.AssumeBeforeClassTest.skipClass(AssumeBeforeClassTest.java:13)
+
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.rollup.plan.AssumeBeforeClassTest:
+INSTRUMENTATION_STATUS: test=null
+INSTRUMENTATION_STATUS_CODE: -4
+INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.plan.MoreTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.rollup.plan.MoreTest:
+INSTRUMENTATION_STATUS: test=first
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.plan.MoreTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=first
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.plan.MoreTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=third
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.plan.MoreTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=third
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.plan.PlainTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.rollup.plan.PlainTest:
+INSTRUMENTATION_STATUS: test=passes
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.plan.PlainTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=passes
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 0.026
+
+OK (3 tests)
+
+
+INSTRUMENTATION_CODE: -1

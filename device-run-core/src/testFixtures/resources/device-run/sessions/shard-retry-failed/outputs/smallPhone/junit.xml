@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="" tests="16" failures="0" flakes="7" errors="0" skipped="0" time="0.076" hostname="localhost">
+  <testcase name="coin00" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.001" />
+  <testcase name="coin01" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.008" />
+  <testcase name="coin02" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.007" flaky="true">
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin02 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=215570 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin02(ShardFlakyTest.java:23)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin02 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=215570 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin02(ShardFlakyTest.java:23)
+</failure>
+  </testcase>
+  <testcase name="coin03" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.016" flaky="true">
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin03 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=560855 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin03(ShardFlakyTest.java:28)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin03 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=560855 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin03(ShardFlakyTest.java:28)
+</failure>
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin03 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin03(ShardFlakyTest.java:28)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin03 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin03(ShardFlakyTest.java:28)
+</failure>
+  </testcase>
+  <testcase name="coin04" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.0" />
+  <testcase name="coin05" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.006" />
+  <testcase name="coin06" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.004" flaky="true">
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin06 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=215570 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin06(ShardFlakyTest.java:43)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin06 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=215570 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin06(ShardFlakyTest.java:43)
+</failure>
+  </testcase>
+  <testcase name="coin07" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.009" flaky="true">
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin07 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=560855 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin07(ShardFlakyTest.java:48)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin07 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=560855 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin07(ShardFlakyTest.java:48)
+</failure>
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin07 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin07(ShardFlakyTest.java:48)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin07 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin07(ShardFlakyTest.java:48)
+</failure>
+  </testcase>
+  <testcase name="coin08" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.0" />
+  <testcase name="coin09" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.007" />
+  <testcase name="coin10" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.002" flaky="true">
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin10 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=560855 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin10(ShardFlakyTest.java:63)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin10 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=560855 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin10(ShardFlakyTest.java:63)
+</failure>
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin10 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin10(ShardFlakyTest.java:63)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin10 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin10(ShardFlakyTest.java:63)
+</failure>
+  </testcase>
+  <testcase name="coin11" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.008" />
+  <testcase name="coin12" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.004" />
+  <testcase name="coin13" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.006" flaky="true">
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin13 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=215570 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin13(ShardFlakyTest.java:78)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin13 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=215570 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin13(ShardFlakyTest.java:78)
+</failure>
+  </testcase>
+  <testcase name="coin14" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.004" flaky="true">
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin14 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=560855 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin14(ShardFlakyTest.java:83)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin14 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=560855 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin14(ShardFlakyTest.java:83)
+</failure>
+    <failure>java.lang.AssertionError: Fails one in four attempts: test=coin14 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin14(ShardFlakyTest.java:83)
+
+java.lang.AssertionError: Fails one in four attempts: test=coin14 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardFlakyTest.coin14(ShardFlakyTest.java:83)
+</failure>
+  </testcase>
+  <testcase name="coin15" classname="io.technoirlab.rollup.probe.ShardFlakyTest" time="0.017" />
+</testsuite>

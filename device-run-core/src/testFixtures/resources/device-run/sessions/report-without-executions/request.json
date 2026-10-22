@@ -1,0 +1,61 @@
+{
+  "sessionConfig": {
+    "displayName": "parallel debug smallPhone",
+    "jobConfigs": [
+      {
+        "action": {
+          "androidInstrumentationTest": {
+            "additionalTestOptions": {
+              "probeNonce": "1792504415"
+            },
+            "instrumentationTimeout": "300s",
+            "testInstallable": {
+              "files": [
+                {
+                  "gcsInputFile": {
+                    "path": "gs://example-bucket/automation/inputs/1f46b331039e1b869c93aa535485eeae8c0a10d7a777ba1fa5f20e410d1cb7d9/parallel-debug-androidTest.apk"
+                  }
+                }
+              ]
+            },
+            "testRunnerClass": "androidx.test.runner.AndroidJUnitRunner"
+          }
+        },
+        "allocationConfig": {
+          "deviceConfigs": [
+            {
+              "actions": [
+                {
+                  "androidLogcat": {}
+                }
+              ],
+              "requirement": {
+                "deviceId": "smallphone-arm-35"
+              }
+            }
+          ]
+        },
+        "displayName": "smallPhone",
+        "labels": {
+          "project": ":parallel",
+          "variant": "debug",
+          "device": "smallPhone"
+        },
+        "settings": {
+          "retrySettings": {
+            "flakyTestRetryStrategy": {
+              "flakyTestAttempts": 3,
+              "parallelRetry": true,
+              "testReductionMode": "REDUCE_TO_FAILED_TEST_CASES"
+            }
+          }
+        }
+      }
+    ],
+    "outputDirectoryConfig": {
+      "gcsOutputDirectory": {
+        "path": "gs://example-bucket/automation/sessions"
+      }
+    }
+  }
+}

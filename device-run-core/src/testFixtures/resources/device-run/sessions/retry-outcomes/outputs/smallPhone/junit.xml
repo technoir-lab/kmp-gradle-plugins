@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="" tests="7" failures="1" flakes="4" errors="0" skipped="0" time="0.046" hostname="localhost">
+  <testcase name="passes" classname="io.technoirlab.rollup.probe.ShardCoinTest" time="0.0" />
+  <testcase name="coin0" classname="io.technoirlab.rollup.probe.ShardCoinTest" time="0.012" flaky="true">
+    <failure>java.lang.AssertionError: Coin flip failed: test=coin0 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231078 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin0(ShardCoinTest.java:21)
+
+java.lang.AssertionError: Coin flip failed: test=coin0 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231078 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin0(ShardCoinTest.java:21)
+</failure>
+    <failure>java.lang.AssertionError: Coin flip failed: test=coin0 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231025 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin0(ShardCoinTest.java:21)
+
+java.lang.AssertionError: Coin flip failed: test=coin0 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231025 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin0(ShardCoinTest.java:21)
+</failure>
+  </testcase>
+  <testcase name="coin1" classname="io.technoirlab.rollup.probe.ShardCoinTest" time="0.004" flaky="true">
+    <failure>java.lang.AssertionError: Coin flip failed: test=coin1 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=246578 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin1(ShardCoinTest.java:26)
+
+java.lang.AssertionError: Coin flip failed: test=coin1 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=246578 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin1(ShardCoinTest.java:26)
+</failure>
+  </testcase>
+  <testcase name="coin2" classname="io.technoirlab.rollup.probe.ShardCoinTest" time="0.006" flaky="true">
+    <failure>java.lang.AssertionError: Coin flip failed: test=coin2 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231078 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin2(ShardCoinTest.java:31)
+
+java.lang.AssertionError: Coin flip failed: test=coin2 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231078 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin2(ShardCoinTest.java:31)
+</failure>
+    <failure>java.lang.AssertionError: Coin flip failed: test=coin2 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231025 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin2(ShardCoinTest.java:31)
+
+java.lang.AssertionError: Coin flip failed: test=coin2 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231025 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin2(ShardCoinTest.java:31)
+</failure>
+  </testcase>
+  <testcase name="coin3" classname="io.technoirlab.rollup.probe.ShardCoinTest" time="0.004" flaky="true">
+    <failure>java.lang.AssertionError: Coin flip failed: test=coin3 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=246578 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin3(ShardCoinTest.java:36)
+
+java.lang.AssertionError: Coin flip failed: test=coin3 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=246578 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.rollup.probe.ShardCoinTest.coin3(ShardCoinTest.java:36)
+</failure>
+  </testcase>
+  <testcase name="failsOnFirstAttempt" classname="io.technoirlab.rollup.probe.ShardCoinTest" time="0.005">
+    <failure>java.lang.AssertionError: Fails on the first attempt: test=failsOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231078 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.rollup.probe.ShardCoinTest.failsOnFirstAttempt(ShardCoinTest.java:11)
+
+java.lang.AssertionError: Fails on the first attempt: test=failsOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231078 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.rollup.probe.ShardCoinTest.failsOnFirstAttempt(ShardCoinTest.java:11)
+</failure>
+    <failure>java.lang.AssertionError: Fails on the first attempt: test=failsOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231025 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.rollup.probe.ShardCoinTest.failsOnFirstAttempt(ShardCoinTest.java:11)
+
+java.lang.AssertionError: Fails on the first attempt: test=failsOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231025 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.rollup.probe.ShardCoinTest.failsOnFirstAttempt(ShardCoinTest.java:11)
+</failure>
+    <failure>java.lang.AssertionError: Fails on the first attempt: test=failsOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=246578 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.rollup.probe.ShardCoinTest.failsOnFirstAttempt(ShardCoinTest.java:11)
+
+java.lang.AssertionError: Fails on the first attempt: test=failsOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=246578 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.rollup.probe.ShardCoinTest.failsOnFirstAttempt(ShardCoinTest.java:11)
+</failure>
+  </testcase>
+  <testcase name="failsOnSecondAttempt" classname="io.technoirlab.rollup.probe.ShardCoinTest" time="0.026" />
+</testsuite>
