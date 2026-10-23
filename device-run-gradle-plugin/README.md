@@ -435,10 +435,11 @@ and passes in others is reported as passed and marked as flaky. `scope` selects 
 failed shard, and `FAILED_TEST_CASES` reruns only the failed tests. `parallel` runs the retries of a failed attempt at the same time on
 separate devices.
 
-With `SHARD`, Device Run fails a shard unless one attempt passes all of its tests, even when every test passed in some attempt. The
-test task then passes and warns that Device Run failed the session, as described under [Test results](#test-results).
-`FAILED_TEST_CASES` needs at least one test class in the test APK that declares a runner that Device Run supports with `@RunWith`,
-such as `AndroidJUnit4` or `Parameterized`; otherwise Device Run silently reruns every test of the shard.
+With `SHARD`, Device Run fails a shard unless one attempt passes all of its tests, even when every test passed in some attempt.
+Parallel retries all run the same tests, and Device Run fails the shard unless one retry passes all of them. The test task then
+passes and warns that Device Run failed the session, as described under [Test results](#test-results). `FAILED_TEST_CASES` needs at
+least one test class in the test APK that declares a runner that Device Run supports with `@RunWith`, such as `AndroidJUnit4` or
+`Parameterized`; otherwise Device Run silently reruns every test of the shard.
 
 When a test crashes the instrumentation process, the attempt ends, and a `FAILED_TEST_CASES` retry runs only the crashed test, so
 the tests after it never run, and the test task fails. With [Android Test Orchestrator](#android-test-orchestrator), each test runs in
@@ -496,10 +497,10 @@ session reports no tests. It also fails when the instrumentation log of an attem
 reports omit, such as a failing `@BeforeClass` under Android Test Orchestrator; the task logs the reason, which `test-result.pb`
 lists as a platform error. Tests that ended with an error are reported as failures.
 
-Device Run fails a session when no attempt of a shard passes every test, even when every test passed in some attempt. The test
-task of such a session passes, logs a warning, and adds it to `test-result.pb` as an issue, provided that Device Run blames failed
-tests and that the reports and instrumentation logs of the attempts confirm that each failed attempt failed tests. Otherwise the
-task fails and names what the reports do not confirm, such as an attempt that the session report omits and whose instrumentation
+Device Run fails a session when no attempt of a shard passes every test that it ran, even when every test passed in some attempt. The
+test task of such a session passes, logs a warning, and adds it to `test-result.pb` as an issue, provided that Device Run blames
+failed tests and that the reports and instrumentation logs of the attempts confirm that each failed attempt failed tests. Otherwise
+the task fails and names what the reports do not confirm, such as an attempt that the session report omits and whose instrumentation
 log is missing.
 
 Device Run reports durations but no start times, so in `test-result.pb` a test starts when the shard or retry attempt that ran it
