@@ -108,11 +108,11 @@ class DeviceRunResultConverterTest {
     }
 
     @Test
-    fun `reports a test that ended with an error as a failure that AGP counts, even when Device Run marks it flaky`() {
+    fun `reports a test that ended with an error as a failure that AGP counts`() {
         val artifacts = fakeArtifact(
             "mediumPhone/junit.xml",
             "<testsuite>" +
-                """<testcase classname="a.FirstTest" name="crashes" flaky="true"><error>$CRASH_TRACE</error></testcase>""" +
+                """<testcase classname="a.FirstTest" name="crashes"><error>$CRASH_TRACE</error></testcase>""" +
                 """<testcase classname="a.FirstTest" name="runs"/>""" +
                 "</testsuite>",
         )
@@ -135,7 +135,7 @@ class DeviceRunResultConverterTest {
     }
 
     @Test
-    fun `counts a recovered flaky test as passed while keeping the raw job report`() {
+    fun `counts a flaky test as passed while keeping the raw job report`() {
         val artifacts = mirror(
             "flaky-retry-passed",
             "mediumPhone/junit.xml",
@@ -146,22 +146,78 @@ class DeviceRunResultConverterTest {
         val passed = converter.convert(session("flaky-retry-passed"), artifacts, context())
 
         val results = suiteResult()
-        val recovered = results.testResultList.single { it.testCase.testMethod == "fails unless reduced to failed tests" }
+        val flaky = results.testResultList.single { it.testCase.testMethod == "fails unless reduced to failed tests" }
         assertThat(passed).isTrue()
         assertThat(results.testStatus).isEqualTo(TestStatus.PASSED)
         assertThat(results.testResultList).hasSize(7)
-        assertThat(recovered.testStatus).isEqualTo(TestStatus.PASSED)
-        assertThat(recovered.hasError()).isFalse()
-        assertThat(recovered.artifactLabels()).containsExactly("device-info")
-        assertThat(results.testResultList.filter { it != recovered }).allSatisfy { result ->
+        assertThat(flaky.testStatus).isEqualTo(TestStatus.PASSED)
+        assertThat(flaky.hasError()).isFalse()
+        assertThat(flaky.artifactLabels()).containsExactly("device-info")
+        assertThat(results.testResultList.filter { it != flaky }).allSatisfy { result ->
             assertThat(result.outputArtifactList.map { it.sourcePath.path }).contains(
                 (tempDir / "mirror/mediumPhone/execution-000/logcat.txt").toString(),
             )
         }
         val testReport = testReport()
-        assertThat(testReport.attributes("tests", "failures", "skipped")).containsExactly("7", "0", "2")
-        assertThat(testReport.testCase("fails unless reduced to failed tests").getElementsByTagName("failure").length).isZero()
+        val flakyTest = testReport.testCase("fails unless reduced to failed tests")
+        assertThat(testReport.attributes("tests", "failures", "skipped", "flakes")).containsExactly("7", "0", "2", "1")
+        assertThat(flakyTest.getAttribute("flaky")).isEqualTo("true")
+        assertThat(flakyTest.getElementsByTagName("failure").length).isZero()
+        assertThat(flakyTest.child("flakyFailure").attributes("type", "message")).containsExactly(
+            "java.lang.AssertionError",
+            "Fails until a retry runs only failed tests: [$FLAKY_RETRY_ARGUMENTS]",
+        )
+        assertThat(flakyTest.child("flakyFailure").child("stackTrace").textContent).isEqualTo(
+            FAILURE_TRACE.replace("tests: []", "tests: [$FLAKY_RETRY_ARGUMENTS]"),
+        )
         assertThat(tempDir / "mirror/mediumPhone/junit.xml").content().contains("flaky=\"true\">\n    <failure>")
+        assertThat(logs.entries).contains(
+            Level.WARN to "1 test of mediumPhone is flaky, failing in some attempts and passing in others: " +
+                "io.technoirlab.device.run.fixture.ProbeTest#fails unless reduced to failed tests (1 failed attempt).",
+        )
+    }
+
+    @Test
+    fun `writes a flaky failure for each failed attempt of a flaky test and a rerun failure for each later failure of a failed test`() {
+        converter.convert(session("retry-outcomes"), mirrorOutputs("retry-outcomes"), context(jobDirectory = "smallPhone"))
+
+        val testReport = testReport()
+        assertThat(testReport.attributes("tests", "failures", "errors", "skipped", "flakes")).containsExactly("7", "1", "0", "0", "4")
+        assertThat(testReport.childElements("testcase").associate { it.getAttribute("name") to it.childTags() }).containsExactlyEntriesOf(
+            mapOf(
+                "passes" to emptyList(),
+                "coin0" to listOf("flakyFailure", "flakyFailure"),
+                "coin1" to listOf("flakyFailure"),
+                "coin2" to listOf("flakyFailure", "flakyFailure"),
+                "coin3" to listOf("flakyFailure"),
+                "failsOnFirstAttempt" to listOf("failure", "rerunFailure", "rerunFailure"),
+                "failsOnSecondAttempt" to emptyList(),
+            ),
+        )
+        assertThat(testReport.getElementsByTagName("system-out").length).isZero()
+        val failedTest = testReport.testCase("failsOnFirstAttempt")
+        val attemptStarts = listOf(failedTest.child("failure").textContent) +
+            failedTest.childElements("rerunFailure").map { it.child("stackTrace").textContent }
+        assertThat(attemptStarts.map { START.find(it)?.value }).containsExactly("start=231078", "start=231025", "start=246578")
+        assertThat(failedTest.childElements("rerunFailure")).allSatisfy { rerun ->
+            assertThat(rerun.attributes("type")).containsExactly("java.lang.AssertionError")
+            assertThat(rerun.getAttribute("message")).startsWith("Fails on the first attempt: test=failsOnFirstAttempt attempt=0")
+        }
+    }
+
+    @Test
+    fun `names at most ten flaky tests in one warning`() {
+        val flakyTests = (1..12).joinToString("") { index ->
+            """<testcase classname="a.FlakyTest" name="flaky$index" flaky="true"><failure>$CRASH_TRACE</failure></testcase>"""
+        }
+        val artifacts = fakeArtifact("mediumPhone/junit.xml", "<testsuite>$flakyTests</testsuite>")
+
+        converter.convert(session("flaky-retry-passed"), artifacts, context())
+
+        assertThat(logs.entries.filter { it.first == Level.WARN }.map { it.second }).containsExactly(
+            "12 tests of mediumPhone are flaky, failing in some attempts and passing in others: " +
+                (1..10).joinToString { "a.FlakyTest#flaky$it (1 failed attempt)" } + ", and 2 more.",
+        )
     }
 
     @Test
@@ -660,8 +716,11 @@ class DeviceRunResultConverterTest {
 
     private fun Element.child(tagName: String): Element = childElements(tagName).single()
 
-    private fun Element.childElements(tagName: String): List<Element> =
-        List(childNodes.length) { childNodes.item(it) }.filterIsInstance<Element>().filter { it.tagName == tagName }
+    private fun Element.childElements(tagName: String): List<Element> = childElements().filter { it.tagName == tagName }
+
+    private fun Element.childElements(): List<Element> = List(childNodes.length) { childNodes.item(it) }.filterIsInstance<Element>()
+
+    private fun Element.childTags(): List<String> = childElements().map { it.tagName }
 
     private companion object {
         private const val SHARD_RETRY_SESSION = "session-75dc46f0-4f32-4106-9af2-55c7539451dd"
@@ -682,5 +741,8 @@ class DeviceRunResultConverterTest {
             """.trimIndent()
         private const val CRASH_TRACE =
             "java.lang.IllegalStateException: Instrumentation crashed\n\tat a.FirstTest.crashes(FirstTest.kt:12)"
+        private val START = Regex("start=\\d+")
+        private const val FLAKY_RETRY_ARGUMENTS = "class=$FIXTURE_PACKAGE.OutcomesTest,$FIXTURE_PACKAGE.ParameterizedTest," +
+            "$FIXTURE_PACKAGE.ProbeTest, probeOption=probe-value"
     }
 }

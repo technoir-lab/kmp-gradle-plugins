@@ -15,7 +15,10 @@ import kotlin.io.path.outputStream
  * Writes the JUnit XML report that AGP reads for its HTML test report.
  *
  * AGP counts only `failure` elements as failed tests, so tests that ended with an error are written as failures. The counts are
- * derived from the written test cases.
+ * derived from the written test cases. Failed attempts follow Maven Surefire, which JUnit XML consumers such as
+ * action-junit-report and TeamCity read: a flaky test passed and has a `flakyFailure` for each failed attempt, and a failed test has
+ * a `failure` for its first failed attempt and a `rerunFailure` for each later one. Neither contains `system-out`, which AGP would
+ * read as the output of the test.
  */
 internal class TestReportWriter {
     /**
@@ -32,6 +35,7 @@ internal class TestReportWriter {
             setAttribute("failures", failures.toString())
             setAttribute("errors", "0")
             setAttribute("skipped", outcomes.count { it.status == TestOutcome.Status.SKIPPED }.toString())
+            setAttribute("flakes", outcomes.count { it.flaky }.toString())
             time?.let { setAttribute("time", it) }
         }
         document.appendChild(suite)
@@ -64,16 +68,21 @@ internal class TestReportWriter {
         setAttribute("name", outcome.name)
         setAttribute("classname", outcome.className)
         outcome.time?.let { setAttribute("time", it) }
-        if (outcome.recovered) {
+        if (outcome.flaky) {
             setAttribute("flaky", "true")
         }
-        val outcomeTag = when (outcome.status) {
-            TestOutcome.Status.FAILED, TestOutcome.Status.ERROR -> "failure"
-            TestOutcome.Status.SKIPPED -> "skipped"
-            TestOutcome.Status.PASSED -> null
-        }
-        if (outcomeTag != null) {
-            appendChild(outcomeElement(outcomeTag, outcome.detail))
+        when (outcome.status) {
+            TestOutcome.Status.FAILED -> {
+                appendChild(outcomeElement("failure", outcome.detail))
+                outcome.failedAttempts.drop(1).forEach { appendChild(attemptElement("rerunFailure", it)) }
+            }
+            // An error that some attempts end with fails the test; the failed attempts are reruns.
+            TestOutcome.Status.ERROR -> {
+                appendChild(outcomeElement("failure", outcome.detail))
+                outcome.failedAttempts.forEach { appendChild(attemptElement("rerunFailure", it)) }
+            }
+            TestOutcome.Status.SKIPPED -> appendChild(outcomeElement("skipped", outcome.detail))
+            TestOutcome.Status.PASSED -> outcome.failedAttempts.forEach { appendChild(attemptElement("flakyFailure", it)) }
         }
     }
 
@@ -83,5 +92,14 @@ internal class TestReportWriter {
             detail.type?.let { setAttribute("type", it) }
             textContent = detail.trace
         }
+    }
+
+    /**
+     * Returns a Surefire element of a failed attempt, which keeps the trace in a `stackTrace` element.
+     */
+    private fun Document.attemptElement(tagName: String, detail: TestOutcome.Detail): Element = createElement(tagName).apply {
+        setAttribute("message", detail.message)
+        detail.type?.let { setAttribute("type", it) }
+        appendChild(createElement("stackTrace").apply { textContent = detail.trace })
     }
 }

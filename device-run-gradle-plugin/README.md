@@ -484,6 +484,13 @@ Device Run uploads the session outputs in the seconds after the session ends. Th
 apart match and contain the files that the session reports name. After a minute, it downloads the outputs that exist and warns
 about the missing ones.
 
+`TEST-<device>.xml` reports retries as Maven Surefire does. A test that failed in some attempts and passed in others passes, is
+marked `flaky="true"`, has a `<flakyFailure>` with the trace of each failed attempt, and counts toward the `flakes` of the suite. A
+test that failed every attempt has a `<failure>` for its first attempt and a `<rerunFailure>` for each later one. The test task
+also logs a warning that names the flaky tests. Point JUnit XML consumers, such as action-junit-report and TeamCity, at
+`**/TEST-*.xml`: the Device Run reports below `device-run/` keep a `<failure>` for each failed attempt, also of flaky tests, so
+consumers that read them count flaky tests as failed. TeamCity before 2024.03 counts `<flakyFailure>` as a failure too.
+
 A test task fails when a test fails, when the session ends with an infrastructure error, a timeout, or cancellation, or when the
 session reports no tests. It also fails when the instrumentation log of an attempt shows tests that never ran, or failures that the
 reports omit, such as a failing `@BeforeClass` under Android Test Orchestrator; the task logs the reason, which `test-result.pb`

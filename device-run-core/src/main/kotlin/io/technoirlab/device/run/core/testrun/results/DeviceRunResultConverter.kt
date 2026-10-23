@@ -42,7 +42,7 @@ internal class DeviceRunResultConverter {
             context = context,
             verdict = verdict,
         )
-        report(session, verdict)
+        report(session, verdict, context.deviceName)
         return verdict.status == TestStatus.PASSED
     }
 
@@ -242,9 +242,10 @@ internal class DeviceRunResultConverter {
     }
 
     /**
-     * Logs the result of the session next to the verdict on its tests, which can differ, and what explains the verdict.
+     * Logs the result of the session next to the verdict on the tests of [deviceName], which can differ, the flaky tests, and what
+     * explains the verdict.
      */
-    private fun report(session: Session, verdict: Verdict) {
+    private fun report(session: Session, verdict: Verdict, deviceName: String) {
         val outcomes = verdict.outcomes.orEmpty()
         fun count(status: TestOutcome.Status) = outcomes.count { it.status == status }
         val testVerdict = when (verdict.status) {
@@ -261,15 +262,34 @@ internal class DeviceRunResultConverter {
             testVerdict,
             outcomes.size,
             count(TestOutcome.Status.PASSED),
-            outcomes.count { it.recovered },
+            outcomes.count { it.flaky },
             count(TestOutcome.Status.FAILED),
             count(TestOutcome.Status.ERROR),
             count(TestOutcome.Status.SKIPPED),
         )
+        reportFlakyTests(outcomes.filter { it.flaky }, deviceName)
         verdict.warnings.forEach { logger.warn(it.message) }
         if (verdict.status != TestStatus.PASSED) {
             verdict.platformFailures.forEach { logger.error("Device Run {} {}: {}", it.classification, it.reason, it.message) }
         }
+    }
+
+    /**
+     * Logs one warning that names the [flakyTests] of [deviceName], at most [MAX_NAMED_FLAKY_TESTS] of them, with the number of
+     * attempts that each failed.
+     */
+    private fun reportFlakyTests(flakyTests: List<TestOutcome>, deviceName: String) {
+        if (flakyTests.isEmpty()) {
+            return
+        }
+        val tests = if (flakyTests.size == 1) "1 test of $deviceName is" else "${flakyTests.size} tests of $deviceName are"
+        val named = flakyTests.take(MAX_NAMED_FLAKY_TESTS).map { test ->
+            val failedAttempts = test.failedAttempts.size
+            "${test.key} (${if (failedAttempts == 1) "1 failed attempt" else "$failedAttempts failed attempts"})"
+        }
+        val unnamed = flakyTests.size - named.size
+        val more = if (unnamed > 0) ", and $unnamed more" else ""
+        logger.warn("{} flaky, failing in some attempts and passing in others: {}{}.", tests, named.joinToString(), more)
     }
 
     /**
@@ -301,6 +321,7 @@ internal class DeviceRunResultConverter {
         private const val NO_TESTS = "NO_TESTS"
         private const val DEVICE_INFO_FILE = "device-info.pb"
         private const val TEST_RESULT_FILE = "test-result.pb"
+        private const val MAX_NAMED_FLAKY_TESTS = 10
         private val PLATFORM_RESULTS = setOf("ERROR", "TIMED_OUT", CANCELLED)
     }
 }

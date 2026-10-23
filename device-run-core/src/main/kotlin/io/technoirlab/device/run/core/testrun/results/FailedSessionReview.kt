@@ -87,7 +87,7 @@ internal class FailedSessionReview {
      */
     private fun reportProblem(execution: JobExecution): String? {
         val report = execution.report ?: return "${execution.name} failed, but its report is missing or malformed"
-        val listsFailedTest = report.testCases.any { it.failure != null || it.error != null }
+        val listsFailedTest = report.testCases.any { it.failures.isNotEmpty() || it.error != null }
         return if (listsFailedTest) null else "${execution.name} failed, but its report lists no failed test"
     }
 
