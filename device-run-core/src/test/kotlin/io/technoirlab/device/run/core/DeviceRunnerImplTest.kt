@@ -38,7 +38,8 @@ import kotlin.io.path.writeText
 class DeviceRunnerImplTest {
     private val cloudConnector = StubCloudConnector(RecordingHttpTransport())
     private val transport = cloudConnector.transport
-    private val runner = DeviceRunnerImpl(cloudConnector, CLIENT_NAME)
+    private val clock = VirtualClock()
+    private val runner = DeviceRunnerImpl(cloudConnector, CLIENT_NAME, clock.sleeper, clock.ticker)
 
     @TempDir
     private lateinit var tempDir: Path
@@ -230,7 +231,8 @@ class DeviceRunnerImplTest {
         enqueueFixture("sessions/flaky-retry-passed/operation-created.json")
         // The finished session answers both the poll that sees it done and the request for its full view.
         repeat(2) { enqueueFixture("sessions/flaky-retry-passed/session-full.json") }
-        enqueueFixture("sessions/flaky-retry-passed/objects.json")
+        // The outputs are mirrored once a listing repeats the previous one.
+        repeat(2) { enqueueFixture("sessions/flaky-retry-passed/objects.json") }
         val listing = parseDeviceRunFixture<Objects>("sessions/flaky-retry-passed/objects.json")
         val outputs = deviceRunFixtures("sessions/flaky-retry-passed/outputs")
         for (item in listing.items) {

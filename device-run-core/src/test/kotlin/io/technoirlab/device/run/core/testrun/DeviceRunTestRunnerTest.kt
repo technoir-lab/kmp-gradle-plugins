@@ -11,11 +11,13 @@ import com.google.testing.platform.proto.api.core.AndroidTestDeviceInfoProto.And
 import com.google.testing.platform.proto.api.core.TestStatusProto.TestStatus
 import com.google.testing.platform.proto.api.core.TestSuiteResultProto.TestSuiteResult
 import io.technoirlab.device.run.core.DeviceRunException
+import io.technoirlab.device.run.core.VirtualClock
 import io.technoirlab.device.run.core.client.DeviceRunLocation
 import io.technoirlab.device.run.core.client.FakeCloudTransport
 import io.technoirlab.device.run.core.client.StubCloudConnector
 import io.technoirlab.device.run.core.device.MEDIUM_PHONE_SNAPSHOT
 import io.technoirlab.device.run.core.files.PROBE_PUSHED_FILE
+import io.technoirlab.device.run.core.recordLogs
 import io.technoirlab.device.run.core.testDeviceRunner
 import io.technoirlab.device.run.core.testrun.job.ArtifactCapture
 import io.technoirlab.device.run.core.testrun.session.SessionMetadataSerializer
@@ -28,6 +30,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.ValueSource
+import org.slf4j.event.Level
 import org.w3c.dom.Element
 import java.nio.file.Path
 import java.time.Duration
@@ -41,11 +45,13 @@ import kotlin.io.path.writeText
 
 class DeviceRunTestRunnerTest {
     private val cloud = FakeCloudTransport().apply { sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT) }
+    private val clock = VirtualClock()
+    private val logs = recordLogs()
     private val location = DeviceRunLocation(StubCloudConnector.QUOTA_PROJECT_ID)
     private val executor = Executors.newFixedThreadPool(2)
 
     @AutoClose
-    private val runner = testDeviceRunner(cloud)
+    private val runner = testDeviceRunner(cloud, clock)
 
     @TempDir
     private lateinit var tempDir: Path
@@ -136,9 +142,9 @@ class DeviceRunTestRunnerTest {
     }
 
     @Test
-    fun `downloads the outputs that the session report references but listings leave out`() {
+    fun `downloads the outputs that the session report references once Device Run has uploaded them`() {
         cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, EXECUTION_REPORT_PATH to EXECUTION_REPORT)
-        cloud.unlistedOutputs = setOf(JOB_REPORT_PATH, EXECUTION_REPORT_PATH)
+        cloud.outputUploadListings = mapOf(EXECUTION_REPORT_PATH to 2)
         cloud.sessionReport = { sessionDirectory ->
             sessionReport("PASSED").setJobReports(
                 listOf(
@@ -154,10 +160,39 @@ class DeviceRunTestRunnerTest {
 
         val passed = runner.runTests(request)
 
-        // The verdict needs the job report, which only the session report names.
         assertThat(passed).isTrue()
         assertThat(request.resultsDirectory / "device-run" / JOB_REPORT_PATH).content().isEqualTo(JOB_REPORT)
         assertThat(request.resultsDirectory / "device-run" / EXECUTION_REPORT_PATH).content().isEqualTo(EXECUTION_REPORT)
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL, SETTLE_INTERVAL)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["PASSED", "FAILED"])
+    fun `waits for the job report of a session whose tests ran when its report omits the job`(resultType: String) {
+        cloud.outputUploadListings = mapOf(JOB_REPORT_PATH to 1)
+        cloud.sessionReport = { sessionReport(resultType) }
+        val request = request()
+
+        val passed = runner.runTests(request)
+
+        // A missing job report would fail the test run.
+        assertThat(passed).isEqualTo(resultType == "PASSED")
+        assertThat(request.resultsDirectory / "device-run" / JOB_REPORT_PATH).content().isEqualTo(JOB_REPORT)
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL)
+    }
+
+    @Test
+    fun `mirrors the outputs of a session that ended with an error without waiting for a job report`() {
+        cloud.sessionOutputs = mapOf(DEVICE_LOG_PATH to "logcat")
+        cloud.sessionReport = { sessionReport("ERROR") }
+        val request = request()
+
+        val passed = runner.runTests(request)
+
+        assertThat(passed).isFalse()
+        assertThat(request.resultsDirectory / "device-run" / DEVICE_LOG_PATH).exists()
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
+        assertThat(logs.entries.map { it.first }).doesNotContain(Level.WARN)
     }
 
     @Test
@@ -253,6 +288,7 @@ class DeviceRunTestRunnerTest {
     private companion object {
         private const val BUCKET = "example-bucket"
         private const val TIMEOUT_SECONDS = 10L
+        private val SETTLE_INTERVAL = Duration.ofSeconds(5)
         private const val JOB_REPORT_PATH = "mediumPhone/junit.xml"
         private const val EXECUTION_REPORT_PATH = "mediumPhone/execution-000/test_result.xml"
         private const val DEVICE_LOG_PATH = "mediumPhone/execution-000/logcat.txt"

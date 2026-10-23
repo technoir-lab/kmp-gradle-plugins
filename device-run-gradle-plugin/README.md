@@ -475,6 +475,10 @@ Test tasks write their results to the AGP results directory of the device, such 
   `capture` keeps.
 - `device-run-session.json`: the project and name of the session.
 
+Device Run uploads the session outputs in the seconds after the session ends. The plugin downloads them once two listings 5 seconds
+apart match and contain the files that the session reports name. After a minute, it downloads the outputs that exist and warns
+about the missing ones.
+
 A test task fails when a test fails, when the session ends with an infrastructure error, a timeout, or cancellation, or when the
 session reports no tests. Tests that ended with an error are reported as failures. Device Run reports durations but no start times,
 so in `test-result.pb` a test starts when the shard or retry attempt that ran it started, or else when the session started.

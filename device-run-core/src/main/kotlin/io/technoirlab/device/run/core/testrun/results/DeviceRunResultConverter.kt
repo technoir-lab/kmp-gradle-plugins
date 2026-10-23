@@ -30,15 +30,14 @@ internal class DeviceRunResultConverter {
      * Writes the AGP results of [session] and returns whether its tests passed.
      */
     fun convert(session: Session, artifacts: List<MirroredArtifact>, context: ResultContext): Boolean {
-        val verdict = evaluate(session, artifacts, context.jobDirectory)
+        val verdict = evaluate(session, artifacts, context.jobReportPath)
         writeResults(session, artifacts, context, verdict)
         report(session, verdict)
         return verdict.status == TestStatus.PASSED
     }
 
-    private fun evaluate(session: Session, artifacts: List<MirroredArtifact>, jobDirectory: String): Verdict {
+    private fun evaluate(session: Session, artifacts: List<MirroredArtifact>, jobReportPath: String): Verdict {
         val resultType = session.sessionReport?.result?.resultType
-        val jobReportPath = "$jobDirectory/$JOB_REPORT"
         val jobReport = artifacts.find { it.relativePath == jobReportPath }?.let { parseJobReport(it) }
         val outcomes = jobReport?.getOrNull()?.testCases?.map(outcomeMapper::map)
         val platformFailures = remoteFailures(session, resultType) + reportFailures(resultType, jobReportPath, jobReport, outcomes)
@@ -300,13 +299,12 @@ internal class DeviceRunResultConverter {
         private const val MISSING_REPORT = "MISSING_JOB_REPORT"
         private const val MALFORMED_REPORT = "MALFORMED_JOB_REPORT"
         private const val NO_TESTS = "NO_TESTS"
-        private const val JOB_REPORT = "junit.xml"
         private const val LOGCAT = "logcat.txt"
         private const val DEVICE_INFO_FILE = "device-info.pb"
         private const val TEST_RESULT_FILE = "test-result.pb"
         private val PLATFORM_RESULTS = setOf("ERROR", "TIMED_OUT", CANCELLED)
 
         // Executions write junit.xml; older executions on virtual devices wrote test_result.xml, as in the fixtures.
-        private val EXECUTION_REPORTS = setOf("test_result.xml", JOB_REPORT)
+        private val EXECUTION_REPORTS = setOf("test_result.xml", "junit.xml")
     }
 }

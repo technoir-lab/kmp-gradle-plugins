@@ -17,4 +17,14 @@ internal data class ResultContext(
     val deviceName: String,
     val device: CatalogDeviceSnapshot,
     val reportProperties: Map<String, String>,
-)
+) {
+    /**
+     * The path of the job report below the session directory, `<job>/junit.xml`, which lists the final outcome of each test.
+     */
+    val jobReportPath: String
+        get() = "$jobDirectory/$JOB_REPORT"
+
+    private companion object {
+        private const val JOB_REPORT = "junit.xml"
+    }
+}

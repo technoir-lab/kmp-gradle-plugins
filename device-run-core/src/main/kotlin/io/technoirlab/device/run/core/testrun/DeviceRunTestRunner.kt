@@ -14,7 +14,6 @@ import io.technoirlab.device.run.core.testrun.results.MirroredArtifact
 import io.technoirlab.device.run.core.testrun.results.ResultContext
 import io.technoirlab.device.run.core.testrun.results.SessionStorage
 import io.technoirlab.device.run.core.testrun.session.SessionLifecycle
-import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
 
@@ -35,9 +34,9 @@ internal class DeviceRunTestRunner(
     /**
      * Runs the tests of [testRun], writes their results to the results directory of its request, and returns whether they passed.
      *
-     * Session outputs are mirrored below `device-run/` in the results directory, apart from device logs that the logcat policy
-     * discards, and `device-run-session.json` identifies the session for manual cleanup if the runner stops before the session
-     * does.
+     * Session outputs are mirrored below `device-run/` in the results directory once Device Run has uploaded them, apart from
+     * device logs that the logcat policy discards, and `device-run-session.json` identifies the session for manual cleanup if the
+     * runner stops before the session does.
      *
      * @throws DeviceRunException when the orchestrator version is not available, or the session cannot be prepared, run, or
      * downloaded.
@@ -63,8 +62,6 @@ internal class DeviceRunTestRunner(
         val finishedSession =
             sessionLifecycle.run(session, inputs.outputDirectory, spec.waitTimeout, request.resultsDirectory / METADATA_FILE)
 
-        val includeDeviceLogs = keepsDeviceLogs(spec.job.capture.logcat, finishedSession)
-        val artifacts = mirror(spec.bucket, finishedSession, request.resultsDirectory / MIRROR_DIRECTORY, includeDeviceLogs)
         val context = ResultContext(
             jobDirectory = session.sessionConfig.jobConfigs.single().displayName,
             resultsDirectory = request.resultsDirectory,
@@ -72,6 +69,8 @@ internal class DeviceRunTestRunner(
             device = request.catalogDevice,
             reportProperties = request.reportProperties,
         )
+        val includeDeviceLogs = keepsDeviceLogs(spec.job.capture.logcat, finishedSession)
+        val artifacts = mirror(spec.bucket, finishedSession, context, includeDeviceLogs)
         return resultConverter.convert(finishedSession, artifacts, context)
     }
 
@@ -94,23 +93,33 @@ internal class DeviceRunTestRunner(
         ArtifactCapture.ALWAYS -> true
     }
 
-    private fun mirror(bucket: String, session: Session, mirrorRoot: Path, includeDeviceLogs: Boolean): List<MirroredArtifact> = try {
-        sessionStorage.mirror(
-            bucket = bucket,
-            sessionId = session.name.substringAfterLast('/'),
-            mirrorRoot = mirrorRoot,
-            referencedFiles = referencedFiles(session),
-            includeDeviceLogs = includeDeviceLogs,
-        )
-    } catch (e: GoogleJsonResponseException) {
-        throw DeviceRunException(
-            "Unable to download the outputs of Device Run session ${session.name} from bucket $bucket: ${e.reason()}",
-            e,
-        )
+    /**
+     * Downloads the outputs of [session] below `device-run/` in the results directory of [context], once Device Run has uploaded
+     * the files that its reports reference and, when its tests ran to completion, the job report.
+     */
+    private fun mirror(bucket: String, session: Session, context: ResultContext, includeDeviceLogs: Boolean): List<MirroredArtifact> {
+        val sessionId = session.name.substringAfterLast('/')
+        val resultType = session.sessionReport?.result?.resultType
+        val jobReport = sessionStorage.outputDirectory(bucket) / sessionId / context.jobReportPath
+        val expectedFiles = referencedFiles(session) + listOfNotNull(jobReport.takeIf { resultType == PASSED || resultType == FAILED })
+        return try {
+            sessionStorage.mirror(
+                bucket = bucket,
+                sessionId = sessionId,
+                mirrorRoot = context.resultsDirectory / MIRROR_DIRECTORY,
+                expectedFiles = expectedFiles,
+                includeDeviceLogs = includeDeviceLogs,
+            )
+        } catch (e: GoogleJsonResponseException) {
+            throw DeviceRunException(
+                "Unable to download the outputs of Device Run session ${session.name} from bucket $bucket: ${e.reason()}",
+                e,
+            )
+        }
     }
 
     /**
-     * Returns the output files that the reports of [session] reference, which can include objects that a listing misses.
+     * Returns the output files that the reports of [session] reference.
      */
     private fun referencedFiles(session: Session): List<GcsUri> {
         val jobReports = session.sessionReport?.jobReports.orEmpty()
@@ -122,6 +131,7 @@ internal class DeviceRunTestRunner(
 
     private companion object {
         private const val PASSED = "PASSED"
+        private const val FAILED = "FAILED"
         private const val METADATA_FILE = "device-run-session.json"
         private const val MIRROR_DIRECTORY = "device-run"
     }
