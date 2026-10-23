@@ -439,6 +439,10 @@ With `SHARD`, a shard passes only when one attempt passes all of its tests, so a
 some attempt. `FAILED_TEST_CASES` needs at least one test class in the test APK that declares a runner that Device Run supports with
 `@RunWith`, such as `AndroidJUnit4` or `Parameterized`; otherwise Device Run silently reruns every test of the shard.
 
+When a test crashes the instrumentation process, the attempt ends, and a `FAILED_TEST_CASES` retry runs only the crashed test, so
+the tests after it never run, and the test task fails. With [Android Test Orchestrator](#android-test-orchestrator), each test runs in
+its own process, so a crash fails only that test.
+
 Device Run also retries infrastructure failures on its own; these options do not control those retries.
 
 ### Files
@@ -480,7 +484,9 @@ apart match and contain the files that the session reports name. After a minute,
 about the missing ones.
 
 A test task fails when a test fails, when the session ends with an infrastructure error, a timeout, or cancellation, or when the
-session reports no tests. Tests that ended with an error are reported as failures. Device Run reports durations but no start times,
+session reports no tests. It also fails when the instrumentation log of an attempt shows tests that never ran, or failures that the
+reports omit, such as a failing `@BeforeClass` under Android Test Orchestrator; the task logs the reason, which `test-result.pb`
+lists as a platform error. Tests that ended with an error are reported as failures. Device Run reports durations but no start times,
 so in `test-result.pb` a test starts when the shard or retry attempt that ran it started, or else when the session started.
 
 ## Cancelling sessions

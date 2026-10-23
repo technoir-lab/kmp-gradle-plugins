@@ -14,8 +14,10 @@ import com.google.testing.platform.proto.api.core.TestResultProto.TestResult
 import com.google.testing.platform.proto.api.core.TestStatusProto.TestStatus
 import com.google.testing.platform.proto.api.core.TestSuiteResultProto.TestSuiteResult
 import io.technoirlab.device.run.core.client.deviceRunFixture
+import io.technoirlab.device.run.core.client.deviceRunFixtures
 import io.technoirlab.device.run.core.client.parseDeviceRunFixture
 import io.technoirlab.device.run.core.device.MEDIUM_PHONE_SNAPSHOT
+import io.technoirlab.device.run.core.recordLogs
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.tuple
 import org.junit.jupiter.api.Test
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
+import org.slf4j.event.Level
 import org.w3c.dom.Element
 import java.nio.file.Path
 import java.time.Instant
@@ -33,6 +36,7 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.writeText
 
 class DeviceRunResultConverterTest {
+    private val logs = recordLogs()
     private val converter = DeviceRunResultConverter()
 
     @TempDir
@@ -158,6 +162,81 @@ class DeviceRunResultConverterTest {
         assertThat(testReport.attributes("tests", "failures", "skipped")).containsExactly("7", "0", "2")
         assertThat(testReport.testCase("fails unless reduced to failed tests").getElementsByTagName("failure").length).isZero()
         assertThat(tempDir / "mirror/mediumPhone/junit.xml").content().contains("flaky=\"true\">\n    <failure>")
+    }
+
+    @Test
+    fun `fails a passed session whose crash left tests that no attempt ran`() {
+        val passed = converter.convert(session("crash-tests-lost"), mirrorOutputs("crash-tests-lost"), context(jobDirectory = "smallPhone"))
+
+        val results = suiteResult()
+        assertThat(passed).isFalse()
+        assertThat(results.testStatus).isEqualTo(TestStatus.ERROR)
+        assertThat(results.testResultList.map { it.testCase.testMethod to it.testStatus }).containsExactly(
+            "a_passes" to TestStatus.PASSED,
+            "b_crashesOnFirstAttempt" to TestStatus.PASSED,
+        )
+        assertThat(results.platformError.errorsList.map { it.summary })
+            .extracting({ it.errorName }, { it.errorClassification }, { it.errorMessage })
+            .containsExactly(
+                tuple(
+                    "INCOMPLETE_TEST_RUN",
+                    "INSTRUMENTATION",
+                    "The instrumentation of execution-000 ended with \"Process crashed.\" after starting 2 of its 4 tests, and no retry " +
+                        "ran the rest, so up to 2 tests did not run.",
+                ),
+            )
+    }
+
+    @Test
+    fun `passes a session whose crash in the last test started every planned test`() {
+        val passed = converter.convert(session("crash-last-test"), mirrorOutputs("crash-last-test"), context(jobDirectory = "smallPhone"))
+
+        val results = suiteResult()
+        assertThat(passed).isTrue()
+        assertThat(results.testStatus).isEqualTo(TestStatus.PASSED)
+        assertThat(results.hasPlatformError()).isFalse()
+        assertThat(testReport().testCase("b_crashesUnlessReduced").getAttribute("flaky")).isEqualTo("true")
+    }
+
+    @Test
+    fun `explains a failed session with the class failures that only the instrumentation summary lists`() {
+        val passed = converter.convert(
+            session("orchestrator-class-failure"),
+            mirrorOutputs("orchestrator-class-failure"),
+            context(jobDirectory = "smallPhone"),
+        )
+
+        val results = suiteResult()
+        val explanation = "The instrumentation summary of execution-000 lists 2 failures that the test results omit: " +
+            "(io.technoirlab.rollup.plan.FailBeforeClassTest) java.lang.IllegalStateException: Fails the class in @BeforeClass"
+        assertThat(passed).isFalse()
+        assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
+        assertThat(results.testResultList.map { it.testStatus }).containsExactly(TestStatus.PASSED)
+        assertThat(results.platformError.errorsList.map { it.summary })
+            .extracting({ it.errorName }, { it.errorClassification }, { it.errorMessage })
+            .containsExactly(tuple("UNREPORTED_TEST_FAILURES", "INSTRUMENTATION", explanation))
+        assertThat(logs.entries).contains(Level.ERROR to "Device Run INSTRUMENTATION UNREPORTED_TEST_FAILURES: $explanation")
+    }
+
+    @Test
+    fun `finds no tests that did not run or failures that the reports omit when every retry completes`() {
+        val passed = converter.convert(session("retry-outcomes"), mirrorOutputs("retry-outcomes"), context(jobDirectory = "smallPhone"))
+
+        val results = suiteResult()
+        assertThat(passed).isFalse()
+        assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
+        assertThat(results.hasPlatformError()).isFalse()
+        assertThat(results.testResultList.filter { it.testStatus == TestStatus.FAILED }.map { it.testCase.testMethod })
+            .containsExactly("failsOnFirstAttempt")
+    }
+
+    @Test
+    fun `explains a session without a job report by the missing report rather than its instrumentation logs`() {
+        val artifacts = mirrorOutputs("crash-tests-lost").filter { it.relativePath != "smallPhone/junit.xml" }
+
+        converter.convert(session("crash-tests-lost"), artifacts, context(jobDirectory = "smallPhone"))
+
+        assertThat(suiteResult().platformError.errorsList.map { it.summary.errorName }).containsExactly("MISSING_JOB_REPORT")
     }
 
     @Test
@@ -370,6 +449,12 @@ class DeviceRunResultConverterTest {
     private fun mirror(scenario: String, vararg relativePaths: String): List<MirroredArtifact> = relativePaths.flatMap { relativePath ->
         fakeArtifact(relativePath, deviceRunFixture("sessions/$scenario/outputs/$relativePath"))
     }
+
+    /**
+     * Mirrors every output of [scenario] that the fixtures keep.
+     */
+    private fun mirrorOutputs(scenario: String): List<MirroredArtifact> =
+        deviceRunFixtures("sessions/$scenario/outputs").flatMap { (relativePath, content) -> fakeArtifact(relativePath, content) }
 
     private fun fakeArtifact(relativePath: String, content: String = "artifact"): List<MirroredArtifact> {
         val path = (tempDir / "mirror" / relativePath).apply {
