@@ -7,8 +7,8 @@ enum class RetryScope {
     /**
      * Every test of the failed shard.
      *
-     * The shard passes only when one attempt passes all of its tests, so a test task can fail although every test passed in some
-     * attempt.
+     * Device Run fails the shard unless one attempt passes all of its tests. When that alone fails the session, the test task still
+     * passes and warns about it.
      */
     SHARD,
 

@@ -11,10 +11,12 @@ import kotlin.io.path.outputStream
  * Converts a finished Device Run session and its mirrored artifacts into the results that AGP and Android Studio read:
  * `TEST-<device>.xml`, `test-result.pb`, and `device-info.pb` in the results directory.
  *
- * The session result is the verdict authority, because it is available even when the final report omits job reports. The job
- * report `<job>/junit.xml`, found by its path, provides the final outcome of each test; execution reports and instrumentation logs
- * only serve as evidence, so tests are never counted twice. A run passes only when the session passed, its job report lists passing
- * tests, and the instrumentation logs show neither tests that never ran nor failures that the reports omit.
+ * The job report `<job>/junit.xml`, found by its path, provides the final outcome of each test, counting a test that passed in some
+ * attempt as passed; execution reports and instrumentation logs only serve as evidence, so tests are never counted twice. The
+ * verdict follows the session result, which is available even when the final report omits job reports, with one exception: Device
+ * Run fails a shard when no attempt passes every test, so a failed session whose job report lists only passing tests passes when
+ * [FailedSessionReview] confirms that failed attempts alone failed it. A run passes only when its job report lists passing tests
+ * and the instrumentation logs show neither tests that never ran nor failures that the reports omit.
  */
 internal class DeviceRunResultConverter {
     private val logger = LoggerFactory.getLogger(DeviceRunResultConverter::class.java)
@@ -22,6 +24,7 @@ internal class DeviceRunResultConverter {
     private val reportParser = JUnitReportParser()
     private val outcomeMapper = TestOutcomeMapper()
     private val instrumentationEvidence = InstrumentationEvidence()
+    private val failedSessionReview = FailedSessionReview()
     private val reportWriter = TestReportWriter()
     private val deviceInfoWriter = DeviceInfoWriter()
     private val suiteResultFactory = TestSuiteResultFactory()
@@ -31,7 +34,7 @@ internal class DeviceRunResultConverter {
      */
     fun convert(session: Session, artifacts: List<MirroredArtifact>, context: ResultContext): Boolean {
         val executions = JobExecutions(session, artifacts, context.jobDirectory)
-        val verdict = evaluate(session, artifacts, executions, context.jobReportPath)
+        val verdict = evaluate(session, artifacts, executions, context)
         writeResults(
             session = session,
             artifacts = artifacts,
@@ -43,20 +46,34 @@ internal class DeviceRunResultConverter {
         return verdict.status == TestStatus.PASSED
     }
 
-    private fun evaluate(session: Session, artifacts: List<MirroredArtifact>, executions: JobExecutions, jobReportPath: String): Verdict {
+    private fun evaluate(session: Session, artifacts: List<MirroredArtifact>, executions: JobExecutions, context: ResultContext): Verdict {
         val resultType = session.sessionReport?.result?.resultType
-        val jobReport = artifacts.find { it.relativePath == jobReportPath }?.let { parseJobReport(it) }
+        val jobReport = artifacts.find { it.relativePath == context.jobReportPath }?.let { parseJobReport(it) }
         val outcomes = jobReport?.getOrNull()?.testCases?.map(outcomeMapper::map)
-        val platformFailures = remoteFailures(session, resultType) +
-            reportFailures(resultType, jobReportPath, jobReport, outcomes) +
+        val failures = remoteFailures(session, resultType) +
+            reportFailures(resultType, context.jobReportPath, jobReport, outcomes) +
             evidenceFailures(resultType, jobReport, executions)
+        val review = reviewFailedSession(
+            session = session,
+            resultType = resultType,
+            outcomes = outcomes,
+            platformFailures = failures,
+            executions = executions,
+            deviceName = context.deviceName,
+        )
+        val platformFailures = failures + (review as? FailedSessionReview.Review.Unexplained)?.failures.orEmpty()
         return Verdict(
             resultType = resultType,
-            jobReportPath = jobReportPath,
+            jobReportPath = context.jobReportPath,
             outcomes = outcomes,
             time = jobReport?.getOrNull()?.time,
             platformFailures = platformFailures,
-            status = suiteStatus(resultType, platformFailures, outcomes.orEmpty()),
+            warnings = listOfNotNull((review as? FailedSessionReview.Review.TestsPass)?.warning),
+            status = if (review is FailedSessionReview.Review.TestsPass) {
+                TestStatus.PASSED
+            } else {
+                suiteStatus(resultType, platformFailures, outcomes.orEmpty())
+            },
         )
     }
 
@@ -83,7 +100,7 @@ internal class DeviceRunResultConverter {
             tests = verdict.outcomes.orEmpty().map { ExecutedTest(it, executions.startTimeOf(it), executions.logsOf(it)) },
             artifacts = artifacts.map { resultArtifact(it, verdict.jobReportPath) },
             platformFailures = verdict.platformFailures,
-            warnings = warnings(session),
+            warnings = verdict.warnings + warnings(session),
         )
         (context.resultsDirectory / TEST_RESULT_FILE).outputStream().use { suiteResult.writeTo(it) }
     }
@@ -163,6 +180,26 @@ internal class DeviceRunResultConverter {
             emptyList()
         }
 
+    /**
+     * Reviews a session that Device Run failed although its job report lists tests that all passed and no platform failure explains
+     * the failure, or returns null for any other session.
+     */
+    private fun reviewFailedSession(
+        session: Session,
+        resultType: String?,
+        outcomes: List<TestOutcome>?,
+        platformFailures: List<PlatformFailure>,
+        executions: JobExecutions,
+        deviceName: String,
+    ): FailedSessionReview.Review? {
+        val listsOnlyPassingTests = !outcomes.isNullOrEmpty() && outcomes.none { it.status.isFailure }
+        return if (resultType == FAILED && listsOnlyPassingTests && platformFailures.isEmpty()) {
+            failedSessionReview.review(session, executions.executions, deviceName)
+        } else {
+            null
+        }
+    }
+
     private fun suiteStatus(resultType: String?, platformFailures: List<PlatformFailure>, outcomes: List<TestOutcome>): TestStatus =
         when (resultType) {
             PASSED -> when {
@@ -204,13 +241,24 @@ internal class DeviceRunResultConverter {
         return ResultArtifact(label, artifact.path, mimeType)
     }
 
+    /**
+     * Logs the result of the session next to the verdict on its tests, which can differ, and what explains the verdict.
+     */
     private fun report(session: Session, verdict: Verdict) {
         val outcomes = verdict.outcomes.orEmpty()
         fun count(status: TestOutcome.Status) = outcomes.count { it.status == status }
+        val testVerdict = when (verdict.status) {
+            TestStatus.PASSED -> "passed"
+            TestStatus.FAILED -> "failed"
+            TestStatus.ERROR -> "ended with an error"
+            TestStatus.CANCELLED -> "were cancelled"
+            else -> "have no result"
+        }
         logger.info(
-            "Device Run session {} finished with {}: {} tests, {} passed ({} after a retry), {} failed, {} errors, {} skipped.",
+            "Device Run session {} finished with {}, and the tests {}: {} tests, {} passed ({} flaky), {} failed, {} errors, {} skipped.",
             session.name,
             verdict.resultType ?: "no result",
+            testVerdict,
             outcomes.size,
             count(TestOutcome.Status.PASSED),
             outcomes.count { it.recovered },
@@ -218,6 +266,7 @@ internal class DeviceRunResultConverter {
             count(TestOutcome.Status.ERROR),
             count(TestOutcome.Status.SKIPPED),
         )
+        verdict.warnings.forEach { logger.warn(it.message) }
         if (verdict.status != TestStatus.PASSED) {
             verdict.platformFailures.forEach { logger.error("Device Run {} {}: {}", it.classification, it.reason, it.message) }
         }
@@ -226,8 +275,10 @@ internal class DeviceRunResultConverter {
     /**
      * The verdict of a finished session, before it is written as results.
      *
+     * @property resultType the result of the session according to Device Run, which [status] can override.
      * @property outcomes the outcomes of the job report, or null when the report is missing or malformed.
      * @property time the duration of the suite in seconds, as the job report states it.
+     * @property warnings the warnings about the verdict, such as one that explains why the tests of a failed session pass.
      */
     private data class Verdict(
         val resultType: String?,
@@ -235,6 +286,7 @@ internal class DeviceRunResultConverter {
         val outcomes: List<TestOutcome>?,
         val time: String?,
         val platformFailures: List<PlatformFailure>,
+        val warnings: List<ReportWarning>,
         val status: TestStatus,
     )
 

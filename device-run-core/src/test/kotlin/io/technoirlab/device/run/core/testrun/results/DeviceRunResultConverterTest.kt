@@ -228,6 +228,148 @@ class DeviceRunResultConverterTest {
         assertThat(results.hasPlatformError()).isFalse()
         assertThat(results.testResultList.filter { it.testStatus == TestStatus.FAILED }.map { it.testCase.testMethod })
             .containsExactly("failsOnFirstAttempt")
+        assertThat(results.issueList).isEmpty()
+    }
+
+    @Test
+    fun `passes a session that Device Run failed only because no attempt of its shard passed every test`() {
+        val passed = converter.convert(
+            session("shard-retry-failed"),
+            mirrorOutputs("shard-retry-failed"),
+            context(jobDirectory = "smallPhone"),
+        )
+
+        val results = suiteResult()
+        val warning = "Device Run failed session $SHARD_RETRY_SESSION (JOB_HAS_FAILED_TESTS) because no attempt of execution-000 passed " +
+            "every test. Every test passed in some attempt, so the tests of mediumPhone pass."
+        assertThat(passed).isTrue()
+        assertThat(results.testStatus).isEqualTo(TestStatus.PASSED)
+        assertThat(results.hasPlatformError()).isFalse()
+        assertThat(results.testResultList).hasSize(16).allSatisfy { assertThat(it.testStatus).isEqualTo(TestStatus.PASSED) }
+        assertThat(results.issueList.map { it.name to it.message }).containsExactly("JOB_HAS_FAILED_TESTS" to warning)
+        assertThat(logs.entries).contains(
+            Level.INFO to
+                "Device Run session projects/example-project/locations/global/sessions/$SHARD_RETRY_SESSION finished with FAILED, and " +
+                "the tests passed: 16 tests, 16 passed (7 flaky), 0 failed, 0 errors, 0 skipped.",
+            Level.WARN to warning,
+        )
+    }
+
+    @Test
+    fun `passes such a session by the outputs of its attempts when the final report omits them`() {
+        val session = session("shard-retry-failed").setSessionReport(session("report-without-executions").sessionReport)
+
+        val passed = converter.convert(session, mirrorOutputs("shard-retry-failed"), context(jobDirectory = "smallPhone"))
+
+        assertThat(passed).isTrue()
+        assertThat(suiteResult().issueList.map { it.name to it.message }).containsExactly(
+            "SESSION_HAS_FAILED_JOBS" to
+                "Device Run failed session $SHARD_RETRY_SESSION (SESSION_HAS_FAILED_JOBS) because no attempt of execution-000 passed " +
+                "every test. Every test passed in some attempt, so the tests of mediumPhone pass.",
+        )
+    }
+
+    @Test
+    fun `keeps the failure of such a session when an execution ended with an error`() {
+        val session = session("shard-retry-failed").withExecutionResult(
+            execution = "execution-000-rerun-001",
+            resultType = "ERROR",
+            cause = IssueSummary().setType("INFRA").setReason("PLATFORM_INFRASTRUCTURE_ERROR"),
+        )
+
+        val passed = converter.convert(session, mirrorOutputs("shard-retry-failed"), context(jobDirectory = "smallPhone"))
+
+        val results = suiteResult()
+        assertThat(passed).isFalse()
+        assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
+        assertThat(results.platformError.errorsList.map { it.summary.errorName to it.summary.errorMessage }).containsExactly(
+            "PLATFORM_INFRASTRUCTURE_ERROR" to "Execution execution-000-rerun-001 of job smallPhone ended with ERROR.",
+        )
+        assertThat(results.issueList).isEmpty()
+    }
+
+    @Test
+    fun `keeps the failure of such a session when Device Run blames something other than failed jobs`() {
+        val session = session("shard-retry-failed").apply { sessionReport.result.cause.summary.reason = "SESSION_HAS_ERROR_JOBS" }
+
+        val passed = converter.convert(session, mirrorOutputs("shard-retry-failed"), context(jobDirectory = "smallPhone"))
+
+        assertThat(passed).isFalse()
+        assertThat(unexplainedFailures()).containsExactly(
+            "the cause is SESSION_HAS_ERROR_JOBS, not SESSION_HAS_FAILED_JOBS",
+        )
+    }
+
+    @Test
+    fun `keeps the failure of such a session when the report of a failed execution lists no failed test`() {
+        val artifacts = mirrorOutputs(
+            "shard-retry-failed",
+            mapOf("smallPhone/execution-000/junit.xml" to "<testsuites>${testSuite("a.FirstTest")}</testsuites>"),
+        )
+
+        val passed = converter.convert(session("shard-retry-failed"), artifacts, context(jobDirectory = "smallPhone"))
+
+        assertThat(passed).isFalse()
+        assertThat(unexplainedFailures()).containsExactly("execution-000 failed, but its report lists no failed test")
+    }
+
+    @Test
+    fun `keeps the failure of such a session when no execution failed`() {
+        val session = session("shard-retry-failed").apply {
+            for (execution in listOf("execution-000", "execution-000-rerun-000", "execution-000-rerun-001")) {
+                withExecutionResult(execution, resultType = "PASSED")
+            }
+        }
+
+        val passed = converter.convert(session, mirrorOutputs("shard-retry-failed"), context(jobDirectory = "smallPhone"))
+
+        assertThat(passed).isFalse()
+        assertThat(unexplainedFailures()).containsExactly("no execution failed")
+    }
+
+    @Test
+    fun `keeps the failure of such a session when the final report omits an attempt without an instrumentation log`() {
+        val session = session("shard-retry-failed").setSessionReport(session("report-without-executions").sessionReport)
+        val artifacts = mirrorOutputs("shard-retry-failed", mapOf(RETRY_LOG to null))
+
+        val passed = converter.convert(session, artifacts, context(jobDirectory = "smallPhone"))
+
+        assertThat(passed).isFalse()
+        assertThat(unexplainedFailures()).containsExactly(
+            "the session report omits execution-000-rerun-001, whose outputs lack an instrumentation log that ended normally",
+        )
+    }
+
+    @Test
+    fun `keeps the failure of such a session when the final report omits an attempt whose instrumentation log ended abnormally`() {
+        val session = session("shard-retry-failed").setSessionReport(session("report-without-executions").sessionReport)
+        val crashedLog = deviceRunFixture("sessions/shard-retry-failed/outputs/$RETRY_LOG")
+            .replace("INSTRUMENTATION_CODE: -1", "INSTRUMENTATION_RESULT: shortMsg=Process crashed.\nINSTRUMENTATION_CODE: 0")
+        val artifacts = mirrorOutputs("shard-retry-failed", mapOf(RETRY_LOG to crashedLog))
+
+        val passed = converter.convert(session, artifacts, context(jobDirectory = "smallPhone"))
+
+        assertThat(passed).isFalse()
+        assertThat(unexplainedFailures()).containsExactly(
+            "the session report omits execution-000-rerun-001, whose outputs lack an instrumentation log that ended normally",
+        )
+    }
+
+    @Test
+    fun `keeps the failure of a session whose crash left tests that no attempt ran`() {
+        val session = session("crash-tests-lost").apply {
+            sessionReport.result = Result().setResultType("FAILED").setCause(
+                ResultCause().setSummary(IssueSummary().setReason("SESSION_HAS_FAILED_JOBS")),
+            )
+        }
+
+        val passed = converter.convert(session, mirrorOutputs("crash-tests-lost"), context(jobDirectory = "smallPhone"))
+
+        val results = suiteResult()
+        assertThat(passed).isFalse()
+        assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
+        assertThat(results.platformError.errorsList.map { it.summary.errorName }).containsExactly("INCOMPLETE_TEST_RUN")
+        assertThat(results.issueList).isEmpty()
     }
 
     @Test
@@ -451,10 +593,34 @@ class DeviceRunResultConverterTest {
     }
 
     /**
-     * Mirrors every output of [scenario] that the fixtures keep.
+     * Mirrors every output of [scenario] that the fixtures keep, with the contents of [replacements] instead, or without the
+     * outputs that it maps to null.
      */
-    private fun mirrorOutputs(scenario: String): List<MirroredArtifact> =
-        deviceRunFixtures("sessions/$scenario/outputs").flatMap { (relativePath, content) -> fakeArtifact(relativePath, content) }
+    private fun mirrorOutputs(scenario: String, replacements: Map<String, String?> = emptyMap()): List<MirroredArtifact> =
+        (deviceRunFixtures("sessions/$scenario/outputs") + replacements).flatMap { (relativePath, content) ->
+            content?.let { fakeArtifact(relativePath, it) }.orEmpty()
+        }
+
+    private fun Session.withExecutionResult(execution: String, resultType: String, cause: IssueSummary? = null): Session = apply {
+        sessionReport.jobReports.single().executionReports.single { it.displayName == execution }
+            .setResult(Result().setResultType(resultType).setCause(cause?.let { ResultCause().setSummary(it) }))
+    }
+
+    /**
+     * Returns why the failure of the converted session is unexplained, as its platform errors state.
+     */
+    private fun unexplainedFailures(): List<String> {
+        val results = suiteResult()
+        assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
+        assertThat(results.issueList).isEmpty()
+        return results.platformError.errorsList.map { it.summary }.map { summary ->
+            assertThat(summary.errorName).isEqualTo("UNEXPLAINED_SESSION_FAILURE")
+            assertThat(summary.errorClassification).isEqualTo("REPORTING")
+            summary.errorMessage
+                .removePrefix("Device Run failed the session although its job report lists no failed test: ")
+                .removeSuffix(".")
+        }
+    }
 
     private fun fakeArtifact(relativePath: String, content: String = "artifact"): List<MirroredArtifact> {
         val path = (tempDir / "mirror" / relativePath).apply {
@@ -498,6 +664,8 @@ class DeviceRunResultConverterTest {
         List(childNodes.length) { childNodes.item(it) }.filterIsInstance<Element>().filter { it.tagName == tagName }
 
     private companion object {
+        private const val SHARD_RETRY_SESSION = "session-75dc46f0-4f32-4106-9af2-55c7539451dd"
+        private const val RETRY_LOG = "smallPhone/execution-000-rerun-001/instrument.log"
         private const val FIXTURE_PACKAGE = "io.technoirlab.device.run.fixture"
         private val ASSUMPTION_TRACE =
             """

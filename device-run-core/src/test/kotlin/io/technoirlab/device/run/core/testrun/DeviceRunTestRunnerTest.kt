@@ -6,6 +6,7 @@ import com.google.api.services.devicerun.v1alpha.model.GcsPath
 import com.google.api.services.devicerun.v1alpha.model.JobReport
 import com.google.api.services.devicerun.v1alpha.model.OutputFile
 import com.google.api.services.devicerun.v1alpha.model.Result
+import com.google.api.services.devicerun.v1alpha.model.Session
 import com.google.api.services.devicerun.v1alpha.model.SessionReport
 import com.google.testing.platform.proto.api.core.AndroidTestDeviceInfoProto.AndroidTestDeviceInfo
 import com.google.testing.platform.proto.api.core.TestStatusProto.TestStatus
@@ -15,6 +16,8 @@ import io.technoirlab.device.run.core.VirtualClock
 import io.technoirlab.device.run.core.client.DeviceRunLocation
 import io.technoirlab.device.run.core.client.FakeCloudTransport
 import io.technoirlab.device.run.core.client.StubCloudConnector
+import io.technoirlab.device.run.core.client.deviceRunFixtures
+import io.technoirlab.device.run.core.client.parseDeviceRunFixture
 import io.technoirlab.device.run.core.device.MEDIUM_PHONE_SNAPSHOT
 import io.technoirlab.device.run.core.files.PROBE_PUSHED_FILE
 import io.technoirlab.device.run.core.recordLogs
@@ -178,6 +181,26 @@ class DeviceRunTestRunnerTest {
         // A missing job report would fail the test run.
         assertThat(passed).isEqualTo(resultType == "PASSED")
         assertThat(request.resultsDirectory / "device-run" / JOB_REPORT_PATH).content().isEqualTo(JOB_REPORT)
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL)
+    }
+
+    @Test
+    fun `passes a session that failed only because no attempt passed every test, once the retries that its report omits arrive`() {
+        val outputs = deviceRunFixtures("sessions/shard-retry-failed/outputs").mapKeys { (path, _) ->
+            "mediumPhone/${path.substringAfter('/')}"
+        }
+        val report = parseDeviceRunFixture<Session>("sessions/report-without-executions/session-full.json").sessionReport
+        report.jobReports.single().displayName = "mediumPhone"
+        cloud.sessionOutputs = outputs
+        cloud.outputUploadListings = outputs.keys.filter { "-rerun-" in it }.associateWith { 1 }
+        cloud.sessionReport = { report }
+        val request = request()
+
+        val passed = runner.runTests(request)
+
+        // A single early listing would miss the retries, which confirm that every failed attempt failed tests.
+        assertThat(passed).isTrue()
+        assertThat(request.resultsDirectory / "device-run/mediumPhone/execution-000-rerun-001/instrument.log").exists()
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL)
     }
 
