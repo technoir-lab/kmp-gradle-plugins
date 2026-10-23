@@ -11,7 +11,7 @@ gson = "2.14.0"
 guava = "33.7.2-jre"
 kotlin-gradle-plugin = "2.4.21"
 openapi-generator = "7.26.0"
-protobuf = "3.25.5"
+protobuf = "4.36.2"
 slf4j = "2.0.20"
 swagger-models = "2.2.55"
 
