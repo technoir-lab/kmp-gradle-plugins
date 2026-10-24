@@ -1,5 +1,7 @@
 package io.technoirlab.device.run.core.testrun.results
 
+import io.technoirlab.device.run.core.testrun.displayCount
+
 /**
  * Finds what the instrumentation logs of the executions of a job show, but the reports of Device Run omit: tests that never ran
  * because an execution ended early, and failures that only the summary of an instrumentation run lists.
@@ -21,12 +23,10 @@ internal class InstrumentationEvidence {
      * failure of the test, while the runner reports the test once.
      */
     fun examine(executions: List<JobExecution>): Findings {
-        val sortedExecutions = executions.sortedBy { it.name }
-        val earlyEnds = sortedExecutions.mapNotNull { earlyEnd(it, executions) }
+        val (lost, possiblyLost) = executions.mapNotNull { earlyEnd(it, executions) }.partition { it.log.classEntries == 0 }
         return Findings(
-            failures = earlyEnds.filter { it.log.classEntries == 0 }.map(::lostTests) +
-                sortedExecutions.mapNotNull(::unreportedFailures),
-            warnings = earlyEnds.filter { it.log.classEntries > 0 }.map(::possiblyLostTests),
+            failures = lost.map(::lostTests) + executions.mapNotNull(::unreportedFailures),
+            warnings = possiblyLost.map(::possiblyLostTests),
         )
     }
 
@@ -49,19 +49,18 @@ internal class InstrumentationEvidence {
     }
 
     private fun lostTests(earlyEnd: EarlyEnd): PlatformFailure = PlatformFailure(
-        reason = INCOMPLETE_TEST_RUN,
-        classification = INSTRUMENTATION,
-        message = "The instrumentation of ${earlyEnd.execution} ended ${earlyEnd.description} after starting " +
+        RunnerFailure.INCOMPLETE_TEST_RUN,
+        "The instrumentation of ${earlyEnd.execution} ended ${earlyEnd.description} after starting " +
             "${earlyEnd.log.startedEntries} of its ${earlyEnd.plannedTests} tests, and no retry ran the rest, so " +
-            "${tests(earlyEnd.unstartedTests)} did not run.",
+            "${displayCount(earlyEnd.unstartedTests, "test")} did not run.",
     )
 
     private fun possiblyLostTests(earlyEnd: EarlyEnd): ReportWarning = ReportWarning(
         reason = POSSIBLY_INCOMPLETE_TEST_RUN,
         message = "The instrumentation of ${earlyEnd.execution} ended ${earlyEnd.description} after starting " +
             "${earlyEnd.log.startedEntries} entries for its ${earlyEnd.plannedTests} tests, and no retry ran the rest. Entries of " +
-            "class events, such as an assumption in @BeforeClass, stand for several tests, so up to ${tests(earlyEnd.unstartedTests)} " +
-            "may not have run.",
+            "class events, such as an assumption in @BeforeClass, stand for several tests, so up to " +
+            "${displayCount(earlyEnd.unstartedTests, "test")} may not have run.",
     )
 
     private fun unreportedFailures(execution: JobExecution): PlatformFailure? {
@@ -72,16 +71,12 @@ internal class InstrumentationEvidence {
             return null
         }
         val quotes = unreported.map { "${it.test} ${it.firstLine}".trim() }.distinct()
-        val failures = if (unreported.size == 1) "1 failure" else "${unreported.size} failures"
         return PlatformFailure(
-            reason = UNREPORTED_TEST_FAILURES,
-            classification = INSTRUMENTATION,
-            message = "The instrumentation summary of ${execution.name} lists $failures that the test results omit: " +
-                quotes.joinToString("; "),
+            RunnerFailure.UNREPORTED_TEST_FAILURES,
+            "The instrumentation summary of ${execution.name} lists ${displayCount(unreported.size, "failure")} that the " +
+                "test results omit: ${quotes.joinToString("; ")}",
         )
     }
-
-    private fun tests(count: Int): String = if (count == 1) "1 test" else "$count tests"
 
     /**
      * What the instrumentation logs of the executions of a job show.
@@ -110,9 +105,6 @@ internal class InstrumentationEvidence {
     }
 
     private companion object {
-        private const val INSTRUMENTATION = "INSTRUMENTATION"
-        private const val INCOMPLETE_TEST_RUN = "INCOMPLETE_TEST_RUN"
         private const val POSSIBLY_INCOMPLETE_TEST_RUN = "POSSIBLY_INCOMPLETE_TEST_RUN"
-        private const val UNREPORTED_TEST_FAILURES = "UNREPORTED_TEST_FAILURES"
     }
 }

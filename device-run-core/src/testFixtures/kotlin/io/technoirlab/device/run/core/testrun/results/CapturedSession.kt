@@ -6,6 +6,7 @@ import com.google.api.services.devicerun.v1alpha.model.SessionReport
 import io.technoirlab.device.run.core.client.FakeCloudTransport
 import io.technoirlab.device.run.core.client.deviceRunFixtures
 import io.technoirlab.device.run.core.client.parseDeviceRunFixture
+import io.technoirlab.device.run.core.storage.GcsUri
 import io.technoirlab.device.run.core.testDeviceRunner
 import io.technoirlab.device.run.core.testrun.TestRunRequest
 
@@ -48,15 +49,15 @@ class CapturedSession(
     private fun outputs(captured: Session, job: String): Map<String, String> {
         val placeholders = captured.referencedOutputs().associateWith { "Placeholder for the Device Run output $it" }
         val outputs = placeholders + deviceRunFixtures("sessions/$scenario/outputs")
-        return if (jobReport == null) outputs else outputs + ("$job/$JOB_REPORT" to jobReport)
+        return if (jobReport == null) outputs else outputs + ("$job/${JobExecution.JUNIT_REPORT}" to jobReport)
     }
 
     /**
      * Returns the paths below the session directory of the outputs that the report of the captured session references.
      */
     private fun Session.referencedOutputs(): List<String> {
-        val prefix = "${capturedDirectory()}/"
-        return referencedOutputFiles().map { it.toString() }.filter { it.startsWith(prefix) }.map { it.removePrefix(prefix) }
+        val directory = capturedDirectory()
+        return referencedOutputFiles().mapNotNull { it.relativeTo(directory) }
     }
 
     /**
@@ -68,12 +69,8 @@ class CapturedSession(
     }
 
     /**
-     * Returns the `gs://` directory of the outputs of the captured session.
+     * Returns the directory of the outputs of the captured session.
      */
-    private fun Session.capturedDirectory(): String =
-        "${sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path}/${name.substringAfterLast('/')}"
-
-    private companion object {
-        private const val JOB_REPORT = "junit.xml"
-    }
+    private fun Session.capturedDirectory(): GcsUri =
+        GcsUri.parse(sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path) / name.substringAfterLast('/')
 }

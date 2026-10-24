@@ -15,7 +15,8 @@ import kotlin.io.path.name
  * those that the report lists and those whose directories among the mirrored outputs are named like executions, `execution-NNN`
  * or `execution-NNN-rerun-MMM`. They also provide the device log and the start time of each test that exactly one execution ran.
  * When the report of an execution with outputs is missing or malformed, which executions ran a test is unknown, so device logs
- * stay attached to the suite only and tests take the start time of the session. Executions are never ordered by name.
+ * stay attached to the suite only and tests take the start time of the session. The executions are in the order of their names,
+ * which puts the retries of a shard after it.
  */
 internal class JobExecutions(
     session: Session,
@@ -44,8 +45,8 @@ internal class JobExecutions(
         val outputsByExecution = artifacts
             .filter { it.relativePath.startsWith("$jobDirectory/") }
             .groupBy { it.relativePath.removePrefix("$jobDirectory/").substringBefore('/', missingDelimiterValue = "") }
-            .filterKeys { it in entriesByExecution || EXECUTION.matches(it) }
-        executions = (outputsByExecution.keys + entriesByExecution.keys).map { name ->
+            .filterKeys { it in entriesByExecution || JobExecution.isExecutionName(it) }
+        executions = (outputsByExecution.keys + entriesByExecution.keys).sorted().map { name ->
             execution(name, entriesByExecution[name], outputsByExecution[name].orEmpty())
         }
         val mirroredExecutions = executions.filter { it.name in outputsByExecution }
@@ -101,9 +102,5 @@ internal class JobExecutions(
         timestamp?.let(Instant::parse)
     } catch (_: DateTimeParseException) {
         null
-    }
-
-    private companion object {
-        private val EXECUTION = Regex("execution-\\d+(?:-rerun-\\d+)?")
     }
 }

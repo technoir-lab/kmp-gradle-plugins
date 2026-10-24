@@ -21,7 +21,7 @@ internal class JobExecution(
      * The shard that the execution ran: `execution-NNN` for its retries `execution-NNN-rerun-MMM`, and the name of any other
      * execution.
      */
-    val shard = SHARD_RETRY.matchEntire(name)?.groupValues?.get(1) ?: name
+    val shard = NAME.matchEntire(name)?.groupValues?.get(1) ?: name
 
     /**
      * The instrumentation log of the execution, read when first used, or null when it is missing or unreadable.
@@ -40,11 +40,22 @@ internal class JobExecution(
         const val INSTRUMENT_LOG = "instrument.log"
 
         /**
-         * The names of the JUnit report of an execution. Executions write `junit.xml`; older executions on virtual devices wrote
+         * The name of the JUnit report of an execution, and of the job report `<job>/junit.xml`.
+         */
+        const val JUNIT_REPORT = "junit.xml"
+
+        /**
+         * The names of the JUnit report of an execution. Executions write [JUNIT_REPORT]; older executions on virtual devices wrote
          * `test_result.xml`, as in the fixtures.
          */
-        val REPORT_NAMES = setOf("junit.xml", "test_result.xml")
+        val REPORT_NAMES = setOf(JUNIT_REPORT, "test_result.xml")
 
-        private val SHARD_RETRY = Regex("(.+)-rerun-\\d+")
+        /**
+         * Returns whether [name] names an execution: a shard, `execution-NNN`, or a retry attempt of one, `execution-NNN-rerun-MMM`.
+         */
+        fun isExecutionName(name: String): Boolean = NAME.matches(name)
+
+        // The name of a retry attempt extends the name of its shard, which the group captures.
+        private val NAME = Regex("(execution-\\d+)(?:-rerun-\\d+)?")
     }
 }

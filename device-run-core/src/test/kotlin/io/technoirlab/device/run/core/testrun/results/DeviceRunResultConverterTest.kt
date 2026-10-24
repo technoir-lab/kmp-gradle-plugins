@@ -17,6 +17,7 @@ import io.technoirlab.device.run.core.client.deviceRunFixture
 import io.technoirlab.device.run.core.client.deviceRunFixtures
 import io.technoirlab.device.run.core.client.parseDeviceRunFixture
 import io.technoirlab.device.run.core.device.MEDIUM_PHONE_SNAPSHOT
+import io.technoirlab.device.run.core.elements
 import io.technoirlab.device.run.core.recordLogs
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.tuple
@@ -759,11 +760,9 @@ class DeviceRunResultConverterTest {
 
     private fun Element.child(tagName: String): Element = childElements(tagName).single()
 
-    private fun Element.childElements(tagName: String): List<Element> = childElements().filter { it.tagName == tagName }
+    private fun Element.childElements(tagName: String): List<Element> = childNodes.elements().filter { it.tagName == tagName }
 
-    private fun Element.childElements(): List<Element> = List(childNodes.length) { childNodes.item(it) }.filterIsInstance<Element>()
-
-    private fun Element.childTags(): List<String> = childElements().map { it.tagName }
+    private fun Element.childTags(): List<String> = childNodes.elements().map { it.tagName }
 
     private companion object {
         private const val SHARD_RETRY_SESSION = "session-75dc46f0-4f32-4106-9af2-55c7539451dd"

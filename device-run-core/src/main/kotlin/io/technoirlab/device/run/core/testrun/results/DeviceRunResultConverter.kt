@@ -2,6 +2,7 @@ package io.technoirlab.device.run.core.testrun.results
 
 import com.google.api.services.devicerun.v1alpha.model.Session
 import com.google.testing.platform.proto.api.core.TestStatusProto.TestStatus
+import io.technoirlab.device.run.core.testrun.displayCount
 import org.slf4j.LoggerFactory
 import kotlin.io.path.div
 import kotlin.io.path.name
@@ -41,32 +42,34 @@ internal class DeviceRunResultConverter {
         val resultType = session.sessionReport?.result?.resultType
         val testsRan = session.testsRanToCompletion()
         val jobReport = artifacts.find { it.relativePath == context.jobReportPath }?.let { parseJobReport(it) }
-        val outcomes = jobReport?.getOrNull()?.testCases?.map(outcomeMapper::map)
+        val report = jobReport?.getOrNull()
+        val outcomes = report?.testCases?.map(outcomeMapper::map)
         val evidence = examineEvidence(testsRan, jobReport, executions)
         val failures = remoteFailures(session, resultType) +
             reportFailures(testsRan, context.jobReportPath, jobReport, outcomes) +
             evidence.failures
-        val review = reviewFailedSession(
+        val verdict = Verdict(
+            outcomes = outcomes,
+            time = report?.time,
+            executions = executions,
+            platformFailures = failures,
+            warnings = evidence.warnings,
+            status = suiteStatus(resultType, failures, outcomes.orEmpty()),
+        )
+        val review = failedSessionReview.review(
             session = session,
-            resultType = resultType,
             outcomes = outcomes,
             platformFailures = failures,
-            executions = executions,
+            executions = executions.executions,
             deviceName = context.deviceName,
         )
-        val platformFailures = failures + (review as? FailedSessionReview.Review.Unexplained)?.failures.orEmpty()
-        return Verdict(
-            outcomes = outcomes,
-            time = jobReport?.getOrNull()?.time,
-            executions = executions,
-            platformFailures = platformFailures,
-            warnings = evidence.warnings + listOfNotNull((review as? FailedSessionReview.Review.TestsPass)?.warning),
-            status = if (review is FailedSessionReview.Review.TestsPass) {
-                TestStatus.PASSED
-            } else {
-                suiteStatus(resultType, platformFailures, outcomes.orEmpty())
-            },
-        )
+        return when (review) {
+            null -> verdict
+            is FailedSessionReview.Review.TestsPass ->
+                verdict.copy(status = TestStatus.PASSED, warnings = verdict.warnings + review.warning)
+            // The verdict keeps the failure of the session, which the unexplained failures explain.
+            is FailedSessionReview.Review.Unexplained -> verdict.copy(platformFailures = verdict.platformFailures + review.failures)
+        }
     }
 
     /**
@@ -117,20 +120,20 @@ internal class DeviceRunResultConverter {
      * infrastructure errors.
      */
     private fun remoteFailures(session: Session, resultType: String?): List<PlatformFailure> {
-        if (resultType == PASSED) {
+        if (resultType == ResultType.PASSED) {
             // Failed attempts of a recovered session remain evidence and do not affect its result.
             return emptyList()
         }
-        val executionFailures = if (resultType == CANCELLED) emptyList() else executionFailures(session)
-        if (executionFailures.isNotEmpty() || resultType == FAILED) {
+        val executionFailures = if (resultType == ResultType.CANCELLED) emptyList() else executionFailures(session)
+        if (executionFailures.isNotEmpty() || resultType == ResultType.FAILED) {
             return executionFailures
         }
         val summary = session.sessionReport?.result?.cause?.summary
         val outcome = "The session ended with ${resultType ?: "no result"}"
         return listOf(
             PlatformFailure(
-                reason = summary?.reason ?: resultType ?: UNSPECIFIED,
-                classification = resultType ?: UNSPECIFIED,
+                reason = summary?.reason ?: resultType ?: ResultType.UNSPECIFIED,
+                classification = resultType ?: ResultType.UNSPECIFIED,
                 message = summary?.message?.let { "$outcome: $it" } ?: "$outcome.",
             ),
         )
@@ -161,9 +164,9 @@ internal class DeviceRunResultConverter {
         outcomes: List<TestOutcome>?,
     ): List<PlatformFailure> = when {
         !testsRan -> emptyList()
-        jobReport == null -> listOf(PlatformFailure(MISSING_REPORT, REPORTING, "Device Run wrote no job report $jobReportPath."))
-        outcomes == null -> listOf(PlatformFailure(MALFORMED_REPORT, REPORTING, jobReport.exceptionOrNull()?.message.orEmpty()))
-        outcomes.isEmpty() -> listOf(PlatformFailure(NO_TESTS, REPORTING, "The job report $jobReportPath lists no tests."))
+        jobReport == null -> listOf(PlatformFailure(RunnerFailure.MISSING_JOB_REPORT, "Device Run wrote no job report $jobReportPath."))
+        outcomes == null -> listOf(PlatformFailure(RunnerFailure.MALFORMED_JOB_REPORT, jobReport.exceptionOrNull()?.message.orEmpty()))
+        outcomes.isEmpty() -> listOf(PlatformFailure(RunnerFailure.NO_TESTS, "The job report $jobReportPath lists no tests."))
         else -> emptyList()
     }
 
@@ -181,36 +184,16 @@ internal class DeviceRunResultConverter {
         InstrumentationEvidence.Findings(failures = emptyList(), warnings = emptyList())
     }
 
-    /**
-     * Reviews a session that Device Run failed although its job report lists tests that all passed and no platform failure explains
-     * the failure, or returns null for any other session.
-     */
-    private fun reviewFailedSession(
-        session: Session,
-        resultType: String?,
-        outcomes: List<TestOutcome>?,
-        platformFailures: List<PlatformFailure>,
-        executions: JobExecutions,
-        deviceName: String,
-    ): FailedSessionReview.Review? {
-        val listsOnlyPassingTests = !outcomes.isNullOrEmpty() && outcomes.none { it.status.isFailure }
-        return if (resultType == FAILED && listsOnlyPassingTests && platformFailures.isEmpty()) {
-            failedSessionReview.review(session, executions.executions, deviceName)
-        } else {
-            null
-        }
-    }
-
     private fun suiteStatus(resultType: String?, platformFailures: List<PlatformFailure>, outcomes: List<TestOutcome>): TestStatus =
         when (resultType) {
-            PASSED -> when {
+            ResultType.PASSED -> when {
                 platformFailures.isNotEmpty() -> TestStatus.ERROR
                 outcomes.any { it.status.isFailure } -> TestStatus.FAILED
                 else -> TestStatus.PASSED
             }
-            FAILED -> TestStatus.FAILED
-            "ERROR", "TIMED_OUT" -> TestStatus.ERROR
-            CANCELLED -> TestStatus.CANCELLED
+            ResultType.FAILED -> TestStatus.FAILED
+            ResultType.ERROR, ResultType.TIMED_OUT -> TestStatus.ERROR
+            ResultType.CANCELLED -> TestStatus.CANCELLED
             else -> TestStatus.TEST_STATUS_UNSPECIFIED
         }
 
@@ -284,10 +267,7 @@ internal class DeviceRunResultConverter {
             return
         }
         val tests = if (flakyTests.size == 1) "1 test of $deviceName is" else "${flakyTests.size} tests of $deviceName are"
-        val named = flakyTests.take(MAX_NAMED_FLAKY_TESTS).map { test ->
-            val failedAttempts = test.failedAttempts.size
-            "${test.key} (${if (failedAttempts == 1) "1 failed attempt" else "$failedAttempts failed attempts"})"
-        }
+        val named = flakyTests.take(MAX_NAMED_FLAKY_TESTS).map { "${it.key} (${displayCount(it.failedAttempts.size, "failed attempt")})" }
         val unnamed = flakyTests.size - named.size
         val more = if (unnamed > 0) ", and $unnamed more" else ""
         logger.warn("{} flaky, failing in some attempts and passing in others: {}{}.", tests, named.joinToString(), more)
@@ -317,17 +297,9 @@ internal class DeviceRunResultConverter {
     }
 
     private companion object {
-        private const val PASSED = "PASSED"
-        private const val FAILED = "FAILED"
-        private const val CANCELLED = "CANCELLED"
-        private const val UNSPECIFIED = "RESULT_UNSPECIFIED"
-        private const val REPORTING = "REPORTING"
-        private const val MISSING_REPORT = "MISSING_JOB_REPORT"
-        private const val MALFORMED_REPORT = "MALFORMED_JOB_REPORT"
-        private const val NO_TESTS = "NO_TESTS"
         private const val DEVICE_INFO_FILE = "device-info.pb"
         private const val TEST_RESULT_FILE = "test-result.pb"
         private const val MAX_NAMED_FLAKY_TESTS = 10
-        private val PLATFORM_RESULTS = setOf("ERROR", "TIMED_OUT", CANCELLED)
+        private val PLATFORM_RESULTS = setOf(ResultType.ERROR, ResultType.TIMED_OUT, ResultType.CANCELLED)
     }
 }

@@ -19,6 +19,7 @@ import io.technoirlab.device.run.core.client.StubCloudConnector
 import io.technoirlab.device.run.core.client.deviceRunFixtures
 import io.technoirlab.device.run.core.client.parseDeviceRunFixture
 import io.technoirlab.device.run.core.device.MEDIUM_PHONE_SNAPSHOT
+import io.technoirlab.device.run.core.elements
 import io.technoirlab.device.run.core.files.PROBE_PUSHED_FILE
 import io.technoirlab.device.run.core.recordLogs
 import io.technoirlab.device.run.core.testDeviceRunner
@@ -35,7 +36,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 import org.slf4j.event.Level
-import org.w3c.dom.Element
 import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.CyclicBarrier
@@ -148,7 +148,6 @@ class DeviceRunTestRunnerTest {
 
     @Test
     fun `downloads the outputs that the session report references once Device Run has uploaded them`() {
-        cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, EXECUTION_REPORT_PATH to EXECUTION_REPORT)
         cloud.outputUploadListings = mapOf(EXECUTION_REPORT_PATH to 2)
         cloud.sessionReport = { sessionDirectory ->
             sessionReport("PASSED").setJobReports(
@@ -286,7 +285,7 @@ class DeviceRunTestRunnerTest {
     fun `downloads device logs that the logcat policy keeps for the verdict on the tests`(logcat: ArtifactCapture, resultType: String) {
         cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, DEVICE_LOG_PATH to "logcat")
         cloud.sessionReport = { sessionReport(resultType) }
-        val request = request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = logcat))))
+        val request = request(logcat)
 
         val passed = runner.runTests(request)
 
@@ -300,7 +299,7 @@ class DeviceRunTestRunnerTest {
     fun `skips device logs that the logcat policy discards for the verdict on the tests`(logcat: ArtifactCapture, resultType: String) {
         cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, DEVICE_LOG_PATH to "logcat")
         cloud.sessionReport = { sessionReport(resultType) }
-        val request = request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = logcat))))
+        val request = request(logcat)
 
         val passed = runner.runTests(request)
 
@@ -313,7 +312,7 @@ class DeviceRunTestRunnerTest {
     fun `downloads the device logs of tests that fail when Device Run passed the session`() {
         cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to FAILING_JOB_REPORT, DEVICE_LOG_PATH to "logcat")
         cloud.sessionReport = { sessionReport("PASSED") }
-        val request = request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = ArtifactCapture.ON_FAILURE))))
+        val request = request(ArtifactCapture.ON_FAILURE)
 
         val passed = runner.runTests(request)
 
@@ -324,7 +323,7 @@ class DeviceRunTestRunnerTest {
     @Test
     fun `skips the device logs of tests that pass when Device Run failed the session`() {
         replayFlakyShardSession()
-        val request = request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = ArtifactCapture.ON_FAILURE))))
+        val request = request(ArtifactCapture.ON_FAILURE)
 
         val passed = runner.runTests(request)
 
@@ -372,6 +371,9 @@ class DeviceRunTestRunnerTest {
         instrumentationRunnerArguments = mapOf("class" to "com.example.LoginTest", "clearPackageData" to "true"),
     )
 
+    private fun request(logcat: ArtifactCapture): TestRunRequest =
+        request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = logcat))))
+
     private fun sessionReport(resultType: String): SessionReport = SessionReport().setResult(Result().setResultType(resultType))
 
     /**
@@ -393,7 +395,7 @@ class DeviceRunTestRunnerTest {
 
     private fun reportProperties(report: Path): Map<String, String> {
         val properties = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(report.toFile()).getElementsByTagName("property")
-        return List(properties.length) { properties.item(it) as Element }.associate { it.getAttribute("name") to it.getAttribute("value") }
+        return properties.elements().associate { it.getAttribute("name") to it.getAttribute("value") }
     }
 
     private companion object {

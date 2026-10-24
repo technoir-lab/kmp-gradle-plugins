@@ -227,7 +227,7 @@ class DeviceRunContractTest {
         assertThat(crashed.statusValues("numtests")).containsOnly("4")
         assertThat(crashed.statusValues("test").distinct()).containsExactly("a_passes", "b_crashesOnFirstAttempt")
         assertThat(crashed.count { it == "INSTRUMENTATION_STATUS_CODE: 1" }).isEqualTo(2)
-        assertThat(crashed.takeLast(2)).containsExactly("INSTRUMENTATION_RESULT: shortMsg=Process crashed.", "INSTRUMENTATION_CODE: 0")
+        assertThat(crashed.takeLast(2)).containsExactlyElementsOf(PROCESS_CRASH_END)
         assertThat(retry.statusValues("numtests")).containsOnly("1")
         assertThat(retry.statusValues("test").distinct()).containsExactly("b_crashesOnFirstAttempt")
         assertThat(retry.last()).isEqualTo("INSTRUMENTATION_CODE: -1")
@@ -244,7 +244,7 @@ class DeviceRunContractTest {
 
         assertThat(crashed.statusValues("numtests")).containsOnly("2")
         assertThat(crashed.count { it == "INSTRUMENTATION_STATUS_CODE: 1" }).isEqualTo(2)
-        assertThat(crashed.takeLast(2)).containsExactly("INSTRUMENTATION_RESULT: shortMsg=Process crashed.", "INSTRUMENTATION_CODE: 0")
+        assertThat(crashed.takeLast(2)).containsExactlyElementsOf(PROCESS_CRASH_END)
     }
 
     @Test
@@ -286,7 +286,7 @@ class DeviceRunContractTest {
         assertThat(crashed.statusValues("numtests")).containsOnly("4")
         assertThat(crashed.count { it == "INSTRUMENTATION_STATUS_CODE: 1" }).isEqualTo(3)
         assertThat(crashed.statusValues("test").distinct()).containsExactly("null", "a_passes", "b_crashesUnlessReduced")
-        assertThat(crashed.takeLast(2)).containsExactly("INSTRUMENTATION_RESULT: shortMsg=Process crashed.", "INSTRUMENTATION_CODE: 0")
+        assertThat(crashed.takeLast(2)).containsExactlyElementsOf(PROCESS_CRASH_END)
         assertThat(jobReport.testCaseNames()).containsExactly(
             "io.technoirlab.device.run.fixture.AssumeBeforeClassTest#null",
             "io.technoirlab.device.run.fixture.CrashLastTest#a_passes",
@@ -357,9 +357,7 @@ class DeviceRunContractTest {
         .newDocumentBuilder()
         .parse(deviceRunFixture(path).byteInputStream())
 
-    private fun Document.testCases(): List<Element> = getElementsByTagName("testcase").let { nodes ->
-        List(nodes.length) { index -> nodes.item(index) as Element }
-    }
+    private fun Document.testCases(): List<Element> = getElementsByTagName("testcase").elements()
 
     private fun Document.testCaseNames(): List<String> = testCases().map { it.testName() }
 
@@ -380,9 +378,7 @@ class DeviceRunContractTest {
 
     private fun Element.testName(): String = "${getAttribute("classname")}#${getAttribute("name")}"
 
-    private fun Element.failures(): List<String> = getElementsByTagName("failure").let { nodes ->
-        List(nodes.length) { index -> nodes.item(index).textContent.trim() }
-    }
+    private fun Element.failures(): List<String> = getElementsByTagName("failure").elements().map { it.textContent.trim() }
 
     private fun Element.rollup(): RolledUpTest = RolledUpTest(
         name = testName(),
@@ -410,6 +406,7 @@ class DeviceRunContractTest {
 
     private companion object {
         private const val PARENT = "projects/example-project/locations/global"
+        private val PROCESS_CRASH_END = listOf("INSTRUMENTATION_RESULT: shortMsg=Process crashed.", "INSTRUMENTATION_CODE: 0")
         private val EXECUTION_REPORT = Regex("smallPhone/([^/]+)/junit\\.xml")
         private val CAPTURED_ROLLUP_SESSIONS = listOf(
             "shard-retry-failed",

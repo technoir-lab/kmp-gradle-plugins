@@ -22,9 +22,5 @@ internal data class ResultContext(
      * The path of the job report below the session directory, `<job>/junit.xml`, which lists the final outcome of each test.
      */
     val jobReportPath: String
-        get() = "$jobDirectory/$JOB_REPORT"
-
-    private companion object {
-        private const val JOB_REPORT = "junit.xml"
-    }
+        get() = "$jobDirectory/${JobExecution.JUNIT_REPORT}"
 }

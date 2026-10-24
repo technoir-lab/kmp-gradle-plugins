@@ -15,20 +15,30 @@ import com.google.api.services.devicerun.v1alpha.model.Session
  */
 internal class FailedSessionReview {
     /**
-     * Reviews [session] by the [executions] of its job, whose device is [deviceName].
+     * Reviews [session] when Device Run failed it although the [outcomes] of its job report all passed and no [platformFailures]
+     * explain the failure, by the [executions] of its job, whose device is [deviceName]. Returns null for any other session.
      */
-    fun review(session: Session, executions: List<JobExecution>, deviceName: String): Review {
-        val attempts = executions.sortedBy { it.name }.map(::attempt)
+    fun review(
+        session: Session,
+        outcomes: List<TestOutcome>?,
+        platformFailures: List<PlatformFailure>,
+        executions: List<JobExecution>,
+        deviceName: String,
+    ): Review? {
+        val listsOnlyPassingTests = !outcomes.isNullOrEmpty() && outcomes.none { it.status.isFailure }
+        if (session.sessionReport?.result?.resultType != ResultType.FAILED || !listsOnlyPassingTests || platformFailures.isNotEmpty()) {
+            return null
+        }
+        val attempts = executions.map(::attempt)
         val problems = listOfNotNull(causeProblem(session)) +
-            attempts.mapNotNull { it.problem } +
-            listOfNotNull("no execution failed".takeIf { attempts.none { it.failed } })
+            attempts.filterIsInstance<Attempt.Unconfirmed>().map { it.problem } +
+            listOfNotNull("no execution failed".takeIf { attempts.all { it is Attempt.Passed } })
         if (problems.isNotEmpty()) {
             return Review.Unexplained(
                 problems.map { problem ->
                     PlatformFailure(
-                        reason = UNEXPLAINED_FAILURE,
-                        classification = REPORTING,
-                        message = "Device Run failed the session although its job report lists no failed test: $problem.",
+                        RunnerFailure.UNEXPLAINED_SESSION_FAILURE,
+                        "Device Run failed the session although its job report lists no failed test: $problem.",
                     )
                 },
             )
@@ -49,53 +59,60 @@ internal class FailedSessionReview {
     }
 
     /**
-     * Returns whether [execution] failed, and why it cannot confirm the review.
+     * Returns how [execution] fared according to the session report, or to its own outputs when the report omits it.
      */
     private fun attempt(execution: JobExecution): Attempt {
         val reportEntry = execution.reportEntry ?: return omittedAttempt(execution)
         val result = reportEntry.result
-        if (result?.resultType == PASSED) {
-            return Attempt(execution, failed = false, problem = null)
+        if (result?.resultType == ResultType.PASSED) {
+            return Attempt.Passed(execution)
         }
         val cause = result?.cause?.summary
-        val problem = when {
-            result?.resultType != FAILED -> "Device Run reports ${execution.name} with ${result?.resultType ?: "no result"}"
-            cause?.type != CUSTOMER || cause.reason != TEST_CASE_FAILURE ->
+        return when {
+            result?.resultType != ResultType.FAILED ->
+                Attempt.Unconfirmed(execution, "Device Run reports ${execution.name} with ${result?.resultType ?: "no result"}")
+            cause?.type != CUSTOMER || cause.reason != TEST_CASE_FAILURE -> Attempt.Unconfirmed(
+                execution,
                 "${execution.name} failed with ${cause?.type ?: "no type"} / ${cause?.reason ?: "no reason"}, not $CUSTOMER / " +
-                    TEST_CASE_FAILURE
-            else -> reportProblem(execution)
+                    TEST_CASE_FAILURE,
+            )
+            else -> confirmedFailure(execution)
         }
-        return Attempt(execution, failed = true, problem = problem)
     }
 
     /**
-     * Returns whether [execution], which the session report omits, failed according to its instrumentation log, and why it
-     * cannot confirm the review.
+     * Returns how [execution], which the session report omits, fared according to its instrumentation log.
      */
     private fun omittedAttempt(execution: JobExecution): Attempt {
         val log = execution.instrumentationLog?.takeIf { it.endedNormally }
         if (execution.report == null || log == null) {
             val evidence = if (execution.report == null) "a readable report" else "an instrumentation log that ended normally"
-            return Attempt(execution, failed = false, problem = "the session report omits ${execution.name}, whose outputs lack $evidence")
+            return Attempt.Unconfirmed(execution, "the session report omits ${execution.name}, whose outputs lack $evidence")
         }
         val failed = log.summaryFailureCount > 0 || log.failedEntries.isNotEmpty()
-        return Attempt(execution, failed, problem = if (failed) reportProblem(execution) else null)
+        return if (failed) confirmedFailure(execution) else Attempt.Passed(execution)
     }
 
     /**
-     * Returns why the report of [execution], which failed, does not confirm a failed test, or null when it does.
+     * Returns the failed [execution] once its report confirms a failed test, or unconfirmed when the report does not.
      */
-    private fun reportProblem(execution: JobExecution): String? {
-        val report = execution.report ?: return "${execution.name} failed, but its report is missing or malformed"
-        val listsFailedTest = report.testCases.any { it.failures.isNotEmpty() || it.error != null }
-        return if (listsFailedTest) null else "${execution.name} failed, but its report lists no failed test"
+    private fun confirmedFailure(execution: JobExecution): Attempt {
+        val report = execution.report
+            ?: return Attempt.Unconfirmed(execution, "${execution.name} failed, but its report is missing or malformed")
+        return if (report.testCases.any { it.failures.isNotEmpty() || it.error != null }) {
+            Attempt.FailedTests(execution)
+        } else {
+            Attempt.Unconfirmed(execution, "${execution.name} failed, but its report lists no failed test")
+        }
     }
 
     private fun passingWarning(session: Session, attempts: List<Attempt>, deviceName: String): ReportWarning {
         // The cause of the job names the failed tests, while the cause of the session names the failed job.
         val jobCause = session.sessionReport?.jobReports.orEmpty().firstNotNullOfOrNull { it.result?.cause?.summary?.reason }
-        val reason = jobCause ?: session.sessionReport?.result?.cause?.summary?.reason ?: FAILED
-        val failedShards = attempts.groupBy { it.execution.shard }.filterValues { shardAttempts -> shardAttempts.all { it.failed } }.keys
+        val reason = jobCause ?: session.sessionReport?.result?.cause?.summary?.reason ?: ResultType.FAILED
+        val failedShards = attempts.groupBy { it.execution.shard }
+            .filterValues { shardAttempts -> shardAttempts.all { it is Attempt.FailedTests } }
+            .keys
         val sessionId = session.name?.substringAfterLast('/')
         val failure = if (failedShards.isEmpty()) {
             "Device Run failed session $sessionId ($reason)."
@@ -127,21 +144,37 @@ internal class FailedSessionReview {
     }
 
     /**
-     * An attempt of a shard, whether it [failed], and why it cannot confirm the review, if it cannot.
+     * An attempt of a shard, as the review sees it.
      */
-    private data class Attempt(
-        val execution: JobExecution,
-        val failed: Boolean,
-        val problem: String?,
-    )
+    private sealed interface Attempt {
+        val execution: JobExecution
+
+        /**
+         * The attempt passed every test.
+         */
+        data class Passed(
+            override val execution: JobExecution,
+        ) : Attempt
+
+        /**
+         * The attempt failed, and its report lists a failed test.
+         */
+        data class FailedTests(
+            override val execution: JobExecution,
+        ) : Attempt
+
+        /**
+         * The attempt cannot confirm the review, which [problem] explains.
+         */
+        data class Unconfirmed(
+            override val execution: JobExecution,
+            val problem: String,
+        ) : Attempt
+    }
 
     private companion object {
-        private const val PASSED = "PASSED"
-        private const val FAILED = "FAILED"
         private const val CUSTOMER = "CUSTOMER"
         private const val TEST_CASE_FAILURE = "TEST_CASE_FAILURE"
         private const val SESSION_HAS_FAILED_JOBS = "SESSION_HAS_FAILED_JOBS"
-        private const val REPORTING = "REPORTING"
-        private const val UNEXPLAINED_FAILURE = "UNEXPLAINED_SESSION_FAILURE"
     }
 }

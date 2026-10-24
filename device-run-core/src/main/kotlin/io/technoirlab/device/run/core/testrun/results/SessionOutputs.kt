@@ -24,6 +24,12 @@ internal data class SessionOutputs(
     val withoutDeviceLogs: SessionOutputs
         get() = copy(paths = paths.filterNot { DEVICE_LOG.matches(it) })
 
+    /**
+     * Whether the outputs include one of an execution, `<job>/<execution>/...`, which Device Run uploads after the job report.
+     */
+    val hasExecutionOutputs: Boolean
+        get() = paths.any { '/' in it.substringAfter('/', missingDelimiterValue = "") }
+
     private companion object {
         // Files pulled from the device lie deeper, below the artifacts directory of the execution.
         private val DEVICE_LOG = Regex("[^/]+/[^/]+/${Regex.escape(JobExecution.LOGCAT)}")

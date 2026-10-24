@@ -55,25 +55,22 @@ internal class SessionStorage(
     ): SessionOutputs {
         val directory = outputDirectory(bucket) / sessionId
         val prefix = "${directory.objectName}/"
-        val expectedPaths = expectedFiles
-            .filter { it.bucket == bucket && it.objectName.startsWith(prefix) }
-            .map { it.objectName.removePrefix(prefix) }
-            .toSet()
+        val expectedPaths = expectedFiles.mapNotNull { it.relativeTo(directory) }.toSet()
         val deadline = Deadline(SETTLE_TIMEOUT, ticker)
         var previous: Set<String>? = null
         while (true) {
-            val listing = storageManager.listObjectNames(bucket, prefix).map { it.removePrefix(prefix) }
-            val listed = listing.toSet()
+            val outputs = SessionOutputs(directory, storageManager.listObjectNames(bucket, prefix).map { it.removePrefix(prefix) })
+            val listed = outputs.paths.toSet()
             val missing = expectedPaths - listed
-            val lacksExecutionOutputs = executionOutputsExpected && listing.none(::isExecutionOutput)
+            val lacksExecutionOutputs = executionOutputsExpected && !outputs.hasExecutionOutputs
             val complete = missing.isEmpty() && !lacksExecutionOutputs
             val settled = listed == previous || expectedFilesAreComplete && listed == expectedPaths
             if (complete && settled) {
-                return SessionOutputs(directory, listing)
+                return outputs
             }
             if (deadline.hasPassed()) {
                 reportUnsettled(sessionId, directory, missing, lacksExecutionOutputs)
-                return SessionOutputs(directory, listing)
+                return outputs
             }
             previous = listed
             sleeper.sleep(SETTLE_INTERVAL.toMillis())
@@ -91,36 +88,16 @@ internal class SessionStorage(
         return outputs.paths.mapNotNull { relativePath -> mirror(outputs.directory / relativePath, relativePath, root) }
     }
 
-    /**
-     * Returns whether the object at [relativePath] below a session directory is an output of an execution, which Device Run nests
-     * in the directory of its job.
-     */
-    private fun isExecutionOutput(relativePath: String): Boolean = '/' in relativePath.substringAfter('/', missingDelimiterValue = "")
-
     private fun reportUnsettled(sessionId: String, directory: GcsUri, missing: Set<String>, lacksExecutionOutputs: Boolean) {
-        when {
-            missing.isNotEmpty() -> logger.warn(
-                "Device Run did not upload {} of session {} within {}, so the results lack them; it may still upload them to {}.",
-                missing.sorted().joinToString(),
-                sessionId,
-                SETTLE_TIMEOUT.toDisplayString(),
-                directory,
-            )
-            lacksExecutionOutputs -> logger.warn(
-                "Device Run uploaded no outputs of the executions of session {} within {}, so the results lack them; it may still " +
-                    "upload them to {}.",
-                sessionId,
-                SETTLE_TIMEOUT.toDisplayString(),
-                directory,
-            )
-            else -> logger.warn(
-                "Device Run was still uploading the outputs of session {} after {}, so the results can lack some of them; it may " +
-                    "still upload them to {}.",
-                sessionId,
-                SETTLE_TIMEOUT.toDisplayString(),
-                directory,
-            )
+        val timeout = SETTLE_TIMEOUT.toDisplayString()
+        val problem = when {
+            missing.isNotEmpty() ->
+                "did not upload ${missing.sorted().joinToString()} of session $sessionId within $timeout, so the results lack them"
+            lacksExecutionOutputs ->
+                "uploaded no outputs of the executions of session $sessionId within $timeout, so the results lack them"
+            else -> "was still uploading the outputs of session $sessionId after $timeout, so the results can lack some of them"
         }
+        logger.warn("Device Run {}; it may still upload them to {}.", problem, directory)
     }
 
     private fun mirror(uri: GcsUri, relativePath: String, root: Path): MirroredArtifact? {

@@ -48,11 +48,15 @@ internal class InstrumentationLogParser {
                 line.startsWith(RESULT) -> startValue(result, RESULT_KEYS, line.removePrefix(RESULT))
                 line.startsWith(RESULT_CODE) -> {
                     resultCode = line.removePrefix(RESULT_CODE).trim().toIntOrNull()
-                    isInstrumentationOutput = true
                     continuedValue = null
                 }
-                else -> continuedValue?.append('\n')?.append(line)
+                else -> {
+                    continuedValue?.append('\n')?.append(line)
+                    return
+                }
             }
+            // Any key or code line shows that the file is the output of an instrumentation run.
+            isInstrumentationOutput = true
         }
 
         fun toLog(): InstrumentationLog? {
@@ -81,7 +85,6 @@ internal class InstrumentationLogParser {
             } else {
                 null
             }
-            isInstrumentationOutput = true
         }
 
         private fun endEntry(code: Int?) {
@@ -105,7 +108,6 @@ internal class InstrumentationLogParser {
             }
             status = mutableMapOf()
             continuedValue = null
-            isInstrumentationOutput = true
         }
 
         /**
