@@ -40,6 +40,9 @@ internal class DeviceRunTestRunner(
      * device logs that the logcat policy discards for the verdict on the tests, and `device-run-session.json` identifies the session
      * for manual cleanup if the runner stops before the session does.
      *
+     * An interruption ends the run with [InterruptedException], or with the failure of an interrupted request and the interrupt
+     * flag set.
+     *
      * @throws DeviceRunException when the orchestrator version is not available, or the session cannot be prepared, run, or
      * downloaded.
      */
