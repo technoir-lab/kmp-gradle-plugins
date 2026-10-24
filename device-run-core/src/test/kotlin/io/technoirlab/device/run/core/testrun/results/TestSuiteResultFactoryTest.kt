@@ -95,7 +95,6 @@ class TestSuiteResultFactoryTest {
             name = "runs",
             time = time,
             status = TestOutcome.Status.PASSED,
-            flaky = false,
             detail = null,
             failedAttempts = emptyList(),
         )

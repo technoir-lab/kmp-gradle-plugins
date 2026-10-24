@@ -55,12 +55,8 @@ class CapturedSession(
      * Returns the paths below the session directory of the outputs that the report of the captured session references.
      */
     private fun Session.referencedOutputs(): List<String> {
-        val jobReports = sessionReport.jobReports.orEmpty()
-        val outputFiles = jobReports.flatMap { job ->
-            job.outputFiles.orEmpty() + job.executionReports.orEmpty().flatMap { it.outputFiles.orEmpty() }
-        }
         val prefix = "${capturedDirectory()}/"
-        return outputFiles.mapNotNull { file -> file.gcsOutputFile?.path?.takeIf { it.startsWith(prefix) }?.removePrefix(prefix) }
+        return referencedOutputFiles().map { it.toString() }.filter { it.startsWith(prefix) }.map { it.removePrefix(prefix) }
     }
 
     /**

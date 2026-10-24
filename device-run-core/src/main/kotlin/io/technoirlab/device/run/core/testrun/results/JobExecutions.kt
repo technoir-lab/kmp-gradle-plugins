@@ -64,12 +64,10 @@ internal class JobExecutions(
      * Returns the device logs among [artifacts] by the key of each test that exactly one execution ran, for the executions whose
      * device log was downloaded.
      */
-    fun deviceLogs(artifacts: List<MirroredArtifact>): Map<String, List<ResultArtifact>> {
+    fun deviceLogs(artifacts: List<MirroredArtifact>): Map<String, MirroredArtifact> {
         val artifactsByPath = artifacts.associateBy { it.relativePath }
         return executionByTest.entries.mapNotNull { (test, execution) ->
-            artifactsByPath["$jobDirectory/${execution.name}/${JobExecution.LOGCAT}"]?.let { logcat ->
-                test to listOf(ResultArtifact("logcat", logcat.path, "text/plain"))
-            }
+            artifactsByPath["$jobDirectory/${execution.name}/${JobExecution.LOGCAT}"]?.let { test to it }
         }.toMap()
     }
 
@@ -83,7 +81,6 @@ internal class JobExecutions(
         val files = outputs.filter { it.relativePath == "$jobDirectory/$name/${it.path.name}" }
         return JobExecution(
             name = name,
-            shard = SHARD_RETRY.matchEntire(name)?.groupValues?.get(1) ?: name,
             reportEntry = reportEntry,
             report = files.find { it.path.name in JobExecution.REPORT_NAMES }?.let(::parseReport),
             instrumentationLog = lazy { files.find { it.path.name == JobExecution.INSTRUMENT_LOG }?.let { logParser.parse(it.path) } },
@@ -108,6 +105,5 @@ internal class JobExecutions(
 
     private companion object {
         private val EXECUTION = Regex("execution-\\d+(?:-rerun-\\d+)?")
-        private val SHARD_RETRY = Regex("(.+)-rerun-\\d+")
     }
 }

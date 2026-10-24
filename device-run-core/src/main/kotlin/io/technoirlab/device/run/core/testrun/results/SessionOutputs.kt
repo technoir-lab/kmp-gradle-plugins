@@ -26,6 +26,6 @@ internal data class SessionOutputs(
 
     private companion object {
         // Files pulled from the device lie deeper, below the artifacts directory of the execution.
-        private val DEVICE_LOG = Regex("[^/]+/[^/]+/logcat\\.txt")
+        private val DEVICE_LOG = Regex("[^/]+/[^/]+/${Regex.escape(JobExecution.LOGCAT)}")
     }
 }

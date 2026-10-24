@@ -4,7 +4,6 @@ import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.services.devicerun.v1alpha.model.Session
 import io.technoirlab.device.run.core.DeviceRunException
 import io.technoirlab.device.run.core.client.reason
-import io.technoirlab.device.run.core.storage.GcsUri
 import io.technoirlab.device.run.core.testrun.apk.TestPackagePreparer
 import io.technoirlab.device.run.core.testrun.apk.TestPackages
 import io.technoirlab.device.run.core.testrun.job.ArtifactCapture
@@ -14,6 +13,9 @@ import io.technoirlab.device.run.core.testrun.results.MirroredArtifact
 import io.technoirlab.device.run.core.testrun.results.ResultContext
 import io.technoirlab.device.run.core.testrun.results.SessionOutputs
 import io.technoirlab.device.run.core.testrun.results.SessionStorage
+import io.technoirlab.device.run.core.testrun.results.referencedOutputFiles
+import io.technoirlab.device.run.core.testrun.results.reportListsEveryExecution
+import io.technoirlab.device.run.core.testrun.results.testsRanToCompletion
 import io.technoirlab.device.run.core.testrun.session.SessionLifecycle
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -114,18 +116,14 @@ internal class DeviceRunTestRunner(
      * A final report that lists the executions of every job references every output of the session, so the outputs are complete
      * once those files exist.
      */
-    private fun listOutputs(bucket: String, session: Session): SessionOutputs {
-        val resultType = session.sessionReport?.result?.resultType
-        val jobReports = session.sessionReport?.jobReports.orEmpty()
-        return accessOutputs(bucket, session) {
-            sessionStorage.listOutputs(
-                bucket = bucket,
-                sessionId = session.name.substringAfterLast('/'),
-                expectedFiles = referencedFiles(session),
-                expectedFilesAreComplete = jobReports.isNotEmpty() && jobReports.all { !it.executionReports.isNullOrEmpty() },
-                executionOutputsExpected = resultType == PASSED || resultType == FAILED,
-            )
-        }
+    private fun listOutputs(bucket: String, session: Session): SessionOutputs = accessOutputs(bucket, session) {
+        sessionStorage.listOutputs(
+            bucket = bucket,
+            sessionId = session.name.substringAfterLast('/'),
+            expectedFiles = session.referencedOutputFiles(),
+            expectedFilesAreComplete = session.reportListsEveryExecution(),
+            executionOutputsExpected = session.testsRanToCompletion(),
+        )
     }
 
     private fun mirror(bucket: String, session: Session, outputs: SessionOutputs, mirrorRoot: Path): List<MirroredArtifact> =
@@ -140,20 +138,7 @@ internal class DeviceRunTestRunner(
         )
     }
 
-    /**
-     * Returns the output files that the reports of [session] reference.
-     */
-    private fun referencedFiles(session: Session): List<GcsUri> {
-        val jobReports = session.sessionReport?.jobReports.orEmpty()
-        val outputFiles = jobReports.flatMap { job ->
-            job.outputFiles.orEmpty() + job.executionReports.orEmpty().flatMap { it.outputFiles.orEmpty() }
-        }
-        return outputFiles.mapNotNull { file -> file.gcsOutputFile?.path?.let { GcsUri.parseOrNull(it) } }
-    }
-
     private companion object {
-        private const val PASSED = "PASSED"
-        private const val FAILED = "FAILED"
         private const val METADATA_FILE = "device-run-session.json"
         private const val MIRROR_DIRECTORY = "device-run"
     }

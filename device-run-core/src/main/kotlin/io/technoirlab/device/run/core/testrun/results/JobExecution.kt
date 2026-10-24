@@ -6,8 +6,6 @@ import com.google.api.services.devicerun.v1alpha.model.ExecutionReport
  * An execution of a job: a shard, such as `execution-001`, or a retry attempt of a shard, such as `execution-000-rerun-000`.
  *
  * @property name the display name of the execution, which also names its output directory.
- * @property shard the shard that the execution ran: `execution-NNN` for its retries `execution-NNN-rerun-MMM`, and the name of any
- * other execution.
  * @property reportEntry the entry of the execution in the session report, or null when the report omits the execution.
  * @property report the JUnit report of the execution, or null when it is missing or malformed.
  * @param instrumentationLog reads the instrumentation log of the execution, which only the verdict on a session whose tests ran
@@ -15,11 +13,16 @@ import com.google.api.services.devicerun.v1alpha.model.ExecutionReport
  */
 internal class JobExecution(
     val name: String,
-    val shard: String,
     val reportEntry: ExecutionReport?,
     val report: JUnitReport?,
     instrumentationLog: Lazy<InstrumentationLog?>,
 ) {
+    /**
+     * The shard that the execution ran: `execution-NNN` for its retries `execution-NNN-rerun-MMM`, and the name of any other
+     * execution.
+     */
+    val shard = SHARD_RETRY.matchEntire(name)?.groupValues?.get(1) ?: name
+
     /**
      * The instrumentation log of the execution, read when first used, or null when it is missing or unreadable.
      */
@@ -41,5 +44,7 @@ internal class JobExecution(
          * `test_result.xml`, as in the fixtures.
          */
         val REPORT_NAMES = setOf("junit.xml", "test_result.xml")
+
+        private val SHARD_RETRY = Regex("(.+)-rerun-\\d+")
     }
 }

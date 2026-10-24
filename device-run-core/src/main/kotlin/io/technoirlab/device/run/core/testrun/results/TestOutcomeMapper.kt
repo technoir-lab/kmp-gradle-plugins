@@ -24,7 +24,6 @@ internal class TestOutcomeMapper {
             name = testCase.name,
             time = testCase.time,
             status = status,
-            flaky = failures.isNotEmpty() && testCase.flaky && error == null,
             detail = element?.let(::detail),
             failedAttempts = failures.map { failure ->
                 detail(failure) ?: TestOutcome.Detail(type = failure.type, message = "", trace = "")
