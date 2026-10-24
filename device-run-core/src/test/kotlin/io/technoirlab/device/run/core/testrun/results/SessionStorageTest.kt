@@ -66,7 +66,13 @@ class SessionStorageTest {
             GcsUri("other-bucket", "automation/sessions/$SESSION_ID/mediumPhone/junit.xml"),
         )
 
-        val outputs = sessionStorage.listOutputs("results", SESSION_ID, expectedFiles, outputsExpected = false)
+        val outputs = sessionStorage.listOutputs(
+            bucket = "results",
+            sessionId = SESSION_ID,
+            expectedFiles = expectedFiles,
+            expectedFilesAreComplete = false,
+            outputsExpected = false,
+        )
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml", "mediumPhone/junit.xml")
         assertThat(clock.sleeps).containsExactly(Duration.ofSeconds(5), Duration.ofSeconds(5), Duration.ofSeconds(5))
@@ -113,10 +119,52 @@ class SessionStorageTest {
     }
 
     @Test
+    fun `lists the outputs at once when they are exactly the files that name every output`() {
+        upload("mediumPhone/junit.xml", "<testsuite/>")
+        upload("mediumPhone/execution-000/junit.xml", "<testsuites/>")
+        val expectedFiles = listOf(sessionFile("mediumPhone/junit.xml"), sessionFile("mediumPhone/execution-000/junit.xml"))
+
+        val outputs = sessionStorage.listOutputs(
+            bucket = "results",
+            sessionId = SESSION_ID,
+            expectedFiles = expectedFiles,
+            expectedFilesAreComplete = true,
+            outputsExpected = true,
+        )
+
+        assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml", "mediumPhone/junit.xml")
+        assertThat(clock.sleeps).isEmpty()
+    }
+
+    @Test
+    fun `waits for the outputs to settle when the listing holds objects that the files naming every output leave out`() {
+        upload("mediumPhone/junit.xml", "<testsuite/>")
+        upload("mediumPhone/execution-001/junit.xml", "<testsuites/>")
+        val expectedFiles = listOf(sessionFile("mediumPhone/junit.xml"))
+
+        val outputs = sessionStorage.listOutputs(
+            bucket = "results",
+            sessionId = SESSION_ID,
+            expectedFiles = expectedFiles,
+            expectedFilesAreComplete = true,
+            outputsExpected = true,
+        )
+
+        assertThat(outputs.paths).containsExactly("mediumPhone/execution-001/junit.xml", "mediumPhone/junit.xml")
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
+    }
+
+    @Test
     fun `waits for the first outputs of a session whose tests ran`() {
         upload("mediumPhone/junit.xml", "<testsuite/>", afterListings = 2)
 
-        val outputs = sessionStorage.listOutputs("results", SESSION_ID, expectedFiles = emptyList(), outputsExpected = true)
+        val outputs = sessionStorage.listOutputs(
+            bucket = "results",
+            sessionId = SESSION_ID,
+            expectedFiles = emptyList(),
+            expectedFilesAreComplete = false,
+            outputsExpected = true,
+        )
 
         assertThat(outputs.paths).containsExactly("mediumPhone/junit.xml")
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL, SETTLE_INTERVAL)
@@ -126,7 +174,13 @@ class SessionStorageTest {
     fun `stops waiting for a session whose tests ran once its outputs stop changing, whichever they are`() {
         upload("mediumPhone/execution-000/junit.xml", "<testsuites/>")
 
-        val outputs = sessionStorage.listOutputs("results", SESSION_ID, expectedFiles = emptyList(), outputsExpected = true)
+        val outputs = sessionStorage.listOutputs(
+            bucket = "results",
+            sessionId = SESSION_ID,
+            expectedFiles = emptyList(),
+            expectedFilesAreComplete = false,
+            outputsExpected = true,
+        )
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml")
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
@@ -135,7 +189,13 @@ class SessionStorageTest {
 
     @Test
     fun `warns after a minute when a session whose tests ran has no outputs`() {
-        val outputs = sessionStorage.listOutputs("results", SESSION_ID, expectedFiles = emptyList(), outputsExpected = true)
+        val outputs = sessionStorage.listOutputs(
+            bucket = "results",
+            sessionId = SESSION_ID,
+            expectedFiles = emptyList(),
+            expectedFilesAreComplete = false,
+            outputsExpected = true,
+        )
 
         assertThat(outputs.paths).isEmpty()
         assertThat(clock.sleeps).hasSize(12).containsOnly(SETTLE_INTERVAL)
@@ -144,7 +204,13 @@ class SessionStorageTest {
 
     @Test
     fun `settles at once on no outputs of a session whose tests did not run`() {
-        val outputs = sessionStorage.listOutputs("results", SESSION_ID, expectedFiles = emptyList(), outputsExpected = false)
+        val outputs = sessionStorage.listOutputs(
+            bucket = "results",
+            sessionId = SESSION_ID,
+            expectedFiles = emptyList(),
+            expectedFilesAreComplete = false,
+            outputsExpected = false,
+        )
 
         assertThat(outputs.paths).isEmpty()
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
@@ -198,6 +264,7 @@ class SessionStorageTest {
             bucket = "results",
             sessionId = SESSION_ID,
             expectedFiles = listOf(sessionFile("mediumPhone/execution-000/logcat.txt")),
+            expectedFilesAreComplete = false,
             outputsExpected = true,
         )
         val artifacts = sessionStorage.mirror(outputs.withoutDeviceLogs, mirrorRoot)
@@ -221,7 +288,13 @@ class SessionStorageTest {
     }
 
     private fun mirror(expectedPaths: List<String>): List<MirroredArtifact> {
-        val outputs = sessionStorage.listOutputs("results", SESSION_ID, expectedPaths.map(::sessionFile), outputsExpected = true)
+        val outputs = sessionStorage.listOutputs(
+            bucket = "results",
+            sessionId = SESSION_ID,
+            expectedFiles = expectedPaths.map(::sessionFile),
+            expectedFilesAreComplete = false,
+            outputsExpected = true,
+        )
         return sessionStorage.mirror(outputs, mirrorRoot)
     }
 

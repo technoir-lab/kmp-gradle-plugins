@@ -107,14 +107,19 @@ internal class DeviceRunTestRunner(
     /**
      * Lists the outputs of [session] once Device Run has uploaded the files that its reports reference and, when its tests ran to
      * completion, its first outputs, which include the job report.
+     *
+     * A final report that lists the executions of every job references every output of the session, so the outputs are complete
+     * once those files exist.
      */
     private fun listOutputs(bucket: String, session: Session): SessionOutputs {
         val resultType = session.sessionReport?.result?.resultType
+        val jobReports = session.sessionReport?.jobReports.orEmpty()
         return accessOutputs(bucket, session) {
             sessionStorage.listOutputs(
                 bucket = bucket,
                 sessionId = session.name.substringAfterLast('/'),
                 expectedFiles = referencedFiles(session),
+                expectedFilesAreComplete = jobReports.isNotEmpty() && jobReports.all { !it.executionReports.isNullOrEmpty() },
                 outputsExpected = resultType == PASSED || resultType == FAILED,
             )
         }

@@ -1,10 +1,10 @@
 package io.technoirlab.device.run.core.testrun.results
 
 import com.google.api.client.util.Sleeper
-import com.google.common.base.Stopwatch
 import com.google.common.base.Ticker
 import io.technoirlab.device.run.core.storage.GcsUri
 import io.technoirlab.device.run.core.storage.StorageManager
+import io.technoirlab.device.run.core.testrun.session.Deadline
 import io.technoirlab.device.run.core.testrun.toDisplayString
 import org.slf4j.LoggerFactory
 import java.nio.file.InvalidPathException
@@ -36,35 +36,45 @@ internal class SessionStorage(
     /**
      * Lists the outputs of session [sessionId] in [bucket] once Device Run has uploaded them.
      *
-     * Device Run uploads the outputs seconds after the session ends, and final reports can omit job and execution reports, so the
-     * session directory is listed until its outputs settle: until a listing contains the objects of [expectedFiles] below the
-     * session directory, has outputs when [outputsExpected], and equals the listing taken [SETTLE_INTERVAL] earlier. Device Run
-     * uploads the job report first, so a listing with outputs contains it when Device Run wrote one. After [SETTLE_TIMEOUT], the
+     * Device Run uploads the outputs seconds after the session ends, so the session directory is listed until it contains the
+     * objects of [expectedFiles] below it and, when [outputsExpected], any outputs; Device Run uploads the job report first, so a
+     * listing with outputs contains it when Device Run wrote one. A listing of exactly [expectedFiles] settles the outputs when
+     * they are complete, as the files that a final report with every execution references are. Final reports can omit executions,
+     * so any other listing settles them once it equals the listing taken [SETTLE_INTERVAL] earlier. After [SETTLE_TIMEOUT], the
      * last listing counts, and a warning names what it lacks. An interrupted wait throws [InterruptedException].
      *
+     * @param expectedFilesAreComplete whether [expectedFiles] name every output of the session.
      * @param outputsExpected whether the session has outputs, such as a session whose tests ran.
      */
-    fun listOutputs(bucket: String, sessionId: String, expectedFiles: Collection<GcsUri>, outputsExpected: Boolean): SessionOutputs {
+    fun listOutputs(
+        bucket: String,
+        sessionId: String,
+        expectedFiles: Collection<GcsUri>,
+        expectedFilesAreComplete: Boolean,
+        outputsExpected: Boolean,
+    ): SessionOutputs {
         val directory = outputDirectory(bucket) / sessionId
         val prefix = "${directory.objectName}/"
         val expectedPaths = expectedFiles
             .filter { it.bucket == bucket && it.objectName.startsWith(prefix) }
             .map { it.objectName.removePrefix(prefix) }
             .toSet()
-        val wait = Stopwatch.createStarted(ticker)
+        val deadline = Deadline(SETTLE_TIMEOUT, ticker)
         var previous: Set<String>? = null
         while (true) {
             val listing = storageManager.listObjectNames(bucket, prefix).map { it.removePrefix(prefix) }
-            val missing = expectedPaths - listing.toSet()
+            val listed = listing.toSet()
+            val missing = expectedPaths - listed
             val complete = missing.isEmpty() && (listing.isNotEmpty() || !outputsExpected)
-            if (complete && listing.toSet() == previous) {
+            val settled = listed == previous || expectedFilesAreComplete && listed == expectedPaths
+            if (complete && settled) {
                 return SessionOutputs(directory, listing)
             }
-            if (wait.elapsed() >= SETTLE_TIMEOUT) {
+            if (deadline.hasPassed()) {
                 reportUnsettled(sessionId, missing, listing.isEmpty() && outputsExpected)
                 return SessionOutputs(directory, listing)
             }
-            previous = listing.toSet()
+            previous = listed
             sleeper.sleep(SETTLE_INTERVAL.toMillis())
         }
     }
@@ -123,6 +133,7 @@ internal class SessionStorage(
         private const val SESSIONS_DIRECTORY = "automation/sessions"
 
         // Device Run uploaded the outputs of each of 84 observed sessions in one burst, with at most 3 seconds between objects.
+        // Final reports that listed every execution referenced exactly the outputs of each of 91 observed sessions.
         private val SETTLE_INTERVAL = Duration.ofSeconds(5)
         private val SETTLE_TIMEOUT = Duration.ofMinutes(1)
     }

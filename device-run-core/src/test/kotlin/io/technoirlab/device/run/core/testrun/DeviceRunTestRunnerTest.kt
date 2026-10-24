@@ -163,10 +163,25 @@ class DeviceRunTestRunnerTest {
 
         val passed = runner.runTests(request)
 
+        // The report lists every execution, so the first listing of every file that it references is final.
         assertThat(passed).isTrue()
         assertThat(request.resultsDirectory / "device-run" / JOB_REPORT_PATH).content().isEqualTo(JOB_REPORT)
         assertThat(request.resultsDirectory / "device-run" / EXECUTION_REPORT_PATH).content().isEqualTo(EXECUTION_REPORT)
-        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL, SETTLE_INTERVAL)
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL)
+    }
+
+    @Test
+    fun `reports an interrupted wait for the outputs as an interruption`() {
+        clock.interruptNextSleep()
+        val request = request()
+
+        val failure = catchThrowable { runner.runTests(request) }
+        val interrupted = Thread.interrupted()
+
+        assertThat(failure).isInstanceOf(InterruptedException::class.java)
+        assertThat(interrupted).isFalse()
+        assertThat(cloud.requests).containsOnlyOnce(FakeCloudTransport.Request("GET", FakeCloudTransport.STORAGE_HOST, OBJECT_LISTING_PATH))
+        assertThat(request.resultsDirectory / "device-run").doesNotExist()
     }
 
     @ParameterizedTest
@@ -357,6 +372,7 @@ class DeviceRunTestRunnerTest {
 
     private companion object {
         private const val BUCKET = "example-bucket"
+        private const val OBJECT_LISTING_PATH = "/storage/v1/b/$BUCKET/o"
         private const val TIMEOUT_SECONDS = 10L
         private val SETTLE_INTERVAL = Duration.ofSeconds(5)
         private const val JOB_REPORT_PATH = "mediumPhone/junit.xml"

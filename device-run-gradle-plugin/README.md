@@ -481,9 +481,11 @@ Test tasks write their results to the AGP results directory of the device, such 
   `capture` keeps.
 - `device-run-session.json`: the project and name of the session.
 
-Device Run uploads the session outputs in the seconds after the session ends. The plugin downloads them once two listings 5 seconds
-apart match and contain the files that the session reports name, and, when the tests ran, at least one output, since Device Run
-uploads the job report first. After a minute, it downloads the outputs that exist and warns about the missing ones.
+Device Run uploads the session outputs in the seconds after the session ends. The plugin downloads them once a listing contains the
+files that the session reports name, and, when the tests ran, at least one output, since Device Run uploads the job report first.
+When the reports list every execution, the files that they name are all the outputs, so a listing of exactly those files is enough;
+otherwise, two listings 5 seconds apart must also match. After a minute, it downloads the outputs that exist and warns about the
+missing ones.
 
 `TEST-<device>.xml` reports retries as Maven Surefire does. A test that failed in some attempts and passed in others passes, is
 marked `flaky="true"`, has a `<flakyFailure>` with the trace of each failed attempt, and counts toward the `flakes` of the suite. A
