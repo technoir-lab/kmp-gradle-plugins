@@ -32,8 +32,8 @@ internal data class InstrumentationLog(
     /**
      * A failure that the summary of an instrumentation run lists.
      *
-     * @property test the test as JUnit describes it, such as `fails(io.example.ExampleTest)`, `io.example.ExampleTest` for a class,
-     * or `(io.example.ExampleTest)` for a class that Android Test Orchestrator ran.
+     * @property test the test, described as for the failed entries, such as `fails(io.example.ExampleTest)`, or
+     * `io.example.ExampleTest` for a class event, which Android Test Orchestrator lists as `(io.example.ExampleTest)`.
      * @property firstLine the first line of the failure, such as `java.lang.IllegalStateException: Fails in @BeforeClass`.
      */
     data class SummaryFailure(

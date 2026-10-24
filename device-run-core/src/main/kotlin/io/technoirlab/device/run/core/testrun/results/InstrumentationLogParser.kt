@@ -109,28 +109,30 @@ internal class InstrumentationLogParser {
         }
 
         /**
-         * Returns how JUnit describes a test in summaries: `<test>(<class>)`, or the class for an event of the whole class, which
-         * the runner reports as the test `null`.
+         * Returns how JUnit describes a test in summaries, `<test>(<class>)`, or the class for an event of the whole class, whose
+         * test is `null`, or empty as Android Test Orchestrator describes it.
          */
-        private fun describe(className: String, test: String): String = if (test == CLASS_EVENT_TEST) className else "$test($className)"
+        private fun describe(className: String, test: String): String =
+            if (test == CLASS_EVENT_TEST || test.isEmpty()) className else "$test($className)"
 
         /**
          * Returns the number of failures that the summary of the run lists and the failures that it numbers, or null when the run
-         * printed no summary of failures.
+         * printed no readable summary of failures.
          */
         private fun summaryFailures(stream: List<String>): Pair<Int, List<InstrumentationLog.SummaryFailure>>? {
             val header = stream.indexOfFirst { SUMMARY_HEADER.matches(it) }
             if (header < 0) {
                 return null
             }
-            val count = SUMMARY_HEADER.matchEntire(stream[header])!!.groupValues[1].ifEmpty { "1" }.toInt()
+            val count = SUMMARY_HEADER.matchEntire(stream[header])!!.groupValues[1].ifEmpty { "1" }.toIntOrNull() ?: return null
             val failures = mutableListOf<InstrumentationLog.SummaryFailure>()
             var index = header + 1
             for (number in 1..count) {
                 val prefix = "$number) "
                 val entry = (index until stream.size).firstOrNull { stream[it].startsWith(prefix) } ?: break
                 val firstLine = stream.getOrNull(entry + 1)?.takeUnless { it.startsWith("${number + 1}) ") }.orEmpty()
-                failures += InstrumentationLog.SummaryFailure(stream[entry].removePrefix(prefix), firstLine)
+                val test = stream[entry].removePrefix(prefix)
+                failures += InstrumentationLog.SummaryFailure(CLASS_EVENT_SUMMARY.matchEntire(test)?.groupValues?.get(1) ?: test, firstLine)
                 index = entry + 1
             }
             return count to failures
@@ -157,6 +159,9 @@ internal class InstrumentationLogParser {
 
         // JUnit's TextListener prints "There was 1 failure:" or "There were <n> failures:".
         private val SUMMARY_HEADER = Regex("There (?:was 1 failure|were (\\d+) failures):")
+
+        // Android Test Orchestrator lists an event of a whole class as `(<class>)` in summaries.
+        private val CLASS_EVENT_SUMMARY = Regex("\\((.+)\\)")
 
         // The keys of the values that the parser reads, of status blocks and of the result.
         private val STATUS_KEYS = setOf(NUM_TESTS, CLASS, TEST)

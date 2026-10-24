@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.ValueSource
 import java.nio.file.Path
 import kotlin.io.path.div
 import kotlin.io.path.writeBytes
@@ -97,7 +98,7 @@ class InstrumentationLogParserTest {
         val log = parseFixture("sessions/orchestrator-class-failure/outputs/smallPhone/execution-000/instrument.log")
 
         val classFailure = InstrumentationLog.SummaryFailure(
-            test = "(io.technoirlab.device.run.fixture.FailBeforeClassTest)",
+            test = "io.technoirlab.device.run.fixture.FailBeforeClassTest",
             firstLine = "java.lang.IllegalStateException: Fails the class in @BeforeClass",
         )
         assertThat(log).isEqualTo(
@@ -114,6 +115,47 @@ class InstrumentationLogParserTest {
         )
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = ["", "null"])
+    fun `matches a failed class entry to the class that the summary of Android Test Orchestrator lists`(test: String) {
+        val log = parse(
+            """
+            INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.FailBeforeClassTest
+            INSTRUMENTATION_STATUS: numtests=1
+            INSTRUMENTATION_STATUS: test=$test
+            INSTRUMENTATION_STATUS_CODE: 1
+            INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.FailBeforeClassTest
+            INSTRUMENTATION_STATUS: numtests=1
+            INSTRUMENTATION_STATUS: test=$test
+            INSTRUMENTATION_STATUS_CODE: -2
+            INSTRUMENTATION_RESULT: stream=
+            There was 1 failure:
+            1) (io.technoirlab.device.run.fixture.FailBeforeClassTest)
+            java.lang.IllegalStateException: Fails the class in @BeforeClass
+            INSTRUMENTATION_CODE: -1
+            """.trimIndent(),
+        )
+
+        assertThat(log?.failedEntries).containsExactly("io.technoirlab.device.run.fixture.FailBeforeClassTest")
+        assertThat(log?.summaryFailures).extracting<String> { it.test }.containsExactlyElementsOf(log?.failedEntries)
+    }
+
+    @Test
+    fun `ignores a summary whose failure count is out of range`() {
+        val log = parse(
+            """
+            INSTRUMENTATION_RESULT: stream=
+            There were 99999999999 failures:
+            1) logsIn(com.example.LoginTest)
+            java.lang.AssertionError
+            INSTRUMENTATION_CODE: -1
+            """.trimIndent(),
+        )
+
+        assertThat(log?.summaryFailureCount).isZero()
+        assertThat(log?.summaryFailures).isEmpty()
+    }
+
     @Test
     fun `reads a crash that Android Test Orchestrator reports as a failed entry before running the remaining tests`() {
         val log = parseFixture("instrument-logs/orchestrator-crash.log")
@@ -125,8 +167,8 @@ class InstrumentationLogParserTest {
         assertThat(log?.summaryFailureCount).isEqualTo(3)
         assertThat(log?.summaryFailures).extracting<String> { it.test }.containsExactly(
             "b_crashesTheProcess(io.technoirlab.device.run.fixture.CrashTest)",
-            "(io.technoirlab.device.run.fixture.FailBeforeClassTest)",
-            "(io.technoirlab.device.run.fixture.FailBeforeClassTest)",
+            "io.technoirlab.device.run.fixture.FailBeforeClassTest",
+            "io.technoirlab.device.run.fixture.FailBeforeClassTest",
         )
         assertThat(
             log?.summaryFailures?.first()?.firstLine,

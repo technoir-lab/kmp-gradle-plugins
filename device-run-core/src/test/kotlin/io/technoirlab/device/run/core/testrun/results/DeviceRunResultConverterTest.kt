@@ -294,7 +294,7 @@ class DeviceRunResultConverterTest {
 
         val results = suiteResult()
         val explanation = "The instrumentation summary of execution-000 lists 2 failures that the test results omit: " +
-            "($FIXTURE_PACKAGE.FailBeforeClassTest) java.lang.IllegalStateException: Fails the class in @BeforeClass"
+            "$FIXTURE_PACKAGE.FailBeforeClassTest java.lang.IllegalStateException: Fails the class in @BeforeClass"
         assertThat(passed).isFalse()
         assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
         assertThat(results.testResultList.map { it.testStatus }).containsExactly(TestStatus.PASSED)
