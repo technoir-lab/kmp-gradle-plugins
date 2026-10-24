@@ -232,18 +232,11 @@ internal class DeviceRunResultConverter {
     private fun report(session: Session, verdict: Verdict, deviceName: String) {
         val outcomes = verdict.outcomes.orEmpty()
         fun count(status: TestOutcome.Status) = outcomes.count { it.status == status }
-        val testVerdict = when (verdict.status) {
-            TestStatus.PASSED -> "passed"
-            TestStatus.FAILED -> "failed"
-            TestStatus.ERROR -> "ended with an error"
-            TestStatus.CANCELLED -> "were cancelled"
-            else -> "have no result"
-        }
         logger.info(
             "Device Run session {} finished with {}, and the tests {}: {} tests, {} passed ({} flaky), {} failed, {} errors, {} skipped.",
             session.name,
             session.sessionReport?.result?.resultType ?: "no result",
-            testVerdict,
+            verdict.status.verdictPhrase,
             outcomes.size,
             count(TestOutcome.Status.PASSED),
             outcomes.count { it.flaky },
@@ -257,6 +250,18 @@ internal class DeviceRunResultConverter {
             verdict.platformFailures.forEach { logger.error("Device Run {} {}: {}", it.classification, it.reason, it.message) }
         }
     }
+
+    /**
+     * The verdict on tests of this status, phrased to follow "the tests", such as "passed".
+     */
+    private val TestStatus.verdictPhrase: String
+        get() = when (this) {
+            TestStatus.PASSED -> "passed"
+            TestStatus.FAILED -> "failed"
+            TestStatus.ERROR -> "ended with an error"
+            TestStatus.CANCELLED -> "were cancelled"
+            else -> "have no result"
+        }
 
     /**
      * Logs one warning that names the [flakyTests] of [deviceName], at most [MAX_NAMED_FLAKY_TESTS] of them, with the number of

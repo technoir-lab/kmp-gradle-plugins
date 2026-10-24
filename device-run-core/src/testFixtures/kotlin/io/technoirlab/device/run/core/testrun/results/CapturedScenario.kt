@@ -217,3 +217,11 @@ class CapturedScenario private constructor(
  */
 private fun sessionDirectory(session: Session): GcsUri =
     GcsUri.parse(session.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path) / session.name.substringAfterLast('/')
+
+/**
+ * Returns the path of this object below [directory], which [GcsUri.div] joins to it, or null when the object lies elsewhere.
+ */
+private fun GcsUri.relativeTo(directory: GcsUri): String? {
+    val prefix = "${directory.objectName.removeSuffix("/")}/"
+    return objectName.removePrefix(prefix).takeIf { bucket == directory.bucket && objectName.startsWith(prefix) }
+}

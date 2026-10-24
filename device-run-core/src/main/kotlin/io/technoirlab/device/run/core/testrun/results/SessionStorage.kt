@@ -55,7 +55,10 @@ internal class SessionStorage(
     ): SessionOutputs {
         val directory = outputDirectory(bucket) / sessionId
         val prefix = "${directory.objectName}/"
-        val expectedPaths = expectedFiles.mapNotNull { it.relativeTo(directory) }.toSet()
+        val expectedPaths = expectedFiles
+            .filter { it.bucket == bucket && it.objectName.startsWith(prefix) }
+            .map { it.objectName.removePrefix(prefix) }
+            .toSet()
         val deadline = Deadline(SETTLE_TIMEOUT, ticker)
         var previous: Set<String>? = null
         while (true) {
