@@ -334,6 +334,18 @@ class DeviceRunTestRunnerTest {
     }
 
     @Test
+    fun `passes a session that failed only because no attempt passed every test, whatever other directories its job has`() {
+        replayFlakyShardSession()
+        cloud.sessionOutputs += "mediumPhone/coverage/coverage.ec" to "coverage"
+        val request = request()
+
+        val passed = runner.runTests(request)
+
+        assertThat(passed).isTrue()
+        assertThat(request.resultsDirectory / "device-run/mediumPhone/coverage/coverage.ec").exists()
+    }
+
+    @Test
     fun `submits sessions that share a smart sharding timing record without waiting for each other`() {
         // The barrier opens only while both sessions are being submitted at the same time.
         val submissions = CyclicBarrier(2)

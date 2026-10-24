@@ -12,10 +12,10 @@ import kotlin.io.path.name
  * `execution-000-rerun-000`.
  *
  * The final session report can omit executions, and Device Run can leave an execution without outputs, so the executions are
- * those that either the report lists or the mirrored outputs contain. They also provide the device log and the start time of each
- * test that exactly one execution ran. When the report of an execution with outputs is missing or malformed, which executions ran a
- * test is unknown, so device logs stay attached to the suite only and tests take the start time of the session. Executions are
- * never ordered by name.
+ * those that the report lists and those whose directories among the mirrored outputs are named like executions, `execution-NNN`
+ * or `execution-NNN-rerun-MMM`. They also provide the device log and the start time of each test that exactly one execution ran.
+ * When the report of an execution with outputs is missing or malformed, which executions ran a test is unknown, so device logs
+ * stay attached to the suite only and tests take the start time of the session. Executions are never ordered by name.
  */
 internal class JobExecutions(
     session: Session,
@@ -34,16 +34,17 @@ internal class JobExecutions(
     val executions: List<JobExecution>
 
     init {
-        val outputsByExecution = artifacts
-            .filter { it.relativePath.startsWith("$jobDirectory/") }
-            .groupBy { it.relativePath.removePrefix("$jobDirectory/").substringBefore('/', missingDelimiterValue = "") }
-            .filterKeys { it.isNotEmpty() }
         // The final report can omit job reports, and with them the executions.
         val entriesByExecution = session.sessionReport?.jobReports.orEmpty()
             .filter { it.displayName == jobDirectory }
             .flatMap { it.executionReports.orEmpty() }
             .filter { it.displayName != null }
             .associateBy { it.displayName }
+        // Other directories of the job, such as any that Device Run adds in the future, are not executions.
+        val outputsByExecution = artifacts
+            .filter { it.relativePath.startsWith("$jobDirectory/") }
+            .groupBy { it.relativePath.removePrefix("$jobDirectory/").substringBefore('/', missingDelimiterValue = "") }
+            .filterKeys { it in entriesByExecution || EXECUTION.matches(it) }
         executions = (outputsByExecution.keys + entriesByExecution.keys).map { name ->
             execution(name, entriesByExecution[name], outputsByExecution[name].orEmpty())
         }
@@ -102,6 +103,7 @@ internal class JobExecutions(
     }
 
     private companion object {
+        private val EXECUTION = Regex("execution-\\d+(?:-rerun-\\d+)?")
         private val SHARD_RETRY = Regex("(.+)-rerun-\\d+")
     }
 }
