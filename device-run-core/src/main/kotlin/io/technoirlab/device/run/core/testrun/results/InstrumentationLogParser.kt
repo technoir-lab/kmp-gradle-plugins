@@ -28,7 +28,6 @@ internal class InstrumentationLogParser {
      * Reads the lines of an instrumentation log in order, keeping only the values that it uses.
      */
     private class OutputReader {
-        private val entryCodes = mutableListOf<Int>()
         private val failedEntries = mutableListOf<String>()
         private val result = mutableMapOf<String, StringBuilder>()
         private var status = mutableMapOf<String, StringBuilder>()
@@ -37,6 +36,7 @@ internal class InstrumentationLogParser {
         private var continuedValue: StringBuilder? = null
         private var plannedTests: Int? = null
         private var resultCode: Int? = null
+        private var startedEntries = 0
         private var classEntries = 0
         private var isClassEntryOpen = false
         private var isInstrumentationOutput = false
@@ -60,17 +60,17 @@ internal class InstrumentationLogParser {
                 return null
             }
             val shortMessage = result[SHORT_MESSAGE]?.toString()
-            val summary = summaryFailures(result[STREAM]?.lines().orEmpty())
+            val (summaryFailureCount, summaryFailures) = summaryFailures(result[STREAM]?.lines().orEmpty())
             return InstrumentationLog(
                 plannedTests = plannedTests,
-                startedEntries = entryCodes.count { it == STARTED },
+                startedEntries = startedEntries,
                 // A class event that never ended, such as one that crashed the process, stands for its tests too.
                 classEntries = classEntries + if (isClassEntryOpen) 1 else 0,
                 failedEntries = failedEntries.toList(),
                 endedNormally = resultCode == RESULT_OK && shortMessage == null,
                 endMessage = shortMessage,
-                summaryFailureCount = summary?.first ?: 0,
-                summaryFailures = summary?.second.orEmpty(),
+                summaryFailureCount = summaryFailureCount,
+                summaryFailures = summaryFailures,
             )
         }
 
@@ -89,19 +89,19 @@ internal class InstrumentationLogParser {
             val test = status[TEST]?.toString()?.trim().orEmpty()
             when (code) {
                 null -> {}
-                STARTED -> isClassEntryOpen = test == CLASS_EVENT_TEST
+                STARTED -> {
+                    startedEntries++
+                    isClassEntryOpen = test == CLASS_EVENT_TEST
+                }
                 else -> {
                     if (test == CLASS_EVENT_TEST && code != IGNORED) {
                         classEntries++
                     }
+                    if (code == FAILED) {
+                        failedEntries += describe(status[CLASS]?.toString()?.trim().orEmpty(), test)
+                    }
                     isClassEntryOpen = false
                 }
-            }
-            if (code != null) {
-                entryCodes += code
-            }
-            if (code == FAILED) {
-                failedEntries += describe(status[CLASS]?.toString()?.trim().orEmpty(), test)
             }
             status = mutableMapOf()
             continuedValue = null
@@ -116,15 +116,14 @@ internal class InstrumentationLogParser {
             if (test == CLASS_EVENT_TEST || test.isEmpty()) className else "$test($className)"
 
         /**
-         * Returns the number of failures that the summary of the run lists and the failures that it numbers, or null when the run
-         * printed no readable summary of failures.
+         * Returns the number of failures that the summary of the run lists and the failures that it numbers, or no failures when the
+         * run printed no readable summary of failures.
          */
-        private fun summaryFailures(stream: List<String>): Pair<Int, List<InstrumentationLog.SummaryFailure>>? {
-            val header = stream.indexOfFirst { SUMMARY_HEADER.matches(it) }
-            if (header < 0) {
-                return null
-            }
-            val count = SUMMARY_HEADER.matchEntire(stream[header])!!.groupValues[1].ifEmpty { "1" }.toIntOrNull() ?: return null
+        private fun summaryFailures(stream: List<String>): Pair<Int, List<InstrumentationLog.SummaryFailure>> {
+            val (header, match) = stream.withIndex()
+                .firstNotNullOfOrNull { (index, line) -> SUMMARY_HEADER.matchEntire(line)?.let { index to it } }
+                ?: return 0 to emptyList()
+            val count = match.groupValues[1].ifEmpty { "1" }.toIntOrNull() ?: return 0 to emptyList()
             val failures = mutableListOf<InstrumentationLog.SummaryFailure>()
             var index = header + 1
             for (number in 1..count) {
