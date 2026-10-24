@@ -169,7 +169,17 @@ class DeviceRunContractTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["shard-retry-failed", "retry-outcomes", "crash-tests-lost", "crash-last-test", "report-without-executions"])
+    @ValueSource(
+        strings = [
+            "shard-retry-failed",
+            "retry-outcomes",
+            "crash-tests-lost",
+            "crash-last-test",
+            "report-without-executions",
+            "multiple-failures",
+            "class-level-crash-last",
+        ],
+    )
     fun `job reports roll up the attempts of each test into one test case`(scenario: String) {
         val jobReport = parseXml("sessions/$scenario/outputs/smallPhone/junit.xml")
         val attempts = attemptReports(scenario)
@@ -246,6 +256,54 @@ class DeviceRunContractTest {
         assertThat(crashed.statusValues("numtests")).containsOnly("2")
         assertThat(crashed.count { it == "INSTRUMENTATION_STATUS_CODE: 1" }).isEqualTo(2)
         assertThat(crashed.takeLast(2)).containsExactly("INSTRUMENTATION_RESULT: shortMsg=Process crashed.", "INSTRUMENTATION_CODE: 0")
+    }
+
+    @Test
+    fun `instrumentation summaries list each failure of a test, while the runner reports the test once`() {
+        val session = parseDeviceRunFixture<Session>("sessions/multiple-failures/session-full.json")
+        val log = instrumentLog("sessions/multiple-failures/outputs/smallPhone/execution-000/instrument.log")
+        val executionReport = parseXml("sessions/multiple-failures/outputs/smallPhone/execution-000/junit.xml")
+
+        assertThat(log.count { it == "INSTRUMENTATION_STATUS_CODE: -2" }).isEqualTo(2)
+        assertThat(log).containsSubsequence(
+            "There were 4 failures:",
+            "1) failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)",
+            "2) failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)",
+            "3) collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)",
+            "4) collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)",
+            "FAILURES!!!",
+        )
+        // The reports keep the last failure of each test, which the runner reported.
+        assertThat(executionReport.testCases().map { it.failures() }).containsExactly(
+            listOf(
+                "java.lang.IllegalStateException: Fails in @After unless the retry is reduced: test=@After reduced=false args=[]\n" +
+                    "\tat io.technoirlab.device.run.fixture.AfterFailureTest.failUnlessReduced(AfterFailureTest.java:15)",
+            ),
+            listOf(
+                "java.lang.AssertionError: Second collected error\n" +
+                    "\tat io.technoirlab.device.run.fixture.ErrorCollectorTest.collectsTwoErrorsUnlessReduced(ErrorCollectorTest.java:18)",
+            ),
+            emptyList(),
+        )
+        assertThat(session.sessionReport.result.resultType).isEqualTo("PASSED")
+    }
+
+    @Test
+    fun `a class event stands for several planned tests in a run that crashed in its last test`() {
+        val session = parseDeviceRunFixture<Session>("sessions/class-level-crash-last/session-full.json")
+        val crashed = instrumentLog("sessions/class-level-crash-last/outputs/smallPhone/execution-000/instrument.log")
+        val jobReport = parseXml("sessions/class-level-crash-last/outputs/smallPhone/junit.xml")
+
+        assertThat(crashed.statusValues("numtests")).containsOnly("4")
+        assertThat(crashed.count { it == "INSTRUMENTATION_STATUS_CODE: 1" }).isEqualTo(3)
+        assertThat(crashed.statusValues("test").distinct()).containsExactly("null", "a_passes", "b_crashesUnlessReduced")
+        assertThat(crashed.takeLast(2)).containsExactly("INSTRUMENTATION_RESULT: shortMsg=Process crashed.", "INSTRUMENTATION_CODE: 0")
+        assertThat(jobReport.testCaseNames()).containsExactly(
+            "io.technoirlab.device.run.fixture.AssumeBeforeClassTest#null",
+            "io.technoirlab.device.run.fixture.CrashLastTest#a_passes",
+            "io.technoirlab.device.run.fixture.CrashLastTest#b_crashesUnlessReduced",
+        )
+        assertThat(session.sessionReport.result.resultType).isEqualTo("PASSED")
     }
 
     @Test
@@ -371,6 +429,8 @@ class DeviceRunContractTest {
             "crash-last-test",
             "orchestrator-class-failure",
             "report-without-executions",
+            "multiple-failures",
+            "class-level-crash-last",
         )
 
         @JvmStatic

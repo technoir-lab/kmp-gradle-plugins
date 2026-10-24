@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name='' hostname='localhost' tests='3' failures='1' skipped='1' errors='0' time='0.042' timestamp='2026-10-24T05:17:53'>
+    <properties />
+    <testcase name='null' classname='io.technoirlab.device.run.fixture.AssumeBeforeClassTest' time='0.0'>
+      <skipped>org.junit.AssumptionViolatedException: Skips the class in @BeforeClass
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at io.technoirlab.device.run.fixture.AssumeBeforeClassTest.skipClass(AssumeBeforeClassTest.java:13)
+
+      </skipped>
+    </testcase>
+    <testcase name='a_passes' classname='io.technoirlab.device.run.fixture.CrashLastTest' time='0.0' />
+    <testcase name='b_crashesUnlessReduced' classname='io.technoirlab.device.run.fixture.CrashLastTest' time='0.042'>
+      <failure>java.lang.IllegalStateException: Crashes the instrumentation process in the last test: test=b_crashesUnlessReduced reduced=false args=[]
+	at io.technoirlab.device.run.fixture.CrashLastTest.lambda$b_crashesUnlessReduced$0(CrashLastTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashLastTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1012)
+
+      </failure>
+    </testcase>
+  </testsuite>
+</testsuites>
