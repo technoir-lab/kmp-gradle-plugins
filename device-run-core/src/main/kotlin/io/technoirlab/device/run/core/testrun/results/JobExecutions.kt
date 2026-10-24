@@ -61,12 +61,16 @@ internal class JobExecutions(
     }
 
     /**
-     * Returns the device log among [artifacts] of the only execution that ran [outcome], if it was downloaded.
+     * Returns the device logs among [artifacts] by the key of each test that exactly one execution ran, for the executions whose
+     * device log was downloaded.
      */
-    fun logsOf(outcome: TestOutcome, artifacts: List<MirroredArtifact>): List<ResultArtifact> {
-        val execution = executionByTest[outcome.key] ?: return emptyList()
-        val logcat = artifacts.find { it.relativePath == "$jobDirectory/${execution.name}/${JobExecution.LOGCAT}" } ?: return emptyList()
-        return listOf(ResultArtifact("logcat", logcat.path, "text/plain"))
+    fun deviceLogs(artifacts: List<MirroredArtifact>): Map<String, List<ResultArtifact>> {
+        val artifactsByPath = artifacts.associateBy { it.relativePath }
+        return executionByTest.entries.mapNotNull { (test, execution) ->
+            artifactsByPath["$jobDirectory/${execution.name}/${JobExecution.LOGCAT}"]?.let { logcat ->
+                test to listOf(ResultArtifact("logcat", logcat.path, "text/plain"))
+            }
+        }.toMap()
     }
 
     /**

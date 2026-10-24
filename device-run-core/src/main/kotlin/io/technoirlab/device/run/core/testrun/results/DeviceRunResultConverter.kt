@@ -88,12 +88,13 @@ internal class DeviceRunResultConverter {
             val reportFile = context.resultsDirectory / "TEST-${context.deviceName}.xml"
             reportWriter.write(reportFile, verdict.outcomes, context.reportProperties, verdict.time)
         }
+        val deviceLogs = verdict.executions.deviceLogs(artifacts)
         val suiteResult = suiteResultFactory.create(
             suiteName = context.deviceName,
             deviceInfo = deviceInfoFile,
             status = verdict.status,
             tests = verdict.outcomes.orEmpty().map { outcome ->
-                ExecutedTest(outcome, verdict.executions.startTimeOf(outcome), verdict.executions.logsOf(outcome, artifacts))
+                ExecutedTest(outcome, verdict.executions.startTimeOf(outcome), deviceLogs[outcome.key].orEmpty())
             },
             artifacts = artifacts.map { resultArtifact(it, verdict.jobReportPath) },
             platformFailures = verdict.platformFailures,
