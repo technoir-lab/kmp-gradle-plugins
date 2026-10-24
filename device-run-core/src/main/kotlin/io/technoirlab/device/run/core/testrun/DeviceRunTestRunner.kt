@@ -106,7 +106,7 @@ internal class DeviceRunTestRunner(
 
     /**
      * Lists the outputs of [session] once Device Run has uploaded the files that its reports reference and, when its tests ran to
-     * completion, its first outputs, which include the job report.
+     * completion, outputs of its executions, which come after the job report.
      *
      * A final report that lists the executions of every job references every output of the session, so the outputs are complete
      * once those files exist.
@@ -120,7 +120,7 @@ internal class DeviceRunTestRunner(
                 sessionId = session.name.substringAfterLast('/'),
                 expectedFiles = referencedFiles(session),
                 expectedFilesAreComplete = jobReports.isNotEmpty() && jobReports.all { !it.executionReports.isNullOrEmpty() },
-                outputsExpected = resultType == PASSED || resultType == FAILED,
+                executionOutputsExpected = resultType == PASSED || resultType == FAILED,
             )
         }
     }

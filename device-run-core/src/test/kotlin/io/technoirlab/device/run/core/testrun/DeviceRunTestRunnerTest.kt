@@ -47,7 +47,9 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.writeText
 
 class DeviceRunTestRunnerTest {
-    private val cloud = FakeCloudTransport().apply { sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT) }
+    private val cloud = FakeCloudTransport().apply {
+        sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, EXECUTION_REPORT_PATH to EXECUTION_REPORT)
+    }
     private val clock = VirtualClock()
     private val logs = recordLogs()
     private val location = DeviceRunLocation(StubCloudConnector.QUOTA_PROJECT_ID)
@@ -225,6 +227,18 @@ class DeviceRunTestRunnerTest {
         assertThat(passed).isTrue()
         assertThat(request.resultsDirectory / "device-run/mediumPhone/execution-000-rerun-001/instrument.log").exists()
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL)
+    }
+
+    @Test
+    fun `passes a session that failed only because no attempt passed every test, once its executions arrive after its job report`() {
+        replayFlakyShardSession()
+        cloud.outputUploadListings = cloud.sessionOutputs.keys.filter { it.count { char -> char == '/' } > 1 }.associateWith { 2 }
+
+        val passed = runner.runTests(request())
+
+        // Listings of the job report alone do not settle the outputs, without which the failed session would stay unexplained.
+        assertThat(passed).isTrue()
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL, SETTLE_INTERVAL)
     }
 
     @Test

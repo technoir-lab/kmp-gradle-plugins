@@ -37,21 +37,21 @@ internal class SessionStorage(
      * Lists the outputs of session [sessionId] in [bucket] once Device Run has uploaded them.
      *
      * Device Run uploads the outputs seconds after the session ends, so the session directory is listed until it contains the
-     * objects of [expectedFiles] below it and, when [outputsExpected], any outputs; Device Run uploads the job report first, so a
-     * listing with outputs contains it when Device Run wrote one. A listing of exactly [expectedFiles] settles the outputs when
-     * they are complete, as the files that a final report with every execution references are. Final reports can omit executions,
-     * so any other listing settles them once it equals the listing taken [SETTLE_INTERVAL] earlier. After [SETTLE_TIMEOUT], the
-     * last listing counts, and a warning names what it lacks. An interrupted wait throws [InterruptedException].
+     * objects of [expectedFiles] below it and, when [executionOutputsExpected], outputs of an execution, which Device Run uploads
+     * after the job report. A listing of exactly [expectedFiles] settles the outputs when they are complete, as the files that a
+     * final report with every execution references are. Final reports can omit executions, so any other listing settles them
+     * once it equals the listing taken [SETTLE_INTERVAL] earlier. After [SETTLE_TIMEOUT], the last listing counts, and a warning
+     * names what it lacks and where Device Run may still upload it. An interrupted wait throws [InterruptedException].
      *
      * @param expectedFilesAreComplete whether [expectedFiles] name every output of the session.
-     * @param outputsExpected whether the session has outputs, such as a session whose tests ran.
+     * @param executionOutputsExpected whether the executions of the session have outputs, as when its tests ran.
      */
     fun listOutputs(
         bucket: String,
         sessionId: String,
         expectedFiles: Collection<GcsUri>,
         expectedFilesAreComplete: Boolean,
-        outputsExpected: Boolean,
+        executionOutputsExpected: Boolean,
     ): SessionOutputs {
         val directory = outputDirectory(bucket) / sessionId
         val prefix = "${directory.objectName}/"
@@ -65,13 +65,14 @@ internal class SessionStorage(
             val listing = storageManager.listObjectNames(bucket, prefix).map { it.removePrefix(prefix) }
             val listed = listing.toSet()
             val missing = expectedPaths - listed
-            val complete = missing.isEmpty() && (listing.isNotEmpty() || !outputsExpected)
+            val lacksExecutionOutputs = executionOutputsExpected && listing.none(::isExecutionOutput)
+            val complete = missing.isEmpty() && !lacksExecutionOutputs
             val settled = listed == previous || expectedFilesAreComplete && listed == expectedPaths
             if (complete && settled) {
                 return SessionOutputs(directory, listing)
             }
             if (deadline.hasPassed()) {
-                reportUnsettled(sessionId, missing, listing.isEmpty() && outputsExpected)
+                reportUnsettled(sessionId, directory, missing, lacksExecutionOutputs)
                 return SessionOutputs(directory, listing)
             }
             previous = listed
@@ -90,19 +91,34 @@ internal class SessionStorage(
         return outputs.paths.mapNotNull { relativePath -> mirror(outputs.directory / relativePath, relativePath, root) }
     }
 
-    private fun reportUnsettled(sessionId: String, missing: Set<String>, noOutputs: Boolean) {
+    /**
+     * Returns whether the object at [relativePath] below a session directory is an output of an execution, which Device Run nests
+     * in the directory of its job.
+     */
+    private fun isExecutionOutput(relativePath: String): Boolean = '/' in relativePath.substringAfter('/', missingDelimiterValue = "")
+
+    private fun reportUnsettled(sessionId: String, directory: GcsUri, missing: Set<String>, lacksExecutionOutputs: Boolean) {
         when {
             missing.isNotEmpty() -> logger.warn(
-                "Device Run did not upload {} of session {} within {}, so the results lack them.",
+                "Device Run did not upload {} of session {} within {}, so the results lack them; it may still upload them to {}.",
                 missing.sorted().joinToString(),
                 sessionId,
                 SETTLE_TIMEOUT.toDisplayString(),
+                directory,
             )
-            noOutputs -> logger.warn("Device Run uploaded no outputs of session {} within {}.", sessionId, SETTLE_TIMEOUT.toDisplayString())
-            else -> logger.warn(
-                "Device Run was still uploading the outputs of session {} after {}, so the results can lack some of them.",
+            lacksExecutionOutputs -> logger.warn(
+                "Device Run uploaded no outputs of the executions of session {} within {}, so the results lack them; it may still " +
+                    "upload them to {}.",
                 sessionId,
                 SETTLE_TIMEOUT.toDisplayString(),
+                directory,
+            )
+            else -> logger.warn(
+                "Device Run was still uploading the outputs of session {} after {}, so the results can lack some of them; it may " +
+                    "still upload them to {}.",
+                sessionId,
+                SETTLE_TIMEOUT.toDisplayString(),
+                directory,
             )
         }
     }

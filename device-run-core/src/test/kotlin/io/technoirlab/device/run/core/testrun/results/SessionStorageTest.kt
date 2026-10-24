@@ -71,7 +71,7 @@ class SessionStorageTest {
             sessionId = SESSION_ID,
             expectedFiles = expectedFiles,
             expectedFilesAreComplete = false,
-            outputsExpected = false,
+            executionOutputsExpected = false,
         )
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml", "mediumPhone/junit.xml")
@@ -114,7 +114,7 @@ class SessionStorageTest {
         assertThat(logs.entries).containsExactly(
             Level.WARN to
                 "Device Run did not upload mediumPhone/execution-000/logcat.txt, mediumPhone/junit.xml of session $SESSION_ID within " +
-                "1m, so the results lack them.",
+                "1m, so the results lack them; it may still upload them to gs://results/$SESSION_DIRECTORY.",
         )
     }
 
@@ -129,7 +129,7 @@ class SessionStorageTest {
             sessionId = SESSION_ID,
             expectedFiles = expectedFiles,
             expectedFilesAreComplete = true,
-            outputsExpected = true,
+            executionOutputsExpected = true,
         )
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml", "mediumPhone/junit.xml")
@@ -147,7 +147,7 @@ class SessionStorageTest {
             sessionId = SESSION_ID,
             expectedFiles = expectedFiles,
             expectedFilesAreComplete = true,
-            outputsExpected = true,
+            executionOutputsExpected = true,
         )
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-001/junit.xml", "mediumPhone/junit.xml")
@@ -155,18 +155,19 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `waits for the first outputs of a session whose tests ran`() {
-        upload("mediumPhone/junit.xml", "<testsuite/>", afterListings = 2)
+    fun `waits past matching listings of the job report for the outputs of an execution of a session whose tests ran`() {
+        upload("mediumPhone/junit.xml", "<testsuite/>")
+        upload("mediumPhone/execution-000/junit.xml", "<testsuites/>", afterListings = 2)
 
         val outputs = sessionStorage.listOutputs(
             bucket = "results",
             sessionId = SESSION_ID,
             expectedFiles = emptyList(),
             expectedFilesAreComplete = false,
-            outputsExpected = true,
+            executionOutputsExpected = true,
         )
 
-        assertThat(outputs.paths).containsExactly("mediumPhone/junit.xml")
+        assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml", "mediumPhone/junit.xml")
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL, SETTLE_INTERVAL)
     }
 
@@ -179,7 +180,7 @@ class SessionStorageTest {
             sessionId = SESSION_ID,
             expectedFiles = emptyList(),
             expectedFilesAreComplete = false,
-            outputsExpected = true,
+            executionOutputsExpected = true,
         )
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml")
@@ -188,18 +189,24 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `warns after a minute when a session whose tests ran has no outputs`() {
+    fun `warns after a minute when a session whose tests ran has no outputs of executions`() {
+        upload("mediumPhone/junit.xml", "<testsuite/>")
+
         val outputs = sessionStorage.listOutputs(
             bucket = "results",
             sessionId = SESSION_ID,
             expectedFiles = emptyList(),
             expectedFilesAreComplete = false,
-            outputsExpected = true,
+            executionOutputsExpected = true,
         )
 
-        assertThat(outputs.paths).isEmpty()
+        assertThat(outputs.paths).containsExactly("mediumPhone/junit.xml")
         assertThat(clock.sleeps).hasSize(12).containsOnly(SETTLE_INTERVAL)
-        assertThat(logs.entries).containsExactly(Level.WARN to "Device Run uploaded no outputs of session $SESSION_ID within 1m.")
+        assertThat(logs.entries).containsExactly(
+            Level.WARN to
+                "Device Run uploaded no outputs of the executions of session $SESSION_ID within 1m, so the results lack them; it may " +
+                "still upload them to gs://results/$SESSION_DIRECTORY.",
+        )
     }
 
     @Test
@@ -209,7 +216,7 @@ class SessionStorageTest {
             sessionId = SESSION_ID,
             expectedFiles = emptyList(),
             expectedFilesAreComplete = false,
-            outputsExpected = false,
+            executionOutputsExpected = false,
         )
 
         assertThat(outputs.paths).isEmpty()
@@ -229,7 +236,8 @@ class SessionStorageTest {
         assertThat(clock.sleeps).hasSize(12)
         assertThat(logs.entries).containsExactly(
             Level.WARN to
-                "Device Run was still uploading the outputs of session $SESSION_ID after 1m, so the results can lack some of them.",
+                "Device Run was still uploading the outputs of session $SESSION_ID after 1m, so the results can lack some of them; it " +
+                "may still upload them to gs://results/$SESSION_DIRECTORY.",
         )
     }
 
@@ -265,7 +273,7 @@ class SessionStorageTest {
             sessionId = SESSION_ID,
             expectedFiles = listOf(sessionFile("mediumPhone/execution-000/logcat.txt")),
             expectedFilesAreComplete = false,
-            outputsExpected = true,
+            executionOutputsExpected = true,
         )
         val artifacts = sessionStorage.mirror(outputs.withoutDeviceLogs, mirrorRoot)
 
@@ -293,7 +301,7 @@ class SessionStorageTest {
             sessionId = SESSION_ID,
             expectedFiles = expectedPaths.map(::sessionFile),
             expectedFilesAreComplete = false,
-            outputsExpected = true,
+            executionOutputsExpected = true,
         )
         return sessionStorage.mirror(outputs, mirrorRoot)
     }
