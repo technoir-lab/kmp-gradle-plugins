@@ -47,7 +47,7 @@ class SessionStorageTest {
         )
         assertThat(mirrorRoot / "mediumPhone/junit.xml").content().isEqualTo("<testsuite/>")
         assertThat(mirrorRoot / "mediumPhone/execution-000-rerun-000/logcat.txt").content().isEqualTo("logcat")
-        assertThat(clock.sleeps).containsExactly(Duration.ofSeconds(5))
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
         assertThat(logs.entries).containsExactly(
             Level.WARN to
                 "Skipping the Device Run artifact gs://results/automation/sessions/$SESSION_ID/../../escaped.txt because its name " +
@@ -66,16 +66,10 @@ class SessionStorageTest {
             GcsUri("other-bucket", "automation/sessions/$SESSION_ID/mediumPhone/junit.xml"),
         )
 
-        val outputs = sessionStorage.listOutputs(
-            bucket = "results",
-            sessionId = SESSION_ID,
-            expectedFiles = expectedFiles,
-            expectedFilesAreComplete = false,
-            executionOutputsExpected = false,
-        )
+        val outputs = listOutputs(expectedFiles = expectedFiles, executionOutputsExpected = false)
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml", "mediumPhone/junit.xml")
-        assertThat(clock.sleeps).containsExactly(Duration.ofSeconds(5), Duration.ofSeconds(5), Duration.ofSeconds(5))
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL, SETTLE_INTERVAL)
         assertThat(logs.entries).isEmpty()
     }
 
@@ -124,13 +118,7 @@ class SessionStorageTest {
         upload("mediumPhone/execution-000/junit.xml", "<testsuites/>")
         val expectedFiles = listOf(sessionFile("mediumPhone/junit.xml"), sessionFile("mediumPhone/execution-000/junit.xml"))
 
-        val outputs = sessionStorage.listOutputs(
-            bucket = "results",
-            sessionId = SESSION_ID,
-            expectedFiles = expectedFiles,
-            expectedFilesAreComplete = true,
-            executionOutputsExpected = true,
-        )
+        val outputs = listOutputs(expectedFiles = expectedFiles, expectedFilesAreComplete = true)
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml", "mediumPhone/junit.xml")
         assertThat(clock.sleeps).isEmpty()
@@ -142,13 +130,7 @@ class SessionStorageTest {
         upload("mediumPhone/execution-001/junit.xml", "<testsuites/>")
         val expectedFiles = listOf(sessionFile("mediumPhone/junit.xml"))
 
-        val outputs = sessionStorage.listOutputs(
-            bucket = "results",
-            sessionId = SESSION_ID,
-            expectedFiles = expectedFiles,
-            expectedFilesAreComplete = true,
-            executionOutputsExpected = true,
-        )
+        val outputs = listOutputs(expectedFiles = expectedFiles, expectedFilesAreComplete = true)
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-001/junit.xml", "mediumPhone/junit.xml")
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
@@ -159,13 +141,7 @@ class SessionStorageTest {
         upload("mediumPhone/junit.xml", "<testsuite/>")
         upload("mediumPhone/execution-000/junit.xml", "<testsuites/>", afterListings = 2)
 
-        val outputs = sessionStorage.listOutputs(
-            bucket = "results",
-            sessionId = SESSION_ID,
-            expectedFiles = emptyList(),
-            expectedFilesAreComplete = false,
-            executionOutputsExpected = true,
-        )
+        val outputs = listOutputs(executionOutputsExpected = true)
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml", "mediumPhone/junit.xml")
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL, SETTLE_INTERVAL)
@@ -175,13 +151,7 @@ class SessionStorageTest {
     fun `stops waiting for a session whose tests ran once its outputs stop changing, whichever they are`() {
         upload("mediumPhone/execution-000/junit.xml", "<testsuites/>")
 
-        val outputs = sessionStorage.listOutputs(
-            bucket = "results",
-            sessionId = SESSION_ID,
-            expectedFiles = emptyList(),
-            expectedFilesAreComplete = false,
-            executionOutputsExpected = true,
-        )
+        val outputs = listOutputs(executionOutputsExpected = true)
 
         assertThat(outputs.paths).containsExactly("mediumPhone/execution-000/junit.xml")
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
@@ -192,13 +162,7 @@ class SessionStorageTest {
     fun `warns after a minute when a session whose tests ran has no outputs of executions`() {
         upload("mediumPhone/junit.xml", "<testsuite/>")
 
-        val outputs = sessionStorage.listOutputs(
-            bucket = "results",
-            sessionId = SESSION_ID,
-            expectedFiles = emptyList(),
-            expectedFilesAreComplete = false,
-            executionOutputsExpected = true,
-        )
+        val outputs = listOutputs(executionOutputsExpected = true)
 
         assertThat(outputs.paths).containsExactly("mediumPhone/junit.xml")
         assertThat(clock.sleeps).hasSize(12).containsOnly(SETTLE_INTERVAL)
@@ -211,13 +175,7 @@ class SessionStorageTest {
 
     @Test
     fun `settles at once on no outputs of a session whose tests did not run`() {
-        val outputs = sessionStorage.listOutputs(
-            bucket = "results",
-            sessionId = SESSION_ID,
-            expectedFiles = emptyList(),
-            expectedFilesAreComplete = false,
-            executionOutputsExpected = false,
-        )
+        val outputs = listOutputs(executionOutputsExpected = false)
 
         assertThat(outputs.paths).isEmpty()
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
@@ -268,13 +226,7 @@ class SessionStorageTest {
         upload("mediumPhone/execution-000/artifacts/sdcard/logcat.txt", "pulled")
         upload("mediumPhone/execution-000/test_result.xml", "<testsuite/>")
 
-        val outputs = sessionStorage.listOutputs(
-            bucket = "results",
-            sessionId = SESSION_ID,
-            expectedFiles = listOf(sessionFile("mediumPhone/execution-000/logcat.txt")),
-            expectedFilesAreComplete = false,
-            executionOutputsExpected = true,
-        )
+        val outputs = listOutputs(expectedFiles = listOf(sessionFile("mediumPhone/execution-000/logcat.txt")))
         val artifacts = sessionStorage.mirror(outputs.withoutDeviceLogs, mirrorRoot)
 
         assertThat(artifacts).extracting<String> { it.relativePath }.containsExactly(
@@ -295,16 +247,20 @@ class SessionStorageTest {
         assertThat(mirrorRoot / "mediumPhone/junit.xml").doesNotExist()
     }
 
-    private fun mirror(expectedPaths: List<String>): List<MirroredArtifact> {
-        val outputs = sessionStorage.listOutputs(
-            bucket = "results",
-            sessionId = SESSION_ID,
-            expectedFiles = expectedPaths.map(::sessionFile),
-            expectedFilesAreComplete = false,
-            executionOutputsExpected = true,
-        )
-        return sessionStorage.mirror(outputs, mirrorRoot)
-    }
+    private fun mirror(expectedPaths: List<String>): List<MirroredArtifact> =
+        sessionStorage.mirror(listOutputs(expectedFiles = expectedPaths.map(::sessionFile)), mirrorRoot)
+
+    private fun listOutputs(
+        expectedFiles: List<GcsUri> = emptyList(),
+        expectedFilesAreComplete: Boolean = false,
+        executionOutputsExpected: Boolean = true,
+    ): SessionOutputs = sessionStorage.listOutputs(
+        bucket = "results",
+        sessionId = SESSION_ID,
+        expectedFiles = expectedFiles,
+        expectedFilesAreComplete = expectedFilesAreComplete,
+        executionOutputsExpected = executionOutputsExpected,
+    )
 
     private fun upload(relativePath: String, content: String, afterListings: Int = 0) {
         cloud.upload(sessionFile(relativePath), content, afterListings)

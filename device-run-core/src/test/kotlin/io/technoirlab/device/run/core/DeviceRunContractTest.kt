@@ -23,7 +23,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments.arguments
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.MethodSource
-import org.junit.jupiter.params.provider.ValueSource
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import java.math.BigDecimal
@@ -169,17 +168,7 @@ class DeviceRunContractTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-        strings = [
-            "shard-retry-failed",
-            "retry-outcomes",
-            "crash-tests-lost",
-            "crash-last-test",
-            "report-without-executions",
-            "multiple-failures",
-            "class-level-crash-last",
-        ],
-    )
+    @MethodSource("retriedSessions")
     fun `job reports roll up the attempts of each test into one test case`(scenario: String) {
         val jobReport = parseXml("sessions/$scenario/outputs/smallPhone/junit.xml")
         val attempts = attemptReports(scenario)
@@ -462,5 +451,9 @@ class DeviceRunContractTest {
                 arguments("sessions/$scenario/session-full.json", Session::class.java),
             )
         } + arguments("sessions/report-without-executions/objects.json", Objects::class.java)
+
+        // The orchestrator session ran a single attempt of each test, so its job report has no attempts to roll up.
+        @JvmStatic
+        fun retriedSessions() = CAPTURED_ROLLUP_SESSIONS - "orchestrator-class-failure"
     }
 }

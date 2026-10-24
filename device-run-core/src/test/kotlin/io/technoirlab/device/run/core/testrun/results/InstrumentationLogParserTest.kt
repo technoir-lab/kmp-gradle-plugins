@@ -58,16 +58,16 @@ class InstrumentationLogParserTest {
     fun `reads the failures that the summary lists along with the failed entries`() {
         val log = parseFixture("sessions/retry-outcomes/outputs/smallPhone/execution-000/instrument.log")
 
-        assertThat(log?.plannedTests).isEqualTo(7)
-        assertThat(log?.startedEntries).isEqualTo(7)
-        assertThat(log?.endedNormally).isTrue()
-        assertThat(log?.failedEntries).containsExactly(
+        assertThat(log.plannedTests).isEqualTo(7)
+        assertThat(log.startedEntries).isEqualTo(7)
+        assertThat(log.endedNormally).isTrue()
+        assertThat(log.failedEntries).containsExactly(
             "coin0(io.technoirlab.device.run.fixture.ShardCoinTest)",
             "coin2(io.technoirlab.device.run.fixture.ShardCoinTest)",
             "failsOnFirstAttempt(io.technoirlab.device.run.fixture.ShardCoinTest)",
         )
-        assertThat(log?.summaryFailureCount).isEqualTo(3)
-        assertThat(log?.summaryFailures).extracting<String> { it.test }.containsExactlyElementsOf(log?.failedEntries)
+        assertThat(log.summaryFailureCount).isEqualTo(3)
+        assertThat(log.summaryFailures).extracting<String> { it.test }.containsExactlyElementsOf(log.failedEntries)
     }
 
     @Test
@@ -136,8 +136,8 @@ class InstrumentationLogParserTest {
             """.trimIndent(),
         )
 
-        assertThat(log?.failedEntries).containsExactly("io.technoirlab.device.run.fixture.FailBeforeClassTest")
-        assertThat(log?.summaryFailures).extracting<String> { it.test }.containsExactlyElementsOf(log?.failedEntries)
+        assertThat(log.failedEntries).containsExactly("io.technoirlab.device.run.fixture.FailBeforeClassTest")
+        assertThat(log.summaryFailures).extracting<String> { it.test }.containsExactlyElementsOf(log.failedEntries)
     }
 
     @Test
@@ -152,50 +152,48 @@ class InstrumentationLogParserTest {
             """.trimIndent(),
         )
 
-        assertThat(log?.summaryFailureCount).isZero()
-        assertThat(log?.summaryFailures).isEmpty()
+        assertThat(log.summaryFailureCount).isZero()
+        assertThat(log.summaryFailures).isEmpty()
     }
 
     @Test
     fun `reads a crash that Android Test Orchestrator reports as a failed entry before running the remaining tests`() {
         val log = parseFixture("instrument-logs/orchestrator-crash.log")
 
-        assertThat(log?.plannedTests).isEqualTo(11)
-        assertThat(log?.startedEntries).isEqualTo(7)
-        assertThat(log?.endedNormally).isTrue()
-        assertThat(log?.failedEntries).containsExactly("b_crashesTheProcess(io.technoirlab.device.run.fixture.CrashTest)")
-        assertThat(log?.summaryFailureCount).isEqualTo(3)
-        assertThat(log?.summaryFailures).extracting<String> { it.test }.containsExactly(
+        assertThat(log.plannedTests).isEqualTo(11)
+        assertThat(log.startedEntries).isEqualTo(7)
+        assertThat(log.endedNormally).isTrue()
+        assertThat(log.failedEntries).containsExactly("b_crashesTheProcess(io.technoirlab.device.run.fixture.CrashTest)")
+        assertThat(log.summaryFailureCount).isEqualTo(3)
+        assertThat(log.summaryFailures).extracting<String> { it.test }.containsExactly(
             "b_crashesTheProcess(io.technoirlab.device.run.fixture.CrashTest)",
             "io.technoirlab.device.run.fixture.FailBeforeClassTest",
             "io.technoirlab.device.run.fixture.FailBeforeClassTest",
         )
-        assertThat(
-            log?.summaryFailures?.first()?.firstLine,
-        ).isEqualTo("java.lang.IllegalStateException: Crashes the instrumentation process")
+        assertThat(log.summaryFailures.first().firstLine).isEqualTo("java.lang.IllegalStateException: Crashes the instrumentation process")
     }
 
     @Test
     fun `reads a class event as an entry of the class that stands for its tests, also in a run that crashed later`() {
         val log = parseFixture("sessions/class-level-crash-last/outputs/smallPhone/execution-000/instrument.log")
 
-        assertThat(log?.plannedTests).isEqualTo(4)
-        assertThat(log?.startedEntries).isEqualTo(3)
-        assertThat(log?.classEntries).isEqualTo(1)
-        assertThat(log?.endedNormally).isFalse()
-        assertThat(log?.endMessage).isEqualTo("Process crashed.")
+        assertThat(log.plannedTests).isEqualTo(4)
+        assertThat(log.startedEntries).isEqualTo(3)
+        assertThat(log.classEntries).isEqualTo(1)
+        assertThat(log.endedNormally).isFalse()
+        assertThat(log.endMessage).isEqualTo("Process crashed.")
     }
 
     @Test
     fun `reads a test once among the failed entries, while the summary lists each of its failures`() {
         val log = parseFixture("sessions/multiple-failures/outputs/smallPhone/execution-000/instrument.log")
 
-        assertThat(log?.failedEntries).containsExactly(
+        assertThat(log.failedEntries).containsExactly(
             "failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)",
             "collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)",
         )
-        assertThat(log?.summaryFailureCount).isEqualTo(4)
-        assertThat(log?.summaryFailures).extracting<String> { it.test }.containsExactly(
+        assertThat(log.summaryFailureCount).isEqualTo(4)
+        assertThat(log.summaryFailures).extracting<String> { it.test }.containsExactly(
             "failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)",
             "failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)",
             "collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)",
@@ -209,8 +207,8 @@ class InstrumentationLogParserTest {
 
         val log = parse(text)
 
-        assertThat(log?.startedEntries).isEqualTo(1)
-        assertThat(log?.classEntries).isEqualTo(1)
+        assertThat(log.startedEntries).isEqualTo(1)
+        assertThat(log.classEntries).isEqualTo(1)
     }
 
     @ParameterizedTest
@@ -218,10 +216,10 @@ class InstrumentationLogParserTest {
     fun `reads the shards of smart sharding, which plan only their own tests`(fixture: String, plannedTests: Int) {
         val log = parseFixture(fixture)
 
-        assertThat(log?.plannedTests).isEqualTo(plannedTests)
-        assertThat(log?.endedNormally).isTrue()
-        assertThat(log?.failedEntries).isEmpty()
-        assertThat(log?.summaryFailureCount).isZero()
+        assertThat(log.plannedTests).isEqualTo(plannedTests)
+        assertThat(log.endedNormally).isTrue()
+        assertThat(log.failedEntries).isEmpty()
+        assertThat(log.summaryFailureCount).isZero()
     }
 
     @Test
@@ -231,9 +229,9 @@ class InstrumentationLogParserTest {
 
         val log = parse(text)
 
-        assertThat(log?.endedNormally).isFalse()
-        assertThat(log?.endMessage).isNull()
-        assertThat(log?.startedEntries).isEqualTo(2)
+        assertThat(log.endedNormally).isFalse()
+        assertThat(log.endMessage).isNull()
+        assertThat(log.startedEntries).isEqualTo(2)
     }
 
     @Test
@@ -250,14 +248,24 @@ class InstrumentationLogParserTest {
 
     @Test
     fun `yields no log for a missing file or a file without instrumentation output`() {
+        val placeholderFile = (tempDir / "placeholder.log").apply {
+            writeText("Placeholder for the Device Run output smallPhone/execution-000/instrument.log")
+        }
+
         val missing = parser.parse(tempDir / "missing.log")
-        val placeholder = parse("Placeholder for the Device Run output smallPhone/execution-000/instrument.log")
+        val placeholder = parser.parse(placeholderFile)
 
         assertThat(missing).isNull()
         assertThat(placeholder).isNull()
     }
 
-    private fun parseFixture(fixture: String): InstrumentationLog? = parse(deviceRunFixture(fixture))
+    private fun parseFixture(fixture: String): InstrumentationLog = parse(deviceRunFixture(fixture))
 
-    private fun parse(text: String): InstrumentationLog? = parser.parse((tempDir / "instrument.log").apply { writeText(text) })
+    /**
+     * Parses [text], which must be the output of an instrumentation run.
+     */
+    private fun parse(text: String): InstrumentationLog {
+        val log = parser.parse((tempDir / "instrument.log").apply { writeText(text) })
+        return checkNotNull(log) { "The text is not the output of an instrumentation run." }
+    }
 }
