@@ -233,8 +233,8 @@ class DeviceRunContractTest {
         assertThat(retry.statusValues("test").distinct()).containsExactly("b_crashesOnFirstAttempt")
         assertThat(retry.last()).isEqualTo("INSTRUMENTATION_CODE: -1")
         assertThat(jobReport.testCaseNames()).containsExactly(
-            "io.technoirlab.rollup.probe.CrashTest#a_passes",
-            "io.technoirlab.rollup.probe.CrashTest#b_crashesOnFirstAttempt",
+            "io.technoirlab.device.run.fixture.CrashTest#a_passes",
+            "io.technoirlab.device.run.fixture.CrashTest#b_crashesOnFirstAttempt",
         )
         assertThat(session.sessionReport.result.resultType).isEqualTo("PASSED")
     }
@@ -257,7 +257,7 @@ class DeviceRunContractTest {
         assertThat(log.statusValues("test").distinct()).containsExactly("null", "assumesInTest", "passes", "isIgnored")
         assertThat(log).containsSubsequence(
             "There was 1 failure:",
-            "1) io.technoirlab.rollup.plan.FailBeforeClassTest",
+            "1) io.technoirlab.device.run.fixture.FailBeforeClassTest",
             "java.lang.IllegalStateException: Fails the class in @BeforeClass",
             "FAILURES!!!",
             "INSTRUMENTATION_CODE: -1",
@@ -275,17 +275,17 @@ class DeviceRunContractTest {
         assertThat(session.sessionConfig.jobConfigs.single().action.androidInstrumentationTest.orchestratorVersion).isEqualTo("1.6.1")
         assertThat(log).containsSubsequence(
             "There were 2 failures:",
-            "1) (io.technoirlab.rollup.plan.FailBeforeClassTest)",
+            "1) (io.technoirlab.device.run.fixture.FailBeforeClassTest)",
             "java.lang.IllegalStateException: Fails the class in @BeforeClass",
-            "2) (io.technoirlab.rollup.plan.FailBeforeClassTest)",
+            "2) (io.technoirlab.device.run.fixture.FailBeforeClassTest)",
             "java.lang.IllegalStateException: Fails the class in @BeforeClass",
             "FAILURES!!!",
             "Tests found: 3, Tests run: 1,  Failures: 2",
             "INSTRUMENTATION_CODE: -1",
         )
         assertThat(log).doesNotContain("INSTRUMENTATION_STATUS_CODE: -2")
-        assertThat(jobReport.testCaseNames()).containsExactly("io.technoirlab.rollup.plan.PassingTest#passes")
-        assertThat(executionReport.testCaseNames()).containsExactly("io.technoirlab.rollup.plan.PassingTest#passes")
+        assertThat(jobReport.testCaseNames()).containsExactly("io.technoirlab.device.run.fixture.PassingTest#passes")
+        assertThat(executionReport.testCaseNames()).containsExactly("io.technoirlab.device.run.fixture.PassingTest#passes")
         assertThat(jobReport.getElementsByTagName("failure").length + executionReport.getElementsByTagName("failure").length).isZero()
         assertThat(execution.result.resultType).isEqualTo("FAILED")
         assertThat(execution.result.cause.summary.reason).isEqualTo("TEST_CASE_FAILURE")

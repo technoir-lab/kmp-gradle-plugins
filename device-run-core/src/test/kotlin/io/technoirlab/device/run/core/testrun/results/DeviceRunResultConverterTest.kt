@@ -173,7 +173,7 @@ class DeviceRunResultConverterTest {
         assertThat(tempDir / "mirror/mediumPhone/junit.xml").content().contains("flaky=\"true\">\n    <failure>")
         assertThat(logs.entries).contains(
             Level.WARN to "1 test of mediumPhone is flaky, failing in some attempts and passing in others: " +
-                "io.technoirlab.device.run.fixture.ProbeTest#fails unless reduced to failed tests (1 failed attempt).",
+                "$FIXTURE_PACKAGE.ProbeTest#fails unless reduced to failed tests (1 failed attempt).",
         )
     }
 
@@ -264,7 +264,7 @@ class DeviceRunResultConverterTest {
 
         val results = suiteResult()
         val explanation = "The instrumentation summary of execution-000 lists 2 failures that the test results omit: " +
-            "(io.technoirlab.rollup.plan.FailBeforeClassTest) java.lang.IllegalStateException: Fails the class in @BeforeClass"
+            "($FIXTURE_PACKAGE.FailBeforeClassTest) java.lang.IllegalStateException: Fails the class in @BeforeClass"
         assertThat(passed).isFalse()
         assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
         assertThat(results.testResultList.map { it.testStatus }).containsExactly(TestStatus.PASSED)

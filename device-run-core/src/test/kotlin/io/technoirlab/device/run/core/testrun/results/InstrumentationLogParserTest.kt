@@ -24,7 +24,7 @@ class InstrumentationLogParserTest {
             InstrumentationLog(
                 plannedTests = 4,
                 startedEntries = 2,
-                failedEntries = listOf("b_crashesOnFirstAttempt(io.technoirlab.rollup.probe.CrashTest)"),
+                failedEntries = listOf("b_crashesOnFirstAttempt(io.technoirlab.device.run.fixture.CrashTest)"),
                 endedNormally = false,
                 endMessage = "Process crashed.",
                 summaryFailureCount = 0,
@@ -58,9 +58,9 @@ class InstrumentationLogParserTest {
         assertThat(log?.startedEntries).isEqualTo(7)
         assertThat(log?.endedNormally).isTrue()
         assertThat(log?.failedEntries).containsExactly(
-            "coin0(io.technoirlab.rollup.probe.ShardCoinTest)",
-            "coin2(io.technoirlab.rollup.probe.ShardCoinTest)",
-            "failsOnFirstAttempt(io.technoirlab.rollup.probe.ShardCoinTest)",
+            "coin0(io.technoirlab.device.run.fixture.ShardCoinTest)",
+            "coin2(io.technoirlab.device.run.fixture.ShardCoinTest)",
+            "failsOnFirstAttempt(io.technoirlab.device.run.fixture.ShardCoinTest)",
         )
         assertThat(log?.summaryFailureCount).isEqualTo(3)
         assertThat(log?.summaryFailures).extracting<String> { it.test }.containsExactlyElementsOf(log?.failedEntries)
@@ -74,13 +74,13 @@ class InstrumentationLogParserTest {
             InstrumentationLog(
                 plannedTests = 8,
                 startedEntries = 6,
-                failedEntries = listOf("io.technoirlab.rollup.plan.FailBeforeClassTest"),
+                failedEntries = listOf("io.technoirlab.device.run.fixture.FailBeforeClassTest"),
                 endedNormally = true,
                 endMessage = null,
                 summaryFailureCount = 1,
                 summaryFailures = listOf(
                     InstrumentationLog.SummaryFailure(
-                        test = "io.technoirlab.rollup.plan.FailBeforeClassTest",
+                        test = "io.technoirlab.device.run.fixture.FailBeforeClassTest",
                         firstLine = "java.lang.IllegalStateException: Fails the class in @BeforeClass",
                     ),
                 ),
@@ -93,7 +93,7 @@ class InstrumentationLogParserTest {
         val log = parseFixture("sessions/orchestrator-class-failure/outputs/smallPhone/execution-000/instrument.log")
 
         val classFailure = InstrumentationLog.SummaryFailure(
-            test = "(io.technoirlab.rollup.plan.FailBeforeClassTest)",
+            test = "(io.technoirlab.device.run.fixture.FailBeforeClassTest)",
             firstLine = "java.lang.IllegalStateException: Fails the class in @BeforeClass",
         )
         assertThat(log).isEqualTo(
@@ -116,12 +116,12 @@ class InstrumentationLogParserTest {
         assertThat(log?.plannedTests).isEqualTo(11)
         assertThat(log?.startedEntries).isEqualTo(7)
         assertThat(log?.endedNormally).isTrue()
-        assertThat(log?.failedEntries).containsExactly("b_crashesTheProcess(io.technoirlab.rollup.plan.CrashTest)")
+        assertThat(log?.failedEntries).containsExactly("b_crashesTheProcess(io.technoirlab.device.run.fixture.CrashTest)")
         assertThat(log?.summaryFailureCount).isEqualTo(3)
         assertThat(log?.summaryFailures).extracting<String> { it.test }.containsExactly(
-            "b_crashesTheProcess(io.technoirlab.rollup.plan.CrashTest)",
-            "(io.technoirlab.rollup.plan.FailBeforeClassTest)",
-            "(io.technoirlab.rollup.plan.FailBeforeClassTest)",
+            "b_crashesTheProcess(io.technoirlab.device.run.fixture.CrashTest)",
+            "(io.technoirlab.device.run.fixture.FailBeforeClassTest)",
+            "(io.technoirlab.device.run.fixture.FailBeforeClassTest)",
         )
         assertThat(
             log?.summaryFailures?.first()?.firstLine,

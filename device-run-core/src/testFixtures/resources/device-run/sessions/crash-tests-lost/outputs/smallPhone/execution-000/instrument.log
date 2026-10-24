@@ -1,39 +1,39 @@
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.CrashTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.CrashTest
 INSTRUMENTATION_STATUS: current=1
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=4
 INSTRUMENTATION_STATUS: stream=
-io.technoirlab.rollup.probe.CrashTest:
+io.technoirlab.device.run.fixture.CrashTest:
 INSTRUMENTATION_STATUS: test=a_passes
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.CrashTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.CrashTest
 INSTRUMENTATION_STATUS: current=1
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=4
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=a_passes
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.CrashTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.CrashTest
 INSTRUMENTATION_STATUS: current=2
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=4
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=b_crashesOnFirstAttempt
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.CrashTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.CrashTest
 INSTRUMENTATION_STATUS: current=2
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=4
 INSTRUMENTATION_STATUS: stack=java.lang.IllegalStateException: Crashes the process on the first attempt: test=b_crashesOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=556232 args=[probeNonce=1792504415]
-	at io.technoirlab.rollup.probe.CrashTest.lambda$b_crashesOnFirstAttempt$0(CrashTest.java:22)
-	at io.technoirlab.rollup.probe.CrashTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at io.technoirlab.device.run.fixture.CrashTest.lambda$b_crashesOnFirstAttempt$0(CrashTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
 	at java.lang.Thread.run(Thread.java:1012)
 
 INSTRUMENTATION_STATUS: stream=
-Process crashed while executing b_crashesOnFirstAttempt(io.technoirlab.rollup.probe.CrashTest):
+Process crashed while executing b_crashesOnFirstAttempt(io.technoirlab.device.run.fixture.CrashTest):
 java.lang.IllegalStateException: Crashes the process on the first attempt: test=b_crashesOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=556232 args=[probeNonce=1792504415]
-	at io.technoirlab.rollup.probe.CrashTest.lambda$b_crashesOnFirstAttempt$0(CrashTest.java:22)
-	at io.technoirlab.rollup.probe.CrashTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at io.technoirlab.device.run.fixture.CrashTest.lambda$b_crashesOnFirstAttempt$0(CrashTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
 	at java.lang.Thread.run(Thread.java:1012)
 
 INSTRUMENTATION_STATUS: test=b_crashesOnFirstAttempt

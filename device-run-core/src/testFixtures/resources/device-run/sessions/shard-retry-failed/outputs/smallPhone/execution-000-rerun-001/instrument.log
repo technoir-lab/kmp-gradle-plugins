@@ -1,54 +1,54 @@
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=1
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
-io.technoirlab.rollup.probe.ShardFlakyTest:
+io.technoirlab.device.run.fixture.ShardFlakyTest:
 INSTRUMENTATION_STATUS: test=coin00
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=1
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin00
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=2
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin01
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=2
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin01
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=3
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin02
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=3
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin02
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=4
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin03
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=4
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
@@ -56,68 +56,68 @@ INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fails one in four attemp
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin03(ShardFlakyTest.java:28)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin03(ShardFlakyTest.java:28)
 
 INSTRUMENTATION_STATUS: stream=
-Error in coin03(io.technoirlab.rollup.probe.ShardFlakyTest):
+Error in coin03(io.technoirlab.device.run.fixture.ShardFlakyTest):
 java.lang.AssertionError: Fails one in four attempts: test=coin03 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin03(ShardFlakyTest.java:28)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin03(ShardFlakyTest.java:28)
 
 INSTRUMENTATION_STATUS: test=coin03
 INSTRUMENTATION_STATUS_CODE: -2
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=5
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin04
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=5
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin04
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=6
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin05
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=6
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin05
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=7
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin06
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=7
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin06
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=8
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin07
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=8
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
@@ -125,54 +125,54 @@ INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fails one in four attemp
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin07(ShardFlakyTest.java:48)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin07(ShardFlakyTest.java:48)
 
 INSTRUMENTATION_STATUS: stream=
-Error in coin07(io.technoirlab.rollup.probe.ShardFlakyTest):
+Error in coin07(io.technoirlab.device.run.fixture.ShardFlakyTest):
 java.lang.AssertionError: Fails one in four attempts: test=coin07 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin07(ShardFlakyTest.java:48)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin07(ShardFlakyTest.java:48)
 
 INSTRUMENTATION_STATUS: test=coin07
 INSTRUMENTATION_STATUS_CODE: -2
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=9
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin08
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=9
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin08
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=10
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin09
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=10
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin09
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=11
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin10
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=11
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
@@ -180,68 +180,68 @@ INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fails one in four attemp
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin10(ShardFlakyTest.java:63)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin10(ShardFlakyTest.java:63)
 
 INSTRUMENTATION_STATUS: stream=
-Error in coin10(io.technoirlab.rollup.probe.ShardFlakyTest):
+Error in coin10(io.technoirlab.device.run.fixture.ShardFlakyTest):
 java.lang.AssertionError: Fails one in four attempts: test=coin10 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin10(ShardFlakyTest.java:63)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin10(ShardFlakyTest.java:63)
 
 INSTRUMENTATION_STATUS: test=coin10
 INSTRUMENTATION_STATUS_CODE: -2
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=12
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin11
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=12
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin11
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=13
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin12
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=13
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin12
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=14
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin13
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=14
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=coin13
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=15
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin14
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=15
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
@@ -249,26 +249,26 @@ INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fails one in four attemp
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin14(ShardFlakyTest.java:83)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin14(ShardFlakyTest.java:83)
 
 INSTRUMENTATION_STATUS: stream=
-Error in coin14(io.technoirlab.rollup.probe.ShardFlakyTest):
+Error in coin14(io.technoirlab.device.run.fixture.ShardFlakyTest):
 java.lang.AssertionError: Fails one in four attempts: test=coin14 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin14(ShardFlakyTest.java:83)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin14(ShardFlakyTest.java:83)
 
 INSTRUMENTATION_STATUS: test=coin14
 INSTRUMENTATION_STATUS_CODE: -2
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=16
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin15
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ShardFlakyTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ShardFlakyTest
 INSTRUMENTATION_STATUS: current=16
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=16
@@ -279,30 +279,30 @@ INSTRUMENTATION_RESULT: stream=
 
 Time: 0.085
 There were 4 failures:
-1) coin03(io.technoirlab.rollup.probe.ShardFlakyTest)
+1) coin03(io.technoirlab.device.run.fixture.ShardFlakyTest)
 java.lang.AssertionError: Fails one in four attempts: test=coin03 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin03(ShardFlakyTest.java:28)
-2) coin07(io.technoirlab.rollup.probe.ShardFlakyTest)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin03(ShardFlakyTest.java:28)
+2) coin07(io.technoirlab.device.run.fixture.ShardFlakyTest)
 java.lang.AssertionError: Fails one in four attempts: test=coin07 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin07(ShardFlakyTest.java:48)
-3) coin10(io.technoirlab.rollup.probe.ShardFlakyTest)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin07(ShardFlakyTest.java:48)
+3) coin10(io.technoirlab.device.run.fixture.ShardFlakyTest)
 java.lang.AssertionError: Fails one in four attempts: test=coin10 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin10(ShardFlakyTest.java:63)
-4) coin14(io.technoirlab.rollup.probe.ShardFlakyTest)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin10(ShardFlakyTest.java:63)
+4) coin14(io.technoirlab.device.run.fixture.ShardFlakyTest)
 java.lang.AssertionError: Fails one in four attempts: test=coin14 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=268889 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
 	at org.junit.Assert.assertFalse(Assert.java:65)
-	at io.technoirlab.rollup.probe.ShardFlakyTest.coin14(ShardFlakyTest.java:83)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin14(ShardFlakyTest.java:83)
 
 FAILURES!!!
 Tests run: 16,  Failures: 4

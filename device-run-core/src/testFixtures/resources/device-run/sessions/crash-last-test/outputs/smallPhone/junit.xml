@@ -1,15 +1,15 @@
 <?xml version='1.0' encoding='UTF-8' ?>
 <testsuite name="" tests="2" failures="0" flakes="1" errors="0" skipped="0" time="0.021" hostname="localhost">
-  <testcase name="a_passes" classname="io.technoirlab.rollup.plan.CrashLastTest" time="0.0" />
-  <testcase name="b_crashesUnlessReduced" classname="io.technoirlab.rollup.plan.CrashLastTest" time="0.021" flaky="true">
+  <testcase name="a_passes" classname="io.technoirlab.device.run.fixture.CrashLastTest" time="0.0" />
+  <testcase name="b_crashesUnlessReduced" classname="io.technoirlab.device.run.fixture.CrashLastTest" time="0.021" flaky="true">
     <failure>java.lang.IllegalStateException: Crashes the instrumentation process in the last test
-	at io.technoirlab.rollup.plan.CrashLastTest.lambda$b_crashesUnlessReduced$0(CrashLastTest.java:22)
-	at io.technoirlab.rollup.plan.CrashLastTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at io.technoirlab.device.run.fixture.CrashLastTest.lambda$b_crashesUnlessReduced$0(CrashLastTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashLastTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
 	at java.lang.Thread.run(Thread.java:1012)
 
 java.lang.IllegalStateException: Crashes the instrumentation process in the last test
-	at io.technoirlab.rollup.plan.CrashLastTest.lambda$b_crashesUnlessReduced$0(CrashLastTest.java:22)
-	at io.technoirlab.rollup.plan.CrashLastTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at io.technoirlab.device.run.fixture.CrashLastTest.lambda$b_crashesUnlessReduced$0(CrashLastTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashLastTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
 	at java.lang.Thread.run(Thread.java:1012)
 </failure>
   </testcase>

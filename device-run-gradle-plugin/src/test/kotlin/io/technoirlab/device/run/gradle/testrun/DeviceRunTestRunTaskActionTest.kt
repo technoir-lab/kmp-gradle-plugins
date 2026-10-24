@@ -146,7 +146,7 @@ class DeviceRunTestRunTaskActionTest {
         val report = agpTestReport(listOf(parameters), deviceName = "smallPhone")
         assertThat(passed).isFalse()
         assertThat(listOf(report.testCount, report.failureCount, report.skipCount)).containsExactly(7, 1, 0)
-        assertThat(reportDirectory("smallPhone").file("io.technoirlab.rollup.probe.ShardCoinTest.html").asPath())
+        assertThat(reportDirectory("smallPhone").file("$FIXTURE_PACKAGE.ShardCoinTest.html").asPath())
             .content()
             .containsIgnoringNewLines("""<td>coin0</td><td class="success">passed""")
             .containsIgnoringNewLines("""<td>failsOnFirstAttempt</td><td class="failures">failed""")

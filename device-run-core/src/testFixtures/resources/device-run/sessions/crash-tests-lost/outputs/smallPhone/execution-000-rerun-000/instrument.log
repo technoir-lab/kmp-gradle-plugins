@@ -1,12 +1,12 @@
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.CrashTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.CrashTest
 INSTRUMENTATION_STATUS: current=1
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=1
 INSTRUMENTATION_STATUS: stream=
-io.technoirlab.rollup.probe.CrashTest:
+io.technoirlab.device.run.fixture.CrashTest:
 INSTRUMENTATION_STATUS: test=b_crashesOnFirstAttempt
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.CrashTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.CrashTest
 INSTRUMENTATION_STATUS: current=1
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=1

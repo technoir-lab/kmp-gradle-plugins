@@ -2,6 +2,6 @@
 <testsuites>
   <testsuite name='' hostname='localhost' tests='1' failures='0' skipped='0' errors='0' time='0.0' timestamp='2026-10-20T06:55:35'>
     <properties />
-    <testcase name='b_crashesOnFirstAttempt' classname='io.technoirlab.rollup.probe.CrashTest' time='0.0' />
+    <testcase name='b_crashesOnFirstAttempt' classname='io.technoirlab.device.run.fixture.CrashTest' time='0.0' />
   </testsuite>
 </testsuites>

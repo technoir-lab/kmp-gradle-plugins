@@ -1,140 +1,140 @@
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=1
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stream=
-io.technoirlab.rollup.probe.ParallelTest:
+io.technoirlab.device.run.fixture.ParallelTest:
 INSTRUMENTATION_STATUS: test=passes
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=1
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stream=.
 INSTRUMENTATION_STATUS: test=passes
 INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=2
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin0
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=2
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin0 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin0(ParallelTest.java:18)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin0(ParallelTest.java:18)
 
 INSTRUMENTATION_STATUS: stream=
-Error in coin0(io.technoirlab.rollup.probe.ParallelTest):
+Error in coin0(io.technoirlab.device.run.fixture.ParallelTest):
 java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin0 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin0(ParallelTest.java:18)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin0(ParallelTest.java:18)
 
 INSTRUMENTATION_STATUS: test=coin0
 INSTRUMENTATION_STATUS_CODE: -2
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=3
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin1
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=3
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin1 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin1(ParallelTest.java:23)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin1(ParallelTest.java:23)
 
 INSTRUMENTATION_STATUS: stream=
-Error in coin1(io.technoirlab.rollup.probe.ParallelTest):
+Error in coin1(io.technoirlab.device.run.fixture.ParallelTest):
 java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin1 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin1(ParallelTest.java:23)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin1(ParallelTest.java:23)
 
 INSTRUMENTATION_STATUS: test=coin1
 INSTRUMENTATION_STATUS_CODE: -2
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=4
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin2
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=4
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin2 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin2(ParallelTest.java:28)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin2(ParallelTest.java:28)
 
 INSTRUMENTATION_STATUS: stream=
-Error in coin2(io.technoirlab.rollup.probe.ParallelTest):
+Error in coin2(io.technoirlab.device.run.fixture.ParallelTest):
 java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin2 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin2(ParallelTest.java:28)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin2(ParallelTest.java:28)
 
 INSTRUMENTATION_STATUS: test=coin2
 INSTRUMENTATION_STATUS_CODE: -2
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=5
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=coin3
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=5
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin3 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin3(ParallelTest.java:33)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin3(ParallelTest.java:33)
 
 INSTRUMENTATION_STATUS: stream=
-Error in coin3(io.technoirlab.rollup.probe.ParallelTest):
+Error in coin3(io.technoirlab.device.run.fixture.ParallelTest):
 java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin3 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin3(ParallelTest.java:33)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin3(ParallelTest.java:33)
 
 INSTRUMENTATION_STATUS: test=coin3
 INSTRUMENTATION_STATUS_CODE: -2
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=6
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stream=
 INSTRUMENTATION_STATUS: test=failsOnFirstAttempt
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=io.technoirlab.rollup.probe.ParallelTest
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
 INSTRUMENTATION_STATUS: current=6
 INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
 INSTRUMENTATION_STATUS: numtests=6
 INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fails on the first attempt: test=failsOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.failsOnFirstAttempt(ParallelTest.java:13)
+	at io.technoirlab.device.run.fixture.ParallelTest.failsOnFirstAttempt(ParallelTest.java:13)
 
 INSTRUMENTATION_STATUS: stream=
-Error in failsOnFirstAttempt(io.technoirlab.rollup.probe.ParallelTest):
+Error in failsOnFirstAttempt(io.technoirlab.device.run.fixture.ParallelTest):
 java.lang.AssertionError: Fails on the first attempt: test=failsOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.failsOnFirstAttempt(ParallelTest.java:13)
+	at io.technoirlab.device.run.fixture.ParallelTest.failsOnFirstAttempt(ParallelTest.java:13)
 
 INSTRUMENTATION_STATUS: test=failsOnFirstAttempt
 INSTRUMENTATION_STATUS_CODE: -2
@@ -142,31 +142,31 @@ INSTRUMENTATION_RESULT: stream=
 
 Time: 0.136
 There were 5 failures:
-1) coin0(io.technoirlab.rollup.probe.ParallelTest)
+1) coin0(io.technoirlab.device.run.fixture.ParallelTest)
 java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin0 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin0(ParallelTest.java:18)
-2) coin1(io.technoirlab.rollup.probe.ParallelTest)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin0(ParallelTest.java:18)
+2) coin1(io.technoirlab.device.run.fixture.ParallelTest)
 java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin1 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin1(ParallelTest.java:23)
-3) coin2(io.technoirlab.rollup.probe.ParallelTest)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin1(ParallelTest.java:23)
+3) coin2(io.technoirlab.device.run.fixture.ParallelTest)
 java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin2 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin2(ParallelTest.java:28)
-4) coin3(io.technoirlab.rollup.probe.ParallelTest)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin2(ParallelTest.java:28)
+4) coin3(io.technoirlab.device.run.fixture.ParallelTest)
 java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin3 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.coin3(ParallelTest.java:33)
-5) failsOnFirstAttempt(io.technoirlab.rollup.probe.ParallelTest)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin3(ParallelTest.java:33)
+5) failsOnFirstAttempt(io.technoirlab.device.run.fixture.ParallelTest)
 java.lang.AssertionError: Fails on the first attempt: test=failsOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=567493 args=[probeNonce=1792504415]
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at io.technoirlab.rollup.probe.ParallelTest.failsOnFirstAttempt(ParallelTest.java:13)
+	at io.technoirlab.device.run.fixture.ParallelTest.failsOnFirstAttempt(ParallelTest.java:13)
 
 FAILURES!!!
 Tests run: 6,  Failures: 5
