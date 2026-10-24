@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import java.nio.file.Path
 import kotlin.io.path.div
+import kotlin.io.path.writeBytes
 import kotlin.io.path.writeText
 
 class InstrumentationLogParserTest {
@@ -191,6 +192,18 @@ class InstrumentationLogParserTest {
         assertThat(log?.endedNormally).isFalse()
         assertThat(log?.endMessage).isNull()
         assertThat(log?.startedEntries).isEqualTo(2)
+    }
+
+    @Test
+    fun `reads a log with malformed UTF-8`() {
+        val text = deviceRunFixture("sessions/crash-tests-lost/outputs/smallPhone/execution-000/instrument.log")
+        val bytes = text.encodeToByteArray()
+        val position = text.substringBefore("Crashes the process").encodeToByteArray().size
+        val malformed = bytes.copyOfRange(0, position) + byteArrayOf(0xFF.toByte()) + bytes.copyOfRange(position, bytes.size)
+
+        val log = parser.parse((tempDir / "malformed.log").apply { writeBytes(malformed) })
+
+        assertThat(log).isEqualTo(parse(text))
     }
 
     @Test

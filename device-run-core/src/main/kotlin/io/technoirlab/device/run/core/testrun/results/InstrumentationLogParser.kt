@@ -2,7 +2,7 @@ package io.technoirlab.device.run.core.testrun.results
 
 import java.io.IOException
 import java.nio.file.Path
-import kotlin.io.path.readLines
+import kotlin.io.path.bufferedReader
 
 /**
  * Parses the `instrument.log` of an execution, the raw output of `am instrument -r`.
@@ -14,27 +14,27 @@ import kotlin.io.path.readLines
 internal class InstrumentationLogParser {
     /**
      * Parses the log at [path], or returns null when it is missing, unreadable, or not the output of an instrumentation run.
+     *
+     * Malformed UTF-8 is replaced, so that a single bad byte does not hide the rest of the log.
      */
-    fun parse(path: Path): InstrumentationLog? {
-        val lines = try {
-            path.readLines()
-        } catch (_: IOException) {
-            return null
-        }
-        return OutputReader().apply { lines.forEach(::read) }.toLog()
+    fun parse(path: Path): InstrumentationLog? = try {
+        // Unlike Path.readLines and Path.useLines, an InputStreamReader replaces malformed input rather than throwing.
+        path.bufferedReader().useLines { lines -> OutputReader().apply { lines.forEach(::read) }.toLog() }
+    } catch (_: IOException) {
+        null
     }
 
     /**
-     * Reads the lines of an instrumentation log in order.
+     * Reads the lines of an instrumentation log in order, keeping only the values that it uses.
      */
     private class OutputReader {
         private val entryCodes = mutableListOf<Int>()
         private val failedEntries = mutableListOf<String>()
-        private val result = mutableMapOf<String, String>()
-        private var status = mutableMapOf<String, String>()
+        private val result = mutableMapOf<String, StringBuilder>()
+        private var status = mutableMapOf<String, StringBuilder>()
 
-        // The values and the key of the value that the next lines continue.
-        private var continuedValue: Pair<MutableMap<String, String>, String>? = null
+        // The value that the next lines continue, unless the parser ignores it, such as a stack trace.
+        private var continuedValue: StringBuilder? = null
         private var plannedTests: Int? = null
         private var resultCode: Int? = null
         private var classEntries = 0
@@ -43,15 +43,15 @@ internal class InstrumentationLogParser {
 
         fun read(line: String) {
             when {
-                line.startsWith(STATUS) -> startValue(status, line.removePrefix(STATUS))
+                line.startsWith(STATUS) -> startValue(status, STATUS_KEYS, line.removePrefix(STATUS))
                 line.startsWith(STATUS_CODE) -> endEntry(line.removePrefix(STATUS_CODE).trim().toIntOrNull())
-                line.startsWith(RESULT) -> startValue(result, line.removePrefix(RESULT))
+                line.startsWith(RESULT) -> startValue(result, RESULT_KEYS, line.removePrefix(RESULT))
                 line.startsWith(RESULT_CODE) -> {
                     resultCode = line.removePrefix(RESULT_CODE).trim().toIntOrNull()
                     isInstrumentationOutput = true
                     continuedValue = null
                 }
-                else -> continuedValue?.let { (values, key) -> values[key] = values.getValue(key) + "\n" + line }
+                else -> continuedValue?.append('\n')?.append(line)
             }
         }
 
@@ -59,8 +59,8 @@ internal class InstrumentationLogParser {
             if (!isInstrumentationOutput) {
                 return null
             }
-            val shortMessage = result[SHORT_MESSAGE]
-            val summary = summaryFailures(result[STREAM].orEmpty().lines())
+            val shortMessage = result[SHORT_MESSAGE]?.toString()
+            val summary = summaryFailures(result[STREAM]?.lines().orEmpty())
             return InstrumentationLog(
                 plannedTests = plannedTests,
                 startedEntries = entryCodes.count { it == STARTED },
@@ -74,16 +74,19 @@ internal class InstrumentationLogParser {
             )
         }
 
-        private fun startValue(values: MutableMap<String, String>, keyValue: String) {
+        private fun startValue(values: MutableMap<String, StringBuilder>, readKeys: Set<String>, keyValue: String) {
             val key = keyValue.substringBefore('=')
-            values[key] = keyValue.substringAfter('=', missingDelimiterValue = "")
-            continuedValue = values to key
+            continuedValue = if (key in readKeys) {
+                StringBuilder(keyValue.substringAfter('=', missingDelimiterValue = "")).also { values[key] = it }
+            } else {
+                null
+            }
             isInstrumentationOutput = true
         }
 
         private fun endEntry(code: Int?) {
-            status[NUM_TESTS]?.trim()?.toIntOrNull()?.let { plannedTests = it }
-            val test = status[TEST].orEmpty().trim()
+            status[NUM_TESTS]?.toString()?.trim()?.toIntOrNull()?.let { plannedTests = it }
+            val test = status[TEST]?.toString()?.trim().orEmpty()
             when (code) {
                 null -> {}
                 STARTED -> isClassEntryOpen = test == CLASS_EVENT_TEST
@@ -98,7 +101,7 @@ internal class InstrumentationLogParser {
                 entryCodes += code
             }
             if (code == FAILED) {
-                failedEntries += describe(status[CLASS].orEmpty().trim(), test)
+                failedEntries += describe(status[CLASS]?.toString()?.trim().orEmpty(), test)
             }
             status = mutableMapOf()
             continuedValue = null
@@ -154,5 +157,9 @@ internal class InstrumentationLogParser {
 
         // JUnit's TextListener prints "There was 1 failure:" or "There were <n> failures:".
         private val SUMMARY_HEADER = Regex("There (?:was 1 failure|were (\\d+) failures):")
+
+        // The keys of the values that the parser reads, of status blocks and of the result.
+        private val STATUS_KEYS = setOf(NUM_TESTS, CLASS, TEST)
+        private val RESULT_KEYS = setOf(SHORT_MESSAGE, STREAM)
     }
 }

@@ -81,7 +81,7 @@ internal class JobExecutions(
             shard = SHARD_RETRY.matchEntire(name)?.groupValues?.get(1) ?: name,
             reportEntry = reportEntry,
             report = files.find { it.path.name in JobExecution.REPORT_NAMES }?.let(::parseReport),
-            instrumentationLog = files.find { it.path.name == JobExecution.INSTRUMENT_LOG }?.let { logParser.parse(it.path) },
+            instrumentationLog = lazy { files.find { it.path.name == JobExecution.INSTRUMENT_LOG }?.let { logParser.parse(it.path) } },
         )
     }
 

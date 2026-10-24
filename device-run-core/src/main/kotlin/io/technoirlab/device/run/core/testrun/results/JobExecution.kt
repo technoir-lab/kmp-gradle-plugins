@@ -10,15 +10,21 @@ import com.google.api.services.devicerun.v1alpha.model.ExecutionReport
  * other execution.
  * @property reportEntry the entry of the execution in the session report, or null when the report omits the execution.
  * @property report the JUnit report of the execution, or null when it is missing or malformed.
- * @property instrumentationLog the instrumentation log of the execution, or null when it is missing or unreadable.
+ * @param instrumentationLog reads the instrumentation log of the execution, which only the verdict on a session whose tests ran
+ * needs.
  */
-internal data class JobExecution(
+internal class JobExecution(
     val name: String,
     val shard: String,
     val reportEntry: ExecutionReport?,
     val report: JUnitReport?,
-    val instrumentationLog: InstrumentationLog?,
+    instrumentationLog: Lazy<InstrumentationLog?>,
 ) {
+    /**
+     * The instrumentation log of the execution, read when first used, or null when it is missing or unreadable.
+     */
+    val instrumentationLog: InstrumentationLog? by instrumentationLog
+
     companion object {
         /**
          * The name of the device log of an execution.
