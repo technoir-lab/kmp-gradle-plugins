@@ -1,0 +1,60 @@
+{
+  "sessionConfig": {
+    "displayName": "shard-flaky-a debug smallPhone",
+    "jobConfigs": [
+      {
+        "action": {
+          "androidInstrumentationTest": {
+            "additionalTestOptions": {
+              "probeNonce": "1792504415"
+            },
+            "instrumentationTimeout": "300s",
+            "testInstallable": {
+              "files": [
+                {
+                  "gcsInputFile": {
+                    "path": "gs://example-bucket/automation/inputs/6f50162ec24ad5ffb12b61c1afe88935dae4a036697020bac1c2316fc3791ea8/shard-flaky-a-debug-androidTest.apk"
+                  }
+                }
+              ]
+            },
+            "testRunnerClass": "androidx.test.runner.AndroidJUnitRunner"
+          }
+        },
+        "allocationConfig": {
+          "deviceConfigs": [
+            {
+              "actions": [
+                {
+                  "androidLogcat": {}
+                }
+              ],
+              "requirement": {
+                "deviceId": "smallphone-arm-35"
+              }
+            }
+          ]
+        },
+        "displayName": "smallPhone",
+        "labels": {
+          "project": ":shard-flaky-a",
+          "variant": "debug",
+          "device": "smallPhone"
+        },
+        "settings": {
+          "retrySettings": {
+            "flakyTestRetryStrategy": {
+              "flakyTestAttempts": 3,
+              "testReductionMode": "NO_REDUCTION"
+            }
+          }
+        }
+      }
+    ],
+    "outputDirectoryConfig": {
+      "gcsOutputDirectory": {
+        "path": "gs://example-bucket/automation/sessions"
+      }
+    }
+  }
+}

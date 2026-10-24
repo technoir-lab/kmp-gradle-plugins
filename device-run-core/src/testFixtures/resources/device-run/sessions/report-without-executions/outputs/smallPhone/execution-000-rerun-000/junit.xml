@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name='' hostname='localhost' tests='5' failures='1' skipped='0' errors='0' time='0.031' timestamp='2026-10-20T06:54:57'>
+    <properties />
+    <testcase name='coin0' classname='io.technoirlab.device.run.fixture.ParallelTest' time='0.0' />
+    <testcase name='coin1' classname='io.technoirlab.device.run.fixture.ParallelTest' time='0.009' />
+    <testcase name='coin2' classname='io.technoirlab.device.run.fixture.ParallelTest' time='0.0' />
+    <testcase name='coin3' classname='io.technoirlab.device.run.fixture.ParallelTest' time='0.003'>
+      <failure>java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin3 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=594432 args=[class=io.technoirlab.device.run.fixture.ParallelTest#coin0,io.technoirlab.device.run.fixture.ParallelTest#coin1,io.technoirlab.device.run.fixture.ParallelTest#coin2,io.technoirlab.device.run.fixture.ParallelTest#coin3,io.technoirlab.device.run.fixture.ParallelTest#failsOnFirstAttempt, probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin3(ParallelTest.java:33)
+
+      </failure>
+    </testcase>
+    <testcase name='failsOnFirstAttempt' classname='io.technoirlab.device.run.fixture.ParallelTest' time='0.019' />
+  </testsuite>
+</testsuites>

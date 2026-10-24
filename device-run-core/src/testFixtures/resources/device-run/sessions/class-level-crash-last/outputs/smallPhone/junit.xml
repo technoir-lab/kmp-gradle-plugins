@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="" tests="3" failures="0" flakes="1" errors="0" skipped="1" time="0.042" hostname="localhost">
+  <testcase name="null" classname="io.technoirlab.device.run.fixture.AssumeBeforeClassTest" time="0.0">
+    <skipped>org.junit.AssumptionViolatedException: Skips the class in &#64;BeforeClass
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at io.technoirlab.device.run.fixture.AssumeBeforeClassTest.skipClass(AssumeBeforeClassTest.java:13)
+
+org.junit.AssumptionViolatedException: Skips the class in &#64;BeforeClass
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at io.technoirlab.device.run.fixture.AssumeBeforeClassTest.skipClass(AssumeBeforeClassTest.java:13)
+</skipped>
+  </testcase>
+  <testcase name="a_passes" classname="io.technoirlab.device.run.fixture.CrashLastTest" time="0.0" />
+  <testcase name="b_crashesUnlessReduced" classname="io.technoirlab.device.run.fixture.CrashLastTest" time="0.042" flaky="true">
+    <failure>java.lang.IllegalStateException: Crashes the instrumentation process in the last test: test=b_crashesUnlessReduced reduced=false args=[]
+	at io.technoirlab.device.run.fixture.CrashLastTest.lambda$b_crashesUnlessReduced$0(CrashLastTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashLastTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1012)
+
+java.lang.IllegalStateException: Crashes the instrumentation process in the last test: test=b_crashesUnlessReduced reduced=false args=[]
+	at io.technoirlab.device.run.fixture.CrashLastTest.lambda$b_crashesUnlessReduced$0(CrashLastTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashLastTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1012)
+</failure>
+  </testcase>
+</testsuite>

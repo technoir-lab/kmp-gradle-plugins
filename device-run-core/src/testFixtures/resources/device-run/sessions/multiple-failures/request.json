@@ -1,0 +1,57 @@
+{
+  "sessionConfig": {
+    "displayName": "multiple-failures debug smallPhone",
+    "jobConfigs": [
+      {
+        "action": {
+          "androidInstrumentationTest": {
+            "instrumentationTimeout": "300s",
+            "testInstallable": {
+              "files": [
+                {
+                  "gcsInputFile": {
+                    "path": "gs://example-bucket/automation/inputs/be0c47e5febf343903249dfda9912c06a32d498388b2566377c1b78269aca5af/multiple-failures-debug-androidTest.apk"
+                  }
+                }
+              ]
+            },
+            "testRunnerClass": "androidx.test.runner.AndroidJUnitRunner"
+          }
+        },
+        "allocationConfig": {
+          "deviceConfigs": [
+            {
+              "actions": [
+                {
+                  "androidLogcat": {}
+                }
+              ],
+              "requirement": {
+                "deviceId": "smallphone-arm-35"
+              }
+            }
+          ]
+        },
+        "displayName": "smallPhone",
+        "labels": {
+          "project": ":multiple-failures",
+          "variant": "debug",
+          "device": "smallPhone"
+        },
+        "settings": {
+          "retrySettings": {
+            "flakyTestRetryStrategy": {
+              "flakyTestAttempts": 2,
+              "testReductionMode": "REDUCE_TO_FAILED_TEST_CASES"
+            }
+          }
+        }
+      }
+    ],
+    "outputDirectoryConfig": {
+      "gcsOutputDirectory": {
+        "path": "gs://example-bucket/automation/sessions"
+      }
+    }
+  }
+}

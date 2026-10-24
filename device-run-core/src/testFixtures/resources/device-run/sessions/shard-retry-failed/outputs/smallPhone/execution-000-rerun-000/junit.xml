@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name='' hostname='localhost' tests='16' failures='3' skipped='0' errors='0' time='0.048' timestamp='2026-10-20T06:55:14'>
+    <properties />
+    <testcase name='coin00' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.0' />
+    <testcase name='coin01' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.008' />
+    <testcase name='coin02' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.007'>
+      <failure>java.lang.AssertionError: Fails one in four attempts: test=coin02 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=215570 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin02(ShardFlakyTest.java:23)
+
+      </failure>
+    </testcase>
+    <testcase name='coin03' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.006' />
+    <testcase name='coin04' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.0' />
+    <testcase name='coin05' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.003' />
+    <testcase name='coin06' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.004'>
+      <failure>java.lang.AssertionError: Fails one in four attempts: test=coin06 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=215570 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin06(ShardFlakyTest.java:43)
+
+      </failure>
+    </testcase>
+    <testcase name='coin07' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.003' />
+    <testcase name='coin08' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.0' />
+    <testcase name='coin09' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.007' />
+    <testcase name='coin10' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.0' />
+    <testcase name='coin11' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.0' />
+    <testcase name='coin12' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.004' />
+    <testcase name='coin13' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.006'>
+      <failure>java.lang.AssertionError: Fails one in four attempts: test=coin13 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=215570 args=[probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.device.run.fixture.ShardFlakyTest.coin13(ShardFlakyTest.java:78)
+
+      </failure>
+    </testcase>
+    <testcase name='coin14' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.0' />
+    <testcase name='coin15' classname='io.technoirlab.device.run.fixture.ShardFlakyTest' time='0.0' />
+  </testsuite>
+</testsuites>

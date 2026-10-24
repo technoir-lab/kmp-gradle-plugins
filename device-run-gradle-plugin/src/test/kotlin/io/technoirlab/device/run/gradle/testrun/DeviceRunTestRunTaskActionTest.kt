@@ -12,7 +12,7 @@ import io.technoirlab.device.run.core.testrun.RunOptions
 import io.technoirlab.device.run.core.testrun.appTestRunRequest
 import io.technoirlab.device.run.core.testrun.job.ArtifactCapture
 import io.technoirlab.device.run.core.testrun.job.TestReductionMode
-import io.technoirlab.device.run.core.testrun.results.CapturedSession
+import io.technoirlab.device.run.core.testrun.results.CapturedScenario
 import io.technoirlab.device.run.gradle.RecordedProblem
 import io.technoirlab.device.run.gradle.RecordingProblems
 import io.technoirlab.device.run.gradle.api.CapturePolicy
@@ -122,7 +122,7 @@ class DeviceRunTestRunTaskActionTest {
 
     @Test
     fun `writes results that the AGP test report counts under the device of the test task`() {
-        runner.capturedSession = CapturedSession("test-failure")
+        runner.capturedScenario = CapturedScenario("test-failure")
         val parameters = parameters(testData)
 
         val passed = action.runTests(parameters)
@@ -137,8 +137,24 @@ class DeviceRunTestRunTaskActionTest {
     }
 
     @Test
+    fun `writes results in which the AGP test report counts flaky tests as passed and tests that failed every attempt once`() {
+        runner.capturedScenario = CapturedScenario("retry-outcomes").withJob(DEVICE_NAME)
+        val parameters = parameters(testData)
+
+        val passed = action.runTests(parameters)
+
+        val report = agpTestReport(listOf(parameters))
+        assertThat(passed).isFalse()
+        assertThat(listOf(report.testCount, report.failureCount, report.skipCount)).containsExactly(7, 1, 0)
+        assertThat(reportDirectory().file("$FIXTURE_PACKAGE.ShardCoinTest.html").asPath())
+            .content()
+            .containsIgnoringNewLines("""<td>coin0</td><td class="success">passed""")
+            .containsIgnoringNewLines("""<td>failsOnFirstAttempt</td><td class="failures">failed""")
+    }
+
+    @Test
     fun `writes tests that ended with an error as failures that the AGP test report counts`() {
-        runner.capturedSession = CapturedSession("test-failure", jobReport = CRASHED_JOB_REPORT)
+        runner.capturedScenario = CapturedScenario("test-failure").withOutput("$DEVICE_NAME/junit.xml", CRASHED_JOB_REPORT)
         val parameters = parameters(testData)
 
         action.runTests(parameters)
@@ -149,7 +165,7 @@ class DeviceRunTestRunTaskActionTest {
 
     @Test
     fun `writes results that the AGP test report groups by project and tested variant`() {
-        runner.capturedSession = CapturedSession("test-failure")
+        runner.capturedScenario = CapturedScenario("test-failure")
         val flavorParameters = listOf("free", "paid").map { flavor -> parameters(testData.copy(flavorName = flavor)) }
 
         for (parameters in flavorParameters) {
@@ -265,7 +281,7 @@ class DeviceRunTestRunTaskActionTest {
         return StubDeviceTestRunParameters(input, project.objects.directoryProperty().value(setupResults), testRunData)
     }
 
-    private fun reportDirectory(): Directory = project.layout.buildDirectory.dir("reports/androidTests/managedDevice/mediumPhone").get()
+    private fun reportDirectory(): Directory = project.layout.buildDirectory.dir("reports/androidTests/managedDevice/$DEVICE_NAME").get()
 
     /**
      * Generates the AGP test report of the results that the test tasks with [parameters] wrote, in the form of AGP's managed device

@@ -51,10 +51,14 @@ import java.util.logging.Logger
  * Closing the runner closes the connection, if there is one, which cancels the sessions that may still run.
  *
  * @param clientName the name of the client that uses the runner, which identifies its requests.
+ * @param sleeper waits between the polls of sessions and the listings of their outputs.
+ * @param ticker the monotonic time source of waits and deadlines.
  */
 internal class DeviceRunnerImpl(
     private val cloudConnector: CloudConnector,
     private val clientName: String,
+    private val sleeper: Sleeper = Sleeper.DEFAULT,
+    private val ticker: Ticker = Ticker.systemTicker(),
 ) : DeviceRunner {
     private val deviceValidator = DeviceOptionsValidator()
     private val fileValidator = FileOptionsValidator()
@@ -103,7 +107,13 @@ internal class DeviceRunnerImpl(
         val transport = cloudConnector.createHttpTransport()
         try {
             // Token requests use the transport shared with the API clients.
-            return Connection(transport, cloudConnector.createCredentials { transport }, clientName)
+            return Connection(
+                transport = transport,
+                credentials = cloudConnector.createCredentials { transport },
+                clientName = clientName,
+                sleeper = sleeper,
+                ticker = ticker,
+            )
         } catch (e: Exception) {
             transport.shutdown()
             throw e
@@ -118,6 +128,8 @@ internal class DeviceRunnerImpl(
         private val transport: HttpTransport,
         credentials: GoogleCredentials,
         clientName: String,
+        sleeper: Sleeper,
+        ticker: Ticker,
     ) : AutoCloseable {
         private val location = DeviceRunLocation(credentials.executionProjectId())
 
@@ -159,9 +171,9 @@ internal class DeviceRunnerImpl(
             sessionManager = sessionManager,
             registry = sessionRegistry,
             submitter = SessionSubmitter(sessionManager, location, sessionRegistry),
-            waiter = SessionWaiter(sessionManager, Sleeper.DEFAULT, Ticker.systemTicker()),
-            canceller = SessionCanceller(cleanupManager, Ticker.systemTicker(), Sleeper.DEFAULT),
-            ticker = Ticker.systemTicker(),
+            waiter = SessionWaiter(sessionManager, sleeper, ticker),
+            canceller = SessionCanceller(cleanupManager, ticker, sleeper),
+            ticker = ticker,
         )
 
         private val deviceResolver = CatalogDeviceResolver(DeviceCatalogManager(deviceRun, location), location)
@@ -170,7 +182,7 @@ internal class DeviceRunnerImpl(
         private val testRunner = DeviceRunTestRunner(
             orchestratorVersions = OrchestratorVersions(deviceRun, location),
             packagePreparer = TestPackagePreparer(inputUploader),
-            sessionStorage = SessionStorage(storageManager),
+            sessionStorage = SessionStorage(storageManager, sleeper, ticker),
             sessionLifecycle = sessionLifecycle,
         )
 

@@ -1,0 +1,229 @@
+{
+  "name": "projects/example-project/locations/global/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd",
+  "sessionConfig": {
+    "displayName": "shard-flaky-a debug smallPhone",
+    "jobConfigs": [
+      {
+        "action": {
+          "androidInstrumentationTest": {
+            "additionalTestOptions": {
+              "probeNonce": "1792504415"
+            },
+            "instrumentationTimeout": "300s",
+            "testInstallable": {
+              "files": [
+                {
+                  "gcsInputFile": {
+                    "path": "gs://example-bucket/automation/inputs/6f50162ec24ad5ffb12b61c1afe88935dae4a036697020bac1c2316fc3791ea8/shard-flaky-a-debug-androidTest.apk"
+                  }
+                }
+              ]
+            },
+            "testRunnerClass": "androidx.test.runner.AndroidJUnitRunner"
+          }
+        },
+        "allocationConfig": {
+          "deviceConfigs": [
+            {
+              "actions": [
+                {
+                  "androidLogcat": {}
+                }
+              ],
+              "requirement": {
+                "deviceId": "smallphone-arm-35"
+              }
+            }
+          ]
+        },
+        "displayName": "smallPhone",
+        "labels": {
+          "project": ":shard-flaky-a",
+          "variant": "debug",
+          "device": "smallPhone"
+        },
+        "settings": {
+          "retrySettings": {
+            "flakyTestRetryStrategy": {
+              "flakyTestAttempts": 3,
+              "testReductionMode": "NO_REDUCTION"
+            }
+          }
+        }
+      }
+    ],
+    "outputDirectoryConfig": {
+      "gcsOutputDirectory": {
+        "path": "gs://example-bucket/automation/sessions"
+      }
+    }
+  },
+  "sessionReport": {
+    "endTime": "2026-10-20T13:56:39.583Z",
+    "id": "b33ed9e6-03d8-4fcf-a3c4-c51493a1b7be",
+    "jobReports": [
+      {
+        "displayName": "smallPhone",
+        "endTime": "2026-10-20T13:56:37.664Z",
+        "executionReports": [
+          {
+            "displayName": "execution-000",
+            "endTime": "2026-10-20T13:54:22.772Z",
+            "id": "88d20557-6bd1-4567-b594-a5441f4c7bdd",
+            "outputFiles": [
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd/smallPhone/execution-000/logcat.txt"
+                }
+              },
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd/smallPhone/execution-000/junit.xml"
+                }
+              },
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd/smallPhone/execution-000/instrument.log"
+                }
+              }
+            ],
+            "result": {
+              "cause": {
+                "summary": {
+                  "message": "One or more test assertions or test methods failed. Inspect the test runner logs and structured test results for details.",
+                  "reason": "TEST_CASE_FAILURE",
+                  "type": "CUSTOMER"
+                }
+              },
+              "resultType": "FAILED"
+            },
+            "startTime": "2026-10-20T13:54:03.873Z",
+            "status": {
+              "progressMessages": [
+                "4 test cases failed, 12 passed"
+              ],
+              "statusType": "DONE"
+            }
+          },
+          {
+            "displayName": "execution-000-rerun-000",
+            "endTime": "2026-10-20T13:55:20.858Z",
+            "id": "6cbd21c3-a2a9-40d3-9b24-b84e78d19836",
+            "outputFiles": [
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd/smallPhone/execution-000-rerun-000/junit.xml"
+                }
+              },
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd/smallPhone/execution-000-rerun-000/instrument.log"
+                }
+              },
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd/smallPhone/execution-000-rerun-000/logcat.txt"
+                }
+              }
+            ],
+            "result": {
+              "cause": {
+                "summary": {
+                  "message": "One or more test assertions or test methods failed. Inspect the test runner logs and structured test results for details.",
+                  "reason": "TEST_CASE_FAILURE",
+                  "type": "CUSTOMER"
+                }
+              },
+              "resultType": "FAILED"
+            },
+            "startTime": "2026-10-20T13:55:02.093Z",
+            "status": {
+              "progressMessages": [
+                "3 test cases failed, 13 passed"
+              ],
+              "statusType": "DONE"
+            }
+          },
+          {
+            "displayName": "execution-000-rerun-001",
+            "endTime": "2026-10-20T13:56:35.553Z",
+            "id": "f74114e8-096f-4240-bf3f-1954c3956f6e",
+            "outputFiles": [
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd/smallPhone/execution-000-rerun-001/instrument.log"
+                }
+              },
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd/smallPhone/execution-000-rerun-001/junit.xml"
+                }
+              },
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd/smallPhone/execution-000-rerun-001/logcat.txt"
+                }
+              }
+            ],
+            "result": {
+              "cause": {
+                "summary": {
+                  "message": "One or more test assertions or test methods failed. Inspect the test runner logs and structured test results for details.",
+                  "reason": "TEST_CASE_FAILURE",
+                  "type": "CUSTOMER"
+                }
+              },
+              "resultType": "FAILED"
+            },
+            "startTime": "2026-10-20T13:55:58.219Z",
+            "status": {
+              "progressMessages": [
+                "4 test cases failed, 12 passed"
+              ],
+              "statusType": "DONE"
+            }
+          }
+        ],
+        "id": "e6fbd932-640c-41bf-9328-5bd03836a59a",
+        "labels": {
+          "project": ":shard-flaky-a",
+          "device": "smallPhone",
+          "variant": "debug"
+        },
+        "outputFiles": [
+          {
+            "gcsOutputFile": {
+              "path": "gs://example-bucket/automation/sessions/session-75dc46f0-4f32-4106-9af2-55c7539451dd/smallPhone/junit.xml"
+            }
+          }
+        ],
+        "result": {
+          "cause": {
+            "summary": {
+              "message": "Job has one or more failed tests. See execution reports for details.",
+              "reason": "JOB_HAS_FAILED_TESTS"
+            }
+          },
+          "resultType": "FAILED"
+        },
+        "startTime": "2026-10-20T13:53:55.517Z",
+        "status": {
+          "statusType": "DONE"
+        }
+      }
+    ],
+    "result": {
+      "cause": {
+        "summary": {
+          "message": "Session has one or more failed jobs. See job reports for details.",
+          "reason": "SESSION_HAS_FAILED_JOBS"
+        }
+      },
+      "resultType": "FAILED"
+    },
+    "startTime": "2026-10-20T13:53:53.437Z",
+    "status": {
+      "statusType": "DONE"
+    }
+  }
+}

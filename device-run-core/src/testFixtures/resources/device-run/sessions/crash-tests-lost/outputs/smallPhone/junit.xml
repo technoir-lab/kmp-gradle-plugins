@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="" tests="2" failures="0" flakes="1" errors="0" skipped="0" time="0.042" hostname="localhost">
+  <testcase name="a_passes" classname="io.technoirlab.device.run.fixture.CrashTest" time="0.0" />
+  <testcase name="b_crashesOnFirstAttempt" classname="io.technoirlab.device.run.fixture.CrashTest" time="0.042" flaky="true">
+    <failure>java.lang.IllegalStateException: Crashes the process on the first attempt: test=b_crashesOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=556232 args=[probeNonce=1792504415]
+	at io.technoirlab.device.run.fixture.CrashTest.lambda$b_crashesOnFirstAttempt$0(CrashTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1012)
+
+java.lang.IllegalStateException: Crashes the process on the first attempt: test=b_crashesOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=556232 args=[probeNonce=1792504415]
+	at io.technoirlab.device.run.fixture.CrashTest.lambda$b_crashesOnFirstAttempt$0(CrashTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1012)
+</failure>
+  </testcase>
+</testsuite>

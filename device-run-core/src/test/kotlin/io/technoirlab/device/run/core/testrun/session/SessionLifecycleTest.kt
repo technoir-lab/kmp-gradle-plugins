@@ -3,15 +3,12 @@ package io.technoirlab.device.run.core.testrun.session
 import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.client.http.GenericUrl
 import com.google.api.client.testing.http.MockLowLevelHttpResponse
-import com.google.api.client.util.Sleeper
 import com.google.api.services.devicerun.v1alpha.model.CancelSessionResponse
 import com.google.api.services.devicerun.v1alpha.model.GoogleLongrunningOperation
 import com.google.api.services.devicerun.v1alpha.model.GoogleRpcStatus
 import com.google.api.services.devicerun.v1alpha.model.Session
-import com.google.api.services.devicerun.v1alpha.model.SessionReport
-import com.google.api.services.devicerun.v1alpha.model.Status
-import com.google.common.base.Ticker
 import io.technoirlab.device.run.core.DeviceRunException
+import io.technoirlab.device.run.core.VirtualClock
 import io.technoirlab.device.run.core.client.DeviceRunLocation
 import io.technoirlab.device.run.core.client.FailedResponse
 import io.technoirlab.device.run.core.client.InterruptingResponse
@@ -24,6 +21,7 @@ import io.technoirlab.device.run.core.client.errorResponse
 import io.technoirlab.device.run.core.client.testDeviceRunClient
 import io.technoirlab.device.run.core.recordLogs
 import io.technoirlab.device.run.core.storage.GcsUri
+import io.technoirlab.device.run.core.testrun.results.buildSession
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -37,21 +35,7 @@ import kotlin.io.path.div
 class SessionLifecycleTest {
     private val transport = RecordingHttpTransport()
     private val location = DeviceRunLocation("example-project")
-    private var elapsed = Duration.ZERO
-    private val ticker = object : Ticker() {
-        override fun read(): Long = elapsed.toNanos()
-    }
-    private val sleeps = mutableListOf<Duration>()
-    private var interruptNextSleep = false
-    private val sleeper = Sleeper { millis ->
-        if (interruptNextSleep) {
-            interruptNextSleep = false
-            throw InterruptedException()
-        }
-        val delay = Duration.ofMillis(millis)
-        sleeps += delay
-        elapsed += delay
-    }
+    private val clock = VirtualClock()
     private val logs = recordLogs()
     private val sessionManager = SessionManager(
         testDeviceRunClient(
@@ -74,9 +58,9 @@ class SessionLifecycleTest {
     )
     private val registry = SessionRegistry()
     private val submitter = SessionSubmitter(sessionManager, location, registry)
-    private val waiter = SessionWaiter(sessionManager, sleeper, ticker)
-    private val canceller = SessionCanceller(sessionManager, ticker, sleeper)
-    private val lifecycle = SessionLifecycle(sessionManager, registry, submitter, waiter, canceller, ticker)
+    private val waiter = SessionWaiter(sessionManager, clock.sleeper, clock.ticker)
+    private val canceller = SessionCanceller(sessionManager, clock.ticker, clock.sleeper)
+    private val lifecycle = SessionLifecycle(sessionManager, registry, submitter, waiter, canceller, clock.ticker)
 
     @TempDir
     private lateinit var tempDir: Path
@@ -112,7 +96,7 @@ class SessionLifecycleTest {
         assertThat(metadata.sessionId).matches("[a-z][a-z0-9-]{2,61}[a-z0-9]")
         assertThat(transport.requests.first().query("sessionId")).isEqualTo(metadata.sessionId)
         assertThat(transport.requests.first().query("requestId")).isEqualTo(metadata.requestId)
-        assertThat(sleeps).containsExactly(Duration.ofSeconds(10))
+        assertThat(clock.sleeps).containsExactly(Duration.ofSeconds(10))
         assertThat(logs.entries).contains(
             Level.INFO to "Started Device Run session ${metadata.sessionName}. Its results are stored at " +
                 "https://console.cloud.google.com/storage/browser/example-bucket/automation/sessions/${metadata.sessionId}/",
@@ -243,7 +227,8 @@ class SessionLifecycleTest {
             .hasMessageEndingWith(
                 "did not finish within 25s, set by deviceRun.waitTimeout; Device Run cancelled the session.",
             )
-        assertThat(sleeps).containsExactly(Duration.ofSeconds(10), Duration.ofSeconds(10), Duration.ofSeconds(5), Duration.ofSeconds(10))
+        assertThat(clock.sleeps)
+            .containsExactly(Duration.ofSeconds(10), Duration.ofSeconds(10), Duration.ofSeconds(5), Duration.ofSeconds(10))
         assertThat(transport.requests.last { it.method == "POST" }.uri.rawPath).endsWith(":cancel")
     }
 
@@ -296,7 +281,7 @@ class SessionLifecycleTest {
         val sessionId = SessionMetadataSerializer().read(metadataFile()).sessionId
         assertThat(session.sessionReport.result.resultType).isEqualTo("PASSED")
         assertThat(transport.requests.filter { it.uri.rawPath.endsWith(":cancel") }).isEmpty()
-        assertThat(sleeps).containsExactly(Duration.ofSeconds(10), Duration.ofSeconds(10), Duration.ofSeconds(10))
+        assertThat(clock.sleeps).containsExactly(Duration.ofSeconds(10), Duration.ofSeconds(10), Duration.ofSeconds(10))
         assertThat(logs.entries.filter { it.first == Level.WARN }).containsExactly(
             Level.WARN to "Unable to get the status of Device Run session $sessionId: Connection reset. Trying again for up to 5m.",
             Level.WARN to "Unable to get the status of Device Run session $sessionId: 503 UNAVAILABLE: Request failed. " +
@@ -340,7 +325,7 @@ class SessionLifecycleTest {
 
     @Test
     fun `cancels the session when interrupted and keeps the interrupt flag`() {
-        interruptNextSleep = true
+        clock.interruptNextSleep()
         enqueueOperation(done = false)
         enqueueStatus("RUNNING")
         enqueueStatus("RUNNING")
@@ -361,8 +346,8 @@ class SessionLifecycleTest {
 
     @Test
     fun `cancels the session when an interrupted poll fails and keeps the interrupt flag`() {
-        val waiter = SessionWaiter(retryInterruptingManager, sleeper, ticker)
-        val lifecycle = SessionLifecycle(sessionManager, registry, submitter, waiter, canceller, ticker)
+        val waiter = SessionWaiter(retryInterruptingManager, clock.sleeper, clock.ticker)
+        val lifecycle = SessionLifecycle(sessionManager, registry, submitter, waiter, canceller, clock.ticker)
         enqueueOperation(done = false)
         enqueueError(503, "UNAVAILABLE")
         enqueueStatus("RUNNING")
@@ -470,7 +455,7 @@ class SessionLifecycleTest {
     @Test
     fun `cancels an interrupted creation without looking up or repeating it`() {
         val submitter = SessionSubmitter(retryInterruptingManager, location, registry)
-        val lifecycle = SessionLifecycle(sessionManager, registry, submitter, waiter, canceller, ticker)
+        val lifecycle = SessionLifecycle(sessionManager, registry, submitter, waiter, canceller, clock.ticker)
         enqueueError(503, "UNAVAILABLE")
         enqueueStatus("RUNNING")
         enqueueCancellation("SESSION_MARKED_AS_CANCELLED")
@@ -635,9 +620,7 @@ class SessionLifecycleTest {
     }
 
     private fun enqueueStatus(statusType: String, vararg progressMessages: String, interrupting: Boolean = false) {
-        val status = Status().setStatusType(statusType).setProgressMessages(progressMessages.toList().ifEmpty { null })
-        val session = Session().setSessionReport(SessionReport().setStatus(status))
-        transport.enqueueJson(session, response(interrupting))
+        transport.enqueueJson(buildSession { status(statusType, *progressMessages) }, response(interrupting))
     }
 
     /**

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name='' hostname='localhost' tests='1' failures='0' skipped='0' errors='0' time='0.0' timestamp='2026-10-22T15:11:04'>
+    <properties />
+    <testcase name='passes' classname='io.technoirlab.device.run.fixture.PassingTest' time='0.0' />
+  </testsuite>
+</testsuites>

@@ -3,19 +3,19 @@ package io.technoirlab.device.run.core.testrun.results
 /**
  * Turns the test cases of a Device Run job report into final test outcomes.
  *
- * The job report has one test case for each test, with a `failure` for each failed attempt. A test that passed in some attempts and
- * failed in others, in any order, is marked `flaky="true"`; such a test passed. The rule covers only failures, the combination
- * Device Run was observed to produce.
+ * The job report has one test case for each test, with a `failure` for each failed attempt, in attempt order. A test that passed in
+ * some attempts and failed in others, in any order, is marked `flaky="true"`; such a test passed. The rule covers only failures, the
+ * combination Device Run was observed to produce: an `error` marked flaky was never observed, and it fails the test.
  */
 internal class TestOutcomeMapper {
     fun map(testCase: JUnitTestCase): TestOutcome {
         val error = testCase.error
-        val failure = testCase.failure
+        val failures = testCase.failures
         val skipped = testCase.skipped
         val (status, element) = when {
             error != null -> TestOutcome.Status.ERROR to error
-            failure != null && !testCase.flaky -> TestOutcome.Status.FAILED to failure
-            failure != null -> TestOutcome.Status.PASSED to null
+            failures.isNotEmpty() && !testCase.flaky -> TestOutcome.Status.FAILED to failures.first()
+            failures.isNotEmpty() -> TestOutcome.Status.PASSED to null
             skipped != null -> TestOutcome.Status.SKIPPED to skipped
             else -> TestOutcome.Status.PASSED to null
         }
@@ -24,8 +24,10 @@ internal class TestOutcomeMapper {
             name = testCase.name,
             time = testCase.time,
             status = status,
-            recovered = failure != null && testCase.flaky && error == null,
             detail = element?.let(::detail),
+            failedAttempts = failures.map { failure ->
+                detail(failure) ?: TestOutcome.Detail(type = failure.type, message = "", trace = "")
+            },
         )
     }
 

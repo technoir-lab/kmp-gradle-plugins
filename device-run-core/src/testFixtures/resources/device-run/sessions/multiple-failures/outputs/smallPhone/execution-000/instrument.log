@@ -1,0 +1,83 @@
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.AfterFailureTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.device.run.fixture.AfterFailureTest:
+INSTRUMENTATION_STATUS: test=failsTwiceUnlessReduced
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.AfterFailureTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stack=java.lang.IllegalStateException: Fails in @After unless the retry is reduced: test=@After reduced=false args=[]
+	at io.technoirlab.device.run.fixture.AfterFailureTest.failUnlessReduced(AfterFailureTest.java:15)
+
+INSTRUMENTATION_STATUS: stream=
+Error in failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest):
+java.lang.IllegalStateException: Fails in @After unless the retry is reduced: test=@After reduced=false args=[]
+	at io.technoirlab.device.run.fixture.AfterFailureTest.failUnlessReduced(AfterFailureTest.java:15)
+
+INSTRUMENTATION_STATUS: test=failsTwiceUnlessReduced
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ErrorCollectorTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.device.run.fixture.ErrorCollectorTest:
+INSTRUMENTATION_STATUS: test=collectsTwoErrorsUnlessReduced
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ErrorCollectorTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Second collected error
+	at io.technoirlab.device.run.fixture.ErrorCollectorTest.collectsTwoErrorsUnlessReduced(ErrorCollectorTest.java:18)
+
+INSTRUMENTATION_STATUS: stream=
+Error in collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest):
+java.lang.AssertionError: Second collected error
+	at io.technoirlab.device.run.fixture.ErrorCollectorTest.collectsTwoErrorsUnlessReduced(ErrorCollectorTest.java:18)
+
+INSTRUMENTATION_STATUS: test=collectsTwoErrorsUnlessReduced
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.PassingTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.device.run.fixture.PassingTest:
+INSTRUMENTATION_STATUS: test=passes
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.PassingTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=passes
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 0.048
+There were 4 failures:
+1) failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)
+java.lang.AssertionError: Fails unless the retry is reduced: test=failsTwiceUnlessReduced reduced=false args=[]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.device.run.fixture.AfterFailureTest.failsTwiceUnlessReduced(AfterFailureTest.java:21)
+2) failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)
+java.lang.IllegalStateException: Fails in @After unless the retry is reduced: test=@After reduced=false args=[]
+	at io.technoirlab.device.run.fixture.AfterFailureTest.failUnlessReduced(AfterFailureTest.java:15)
+3) collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)
+java.lang.AssertionError: First collected error: test=collectsTwoErrorsUnlessReduced reduced=false args=[]
+	at io.technoirlab.device.run.fixture.ErrorCollectorTest.collectsTwoErrorsUnlessReduced(ErrorCollectorTest.java:17)
+4) collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)
+java.lang.AssertionError: Second collected error
+	at io.technoirlab.device.run.fixture.ErrorCollectorTest.collectsTwoErrorsUnlessReduced(ErrorCollectorTest.java:18)
+
+FAILURES!!!
+Tests run: 3,  Failures: 4
+
+
+INSTRUMENTATION_CODE: -1

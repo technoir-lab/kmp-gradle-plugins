@@ -6,8 +6,9 @@ import org.gradle.api.provider.Property
  * Retries of failed tests.
  *
  * Device Run also retries infrastructure failures on its own; these options do not control those retries. A test that fails in
- * some attempts and passes in others is reported as passed and marked as flaky. Whether the test task passes follows the verdict
- * of Device Run, which depends on the [scope].
+ * some attempts and passes in others is reported as passed and marked as flaky. When Device Run fails the session only because no
+ * attempt of a shard passed every test that it ran, as it can with [RetryScope.SHARD] and [parallel] retries, the test task passes
+ * and warns about it.
  */
 @DeviceRunDsl
 interface RetryOptions {
@@ -18,6 +19,9 @@ interface RetryOptions {
 
     /**
      * Whether the retries of a failed attempt run at the same time on separate devices. Defaults to `false`.
+     *
+     * Each parallel retry runs the same tests, and Device Run fails the shard unless one retry passes all of them. When that alone
+     * fails the session, the test task still passes and warns about it.
      */
     val parallel: Property<Boolean>
 

@@ -10,13 +10,13 @@ import com.google.api.client.testing.http.MockLowLevelHttpResponse
 import com.google.api.services.devicerun.v1alpha.model.CatalogListSoftwareVersionsResponse
 import com.google.api.services.devicerun.v1alpha.model.CatalogSoftwareVersion
 import com.google.api.services.devicerun.v1alpha.model.GoogleLongrunningOperation
-import com.google.api.services.devicerun.v1alpha.model.Result
 import com.google.api.services.devicerun.v1alpha.model.Session
 import com.google.api.services.devicerun.v1alpha.model.SessionReport
 import com.google.api.services.devicerun.v1alpha.model.Status
 import com.google.api.services.storage.model.Objects
 import com.google.api.services.storage.model.StorageObject
 import io.technoirlab.device.run.core.storage.GcsUri
+import io.technoirlab.device.run.core.testrun.results.buildSessionReport
 import java.math.BigInteger
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -24,15 +24,17 @@ import java.util.concurrent.CopyOnWriteArrayList
  * Answers the Device Run and Cloud Storage requests of test runs from memory, like a service that finishes each session as soon as
  * it is created. Requests that a test run does not send fail the test.
  *
- * A created session writes [sessionOutputs] below its output directory and finishes with the report that [sessionReport] returns
- * for that directory. Listings leave out the outputs in [unlistedOutputs], as when a listing lags behind the objects of a session.
- * Cloud Storage rejects requests for objects below [deniedPrefixes] with `403 PERMISSION_DENIED`.
+ * A created session finishes with the report that [sessionReport] returns for its output directory, and Device Run uploads
+ * [sessionOutputs] below that directory: at once, or after the number of listings that [outputUploadListings] sets, as when the
+ * outputs are listed before Device Run has uploaded them. Listings return the objects in name order, in pages of at most
+ * [listingPageSize] objects. Cloud Storage rejects requests for objects below [deniedPrefixes] with `403 PERMISSION_DENIED`.
  */
 internal class FakeCloudTransport : MockHttpTransport() {
     private val json = GsonFactory.getDefaultInstance()
     private val objects = mutableMapOf<GcsUri, String>()
-    private val unlistedObjects = mutableSetOf<GcsUri>()
+    private val pendingUploads = mutableMapOf<GcsUri, PendingUpload>()
     private val reports = mutableMapOf<String, SessionReport>()
+    private var listings = 0
 
     /**
      * The requests received, in the order they arrived.
@@ -46,8 +48,14 @@ internal class FakeCloudTransport : MockHttpTransport() {
 
     var orchestratorVersions: List<String> = emptyList()
     var sessionOutputs: Map<String, String> = emptyMap()
-    var unlistedOutputs: Set<String> = emptySet()
-    var sessionReport: (sessionDirectory: String) -> SessionReport = { SessionReport().setResult(Result().setResultType("PASSED")) }
+
+    /**
+     * The number of listings of any objects after which Device Run uploads each output of [sessionOutputs] that it names; the
+     * other outputs exist when the session is created.
+     */
+    var outputUploadListings: Map<String, Int> = emptyMap()
+    var sessionReport: (sessionDirectory: String) -> SessionReport = { buildSessionReport { result("PASSED") } }
+    var listingPageSize = Int.MAX_VALUE
     val deniedPrefixes = mutableSetOf<String>()
 
     /**
@@ -60,6 +68,26 @@ internal class FakeCloudTransport : MockHttpTransport() {
      * Returns the content of the object at the `gs://` [uri], or null when there is no such object.
      */
     fun objectContent(uri: String): String? = synchronized(this) { objects[GcsUri.parse(uri)] }
+
+    /**
+     * Uploads [content] to the object at [uri] once [afterListings] more listings of any objects have been answered.
+     */
+    fun upload(uri: GcsUri, content: String, afterListings: Int = 0) {
+        synchronized(this) {
+            if (afterListings > 0) {
+                pendingUploads[uri] = PendingUpload(content, listings + afterListings)
+            } else {
+                objects[uri] = content
+            }
+        }
+    }
+
+    /**
+     * Deletes the object at [uri].
+     */
+    fun delete(uri: GcsUri) {
+        synchronized(this) { objects.remove(uri) }
+    }
 
     override fun buildRequest(method: String, url: String): LowLevelHttpRequest = object : MockLowLevelHttpRequest(url) {
         override fun execute(): LowLevelHttpResponse {
@@ -94,11 +122,7 @@ internal class FakeCloudTransport : MockHttpTransport() {
         val sessionDirectory = "${session.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path}/$sessionId"
         val directory = GcsUri.parse(sessionDirectory)
         for ((relativePath, content) in sessionOutputs) {
-            val output = directory / relativePath
-            objects[output] = content
-            if (relativePath in unlistedOutputs) {
-                unlistedObjects += output
-            }
+            upload(directory / relativePath, content, outputUploadListings[relativePath] ?: 0)
         }
         sessions += session
         reports[session.name] = sessionReport(sessionDirectory)
@@ -136,7 +160,7 @@ internal class FakeCloudTransport : MockHttpTransport() {
             "GET" if parts.size == 6 -> objects[GcsUri(bucket, objectName)]?.let { content ->
                 if (url.getFirst("alt") == "media") mediaResponse(content) else jsonResponse(storageObject(bucket, objectName, content))
             } ?: errorResponse(404, "No such object", "NOT_FOUND")
-            "GET" if parts.size == 5 -> jsonResponse(Objects().setItems(listedObjects(bucket, objectName)))
+            "GET" if parts.size == 5 -> jsonResponse(listing(bucket, objectName, url.getFirst("pageToken") as String?))
             // The upload session continues at the URL that started it.
             "POST" if upload -> MockLowLevelHttpResponse().addHeader("Location", url.build())
             "PUT" if upload -> {
@@ -147,9 +171,25 @@ internal class FakeCloudTransport : MockHttpTransport() {
         }
     }
 
-    private fun listedObjects(bucket: String, prefix: String): List<StorageObject> = (objects.keys - unlistedObjects)
-        .filter { it.bucket == bucket && it.objectName.startsWith(prefix) }
-        .map { StorageObject().setName(it.objectName) }
+    /**
+     * Returns the page of the listing of the objects below [prefix] that [pageToken] selects, or else its first page, which first
+     * completes the uploads that earlier listings preceded.
+     */
+    private fun listing(bucket: String, prefix: String, pageToken: String?): Objects {
+        if (pageToken == null) {
+            listings++
+            val completed = pendingUploads.filterValues { it.afterListings < listings }
+            completed.forEach { (uri, upload) -> objects[uri] = upload.content }
+            pendingUploads.keys -= completed.keys
+        }
+        val names = objects.keys.filter { it.bucket == bucket && it.objectName.startsWith(prefix) }.map { it.objectName }.sorted()
+        val start = pageToken?.toInt() ?: 0
+        val page = names.drop(start).take(listingPageSize)
+        val end = start + page.size
+        return Objects()
+            .setItems(page.map { StorageObject().setName(it) })
+            .setNextPageToken(end.takeIf { it < names.size }?.toString())
+    }
 
     private fun storageObject(bucket: String, objectName: String, content: String): StorageObject = StorageObject()
         .setBucket(bucket)
@@ -172,6 +212,14 @@ internal class FakeCloudTransport : MockHttpTransport() {
         val method: String,
         val host: String,
         val path: String,
+    )
+
+    /**
+     * The [content] of an object that is uploaded when the listing that follows listing number [afterListings] begins.
+     */
+    private data class PendingUpload(
+        val content: String,
+        val afterListings: Int,
     )
 
     companion object {

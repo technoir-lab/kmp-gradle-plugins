@@ -5,12 +5,12 @@ import io.technoirlab.device.run.core.device.DeviceOptions
 import io.technoirlab.device.run.core.files.PreparedFile
 import io.technoirlab.device.run.core.files.PushedFileOptions
 import io.technoirlab.device.run.core.testrun.TestRunRequest
-import io.technoirlab.device.run.core.testrun.results.CapturedSession
+import io.technoirlab.device.run.core.testrun.results.CapturedScenario
 
 /**
  * Records the operations of a [DeviceRunner] and answers them with configured results instead of accessing Google Cloud.
  *
- * Test runs replay [capturedSession] through the runner, which writes its results, when it is set, and otherwise return [testsPass]
+ * Test runs replay [capturedScenario] through the runner, which writes its results, when it is set, and otherwise return [testsPass]
  * without writing results.
  */
 class RecordingDeviceRunner : DeviceRunner {
@@ -18,7 +18,7 @@ class RecordingDeviceRunner : DeviceRunner {
     val pushedFiles = mutableListOf<PushedFileOptions>()
     val testRuns = mutableListOf<TestRunRequest>()
     var catalogDevice: CatalogDeviceSnapshot? = null
-    var capturedSession: CapturedSession? = null
+    var capturedScenario: CapturedScenario? = null
     var testsPass = true
     var closeCount = 0
         private set
@@ -35,7 +35,7 @@ class RecordingDeviceRunner : DeviceRunner {
 
     override fun runTests(request: TestRunRequest): Boolean {
         testRuns.add(request)
-        return capturedSession?.runTests(request) ?: testsPass
+        return capturedScenario?.runTests(request) ?: testsPass
     }
 
     override fun close() {

@@ -435,9 +435,15 @@ and passes in others is reported as passed and marked as flaky. `scope` selects 
 failed shard, and `FAILED_TEST_CASES` reruns only the failed tests. `parallel` runs the retries of a failed attempt at the same time on
 separate devices.
 
-With `SHARD`, a shard passes only when one attempt passes all of its tests, so a test task can fail although every test passed in
-some attempt. `FAILED_TEST_CASES` needs at least one test class in the test APK that declares a runner that Device Run supports with
-`@RunWith`, such as `AndroidJUnit4` or `Parameterized`; otherwise Device Run silently reruns every test of the shard.
+With `SHARD`, Device Run fails a shard unless one attempt passes all of its tests, even when every test passed in some attempt.
+Parallel retries all run the same tests, and Device Run fails the shard unless one retry passes all of them. The test task then
+passes and warns that Device Run failed the session, as described under [Test results](#test-results). `FAILED_TEST_CASES` needs at
+least one test class in the test APK that declares a runner that Device Run supports with `@RunWith`, such as `AndroidJUnit4` or
+`Parameterized`; otherwise Device Run silently reruns every test of the shard.
+
+When a test crashes the instrumentation process, the attempt ends, and a `FAILED_TEST_CASES` retry runs only the crashed test, so
+the tests after it never run, and the test task fails. With [Android Test Orchestrator](#android-test-orchestrator), each test runs in
+its own process, so a crash fails only that test.
 
 Device Run also retries infrastructure failures on its own; these options do not control those retries.
 
@@ -460,9 +466,9 @@ downloaded with the other [session outputs](#test-results).
 `capture.logcat` and `capture.video` select when the device log and the screen recordings are kept: `DISABLED`, `ON_FAILURE`,
 or `ALWAYS`.
 
-Device Run cannot discard device logs on its own, so with `ON_FAILURE` the plugin downloads them only when the session does not
-pass; they remain in the bucket otherwise. Device Run decides itself which recordings to keep, so with `ON_FAILURE` it can also keep
-the recording of a passing run, such as one that passed after a retry.
+Device Run cannot discard device logs on its own, so with `ON_FAILURE` the plugin downloads them only when the test task fails, which
+it decides from the other outputs; they remain in the bucket otherwise. Device Run decides itself which recordings to keep, so with
+`ON_FAILURE` it can also keep the recording of a passing run, such as one that passed after a retry.
 
 ## Test results
 
@@ -475,9 +481,34 @@ Test tasks write their results to the AGP results directory of the device, such 
   `capture` keeps.
 - `device-run-session.json`: the project and name of the session.
 
+Device Run uploads the session outputs in the seconds after the session ends. The plugin downloads them once a listing contains the
+files that the session reports name, and, when the tests ran, outputs of an execution, which Device Run uploads after the job
+report. When the reports list every execution, the files that they name are all the outputs, so a listing of exactly those files is
+enough; otherwise, two listings 5 seconds apart must also match. After a minute, it downloads the outputs that exist and warns about
+the missing ones, which Device Run may still upload to the session directory in the bucket.
+
+`TEST-<device>.xml` reports retries as Maven Surefire does. A test that failed in some attempts and passed in others passes, is
+marked `flaky="true"`, has a `<flakyFailure>` with the trace of each failed attempt, and counts toward the `flakes` of the suite. A
+test that failed every attempt has a `<failure>` for its first attempt and a `<rerunFailure>` for each later one. The test task
+also logs a warning that names the flaky tests. Point JUnit XML consumers, such as action-junit-report and TeamCity, at
+`**/TEST-*.xml`: the Device Run reports below `device-run/` keep a `<failure>` for each failed attempt, also of flaky tests, so
+consumers that read them count flaky tests as failed. TeamCity before 2024.03 counts `<flakyFailure>` as a failure too.
+
 A test task fails when a test fails, when the session ends with an infrastructure error, a timeout, or cancellation, or when the
-session reports no tests. Tests that ended with an error are reported as failures. Device Run reports durations but no start times,
-so in `test-result.pb` a test starts when the shard or retry attempt that ran it started, or else when the session started.
+session reports no tests. It also fails when the instrumentation log of an attempt shows tests that never ran, or failures that the
+reports omit, such as a failing `@BeforeClass` under Android Test Orchestrator; the task logs the reason, which `test-result.pb`
+lists as a platform error. An event of a whole class, such as an assumption in `@BeforeClass`, stands for several tests, so when an
+attempt with such an event ends early, the log cannot show whether tests never ran, and the task logs a warning instead. Tests that
+ended with an error are reported as failures.
+
+Device Run fails a session when no attempt of a shard passes every test that it ran, even when every test passed in some attempt. The
+test task of such a session passes, logs a warning, and adds it to `test-result.pb` as an issue, provided that Device Run blames
+failed tests and that the reports and instrumentation logs of the attempts confirm that each failed attempt failed tests. Otherwise
+the task fails and names what the reports do not confirm, such as an attempt that the session report omits and whose instrumentation
+log is missing.
+
+Device Run reports durations but no start times, so in `test-result.pb` a test starts when the shard or retry attempt that ran it
+started, or else when the session started.
 
 ## Cancelling sessions
 

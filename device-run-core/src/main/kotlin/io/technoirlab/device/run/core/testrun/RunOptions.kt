@@ -126,7 +126,7 @@ data class RunOptions(
      * directory.
      *
      * @property logcat when the device logs of the executions are kept. Device Run cannot discard them on its own, so with
-     * [ArtifactCapture.ON_FAILURE] they are collected and downloaded only when the session does not pass.
+     * [ArtifactCapture.ON_FAILURE] they are collected and downloaded only when the tests fail.
      * @property video when a screen recording of the run is kept. Device Run decides for each recording, so with
      * [ArtifactCapture.ON_FAILURE] it can keep the recording of a passing run too, for example after a retry.
      */

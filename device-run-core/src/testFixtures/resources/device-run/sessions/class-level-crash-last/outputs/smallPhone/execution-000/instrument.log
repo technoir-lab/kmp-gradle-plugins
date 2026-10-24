@@ -1,0 +1,62 @@
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.AssumeBeforeClassTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.device.run.fixture.AssumeBeforeClassTest:
+INSTRUMENTATION_STATUS: test=null
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.AssumeBeforeClassTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stack=org.junit.AssumptionViolatedException: Skips the class in @BeforeClass
+	at org.junit.Assume.assumeTrue(Assume.java:68)
+	at io.technoirlab.device.run.fixture.AssumeBeforeClassTest.skipClass(AssumeBeforeClassTest.java:13)
+
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.device.run.fixture.AssumeBeforeClassTest:
+INSTRUMENTATION_STATUS: test=null
+INSTRUMENTATION_STATUS_CODE: -4
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.CrashLastTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.device.run.fixture.CrashLastTest:
+INSTRUMENTATION_STATUS: test=a_passes
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.CrashLastTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=a_passes
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.CrashLastTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=b_crashesUnlessReduced
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.CrashLastTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stack=java.lang.IllegalStateException: Crashes the instrumentation process in the last test: test=b_crashesUnlessReduced reduced=false args=[]
+	at io.technoirlab.device.run.fixture.CrashLastTest.lambda$b_crashesUnlessReduced$0(CrashLastTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashLastTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1012)
+
+INSTRUMENTATION_STATUS: stream=
+Process crashed while executing b_crashesUnlessReduced(io.technoirlab.device.run.fixture.CrashLastTest):
+java.lang.IllegalStateException: Crashes the instrumentation process in the last test: test=b_crashesUnlessReduced reduced=false args=[]
+	at io.technoirlab.device.run.fixture.CrashLastTest.lambda$b_crashesUnlessReduced$0(CrashLastTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashLastTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1012)
+
+INSTRUMENTATION_STATUS: test=b_crashesUnlessReduced
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: shortMsg=Process crashed.
+INSTRUMENTATION_CODE: 0
