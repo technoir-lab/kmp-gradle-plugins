@@ -8,7 +8,6 @@ import com.google.auth.oauth2.AccessToken
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.auth.oauth2.UserCredentials
 import com.google.testing.platform.proto.api.core.TestStatusProto.TestStatus
-import com.google.testing.platform.proto.api.core.TestSuiteResultProto.TestSuiteResult
 import io.technoirlab.device.run.core.client.CloudConnector
 import io.technoirlab.device.run.core.client.RecordingHttpTransport
 import io.technoirlab.device.run.core.client.StubCloudConnector
@@ -23,6 +22,7 @@ import io.technoirlab.device.run.core.files.PushedFileOptions
 import io.technoirlab.device.run.core.storage.enqueueStorageDownload
 import io.technoirlab.device.run.core.testrun.TestRunRequest
 import io.technoirlab.device.run.core.testrun.appTestRunRequest
+import io.technoirlab.device.run.core.testrun.results.WrittenResults
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.assertj.core.api.Assertions.catchThrowable
@@ -32,7 +32,6 @@ import java.nio.file.Path
 import java.util.Date
 import java.util.logging.Level
 import kotlin.io.path.div
-import kotlin.io.path.inputStream
 import kotlin.io.path.writeText
 
 class DeviceRunnerImplTest {
@@ -183,7 +182,7 @@ class DeviceRunnerImplTest {
 
         val passed = runner.runTests(request(testApk, testedApk, resultsDirectory))
 
-        val suiteResult = (resultsDirectory / "test-result.pb").inputStream().use(TestSuiteResult::parseFrom)
+        val suiteResult = WrittenResults(resultsDirectory, DEVICE.name).suiteResult()
         assertThat(passed).isTrue()
         assertThat(suiteResult.testStatus).isEqualTo(TestStatus.PASSED)
         assertThat(transport.requests.map { it.uri.host }.distinct()).containsExactlyInAnyOrder(

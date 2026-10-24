@@ -40,11 +40,13 @@ dependencies {
 
     testFixturesImplementation(platform(libs.google.auth.bom))
     testFixturesImplementation(platform(libs.google.http.client.bom))
+    testFixturesImplementation(libs.android.test.result.proto)
     testFixturesImplementation(libs.google.api.services.devicerun)
     testFixturesImplementation(libs.google.api.services.storage)
     testFixturesImplementation(libs.google.auth.oauth2.http)
     testFixturesImplementation(libs.google.http.client)
     testFixturesImplementation(libs.google.http.client.gson)
+    testFixturesImplementation(libs.protobuf.java)
     testFixturesImplementation(libs.slf4j.api)
 
     testImplementation(libs.assertj.core)

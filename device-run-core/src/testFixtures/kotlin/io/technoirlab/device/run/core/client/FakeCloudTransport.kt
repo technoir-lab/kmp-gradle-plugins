@@ -10,13 +10,13 @@ import com.google.api.client.testing.http.MockLowLevelHttpResponse
 import com.google.api.services.devicerun.v1alpha.model.CatalogListSoftwareVersionsResponse
 import com.google.api.services.devicerun.v1alpha.model.CatalogSoftwareVersion
 import com.google.api.services.devicerun.v1alpha.model.GoogleLongrunningOperation
-import com.google.api.services.devicerun.v1alpha.model.Result
 import com.google.api.services.devicerun.v1alpha.model.Session
 import com.google.api.services.devicerun.v1alpha.model.SessionReport
 import com.google.api.services.devicerun.v1alpha.model.Status
 import com.google.api.services.storage.model.Objects
 import com.google.api.services.storage.model.StorageObject
 import io.technoirlab.device.run.core.storage.GcsUri
+import io.technoirlab.device.run.core.testrun.results.buildSessionReport
 import java.math.BigInteger
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -54,7 +54,7 @@ internal class FakeCloudTransport : MockHttpTransport() {
      * other outputs exist when the session is created.
      */
     var outputUploadListings: Map<String, Int> = emptyMap()
-    var sessionReport: (sessionDirectory: String) -> SessionReport = { SessionReport().setResult(Result().setResultType("PASSED")) }
+    var sessionReport: (sessionDirectory: String) -> SessionReport = { buildSessionReport { result("PASSED") } }
     var listingPageSize = Int.MAX_VALUE
     val deniedPrefixes = mutableSetOf<String>()
 

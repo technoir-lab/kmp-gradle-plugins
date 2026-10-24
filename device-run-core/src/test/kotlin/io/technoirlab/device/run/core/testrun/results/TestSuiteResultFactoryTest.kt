@@ -1,6 +1,5 @@
 package io.technoirlab.device.run.core.testrun.results
 
-import com.google.protobuf.Timestamp
 import com.google.testing.platform.proto.api.core.TestArtifactProto.Artifact
 import com.google.testing.platform.proto.api.core.TestStatusProto.TestStatus
 import com.google.testing.platform.proto.api.core.TestSuiteResultProto.TestSuiteResult
@@ -102,8 +101,6 @@ class TestSuiteResultFactoryTest {
     }
 
     private fun List<Artifact>.labelsAndPaths(): List<Pair<String, String>> = map { it.label.label to it.sourcePath.path }
-
-    private fun Timestamp.toInstant(): Instant = Instant.ofEpochSecond(seconds, nanos.toLong())
 
     private companion object {
         private val START_TIME = Instant.parse("2026-10-11T18:04:55.940Z")

@@ -1,11 +1,7 @@
 package io.technoirlab.device.run.core.testrun.results
 
-import com.google.api.services.devicerun.v1alpha.model.Session
-import com.google.api.services.storage.model.Objects
 import io.technoirlab.device.run.core.VirtualClock
 import io.technoirlab.device.run.core.client.FakeCloudTransport
-import io.technoirlab.device.run.core.client.deviceRunFixtures
-import io.technoirlab.device.run.core.client.parseDeviceRunFixture
 import io.technoirlab.device.run.core.client.testStorageClient
 import io.technoirlab.device.run.core.recordLogs
 import io.technoirlab.device.run.core.storage.GcsUri
@@ -75,24 +71,20 @@ class SessionStorageTest {
 
     @Test
     fun `mirrors the retries that Device Run uploads after the first listing of a final report without executions`() {
-        val session = parseDeviceRunFixture<Session>("sessions/report-without-executions/session-full.json")
-        val listing = parseDeviceRunFixture<Objects>("sessions/report-without-executions/objects.json")
-        val outputs = deviceRunFixtures("sessions/report-without-executions/outputs")
+        val scenario = CapturedScenario("report-without-executions")
         // As observed, the first listing came about 3 seconds after the session ended, before the retries were uploaded.
-        val listingTimes = generateSequence(Instant.parse(session.sessionReport.endTime).plusSeconds(3)) { it + SETTLE_INTERVAL }
-        for (item in listing.items) {
-            val relativePath = item.name.removePrefix("$SESSION_DIRECTORY/")
-            val afterListings = listingTimes.takeWhile { it.toEpochMilli() < item.timeCreated.value }.count()
-            upload(relativePath, outputs[relativePath] ?: "Placeholder for $relativePath", afterListings)
+        val listingTimes = generateSequence(Instant.parse(scenario.session.sessionReport.endTime).plusSeconds(3)) { it + SETTLE_INTERVAL }
+        for ((relativePath, creationTime) in scenario.outputCreationTimes) {
+            val afterListings = listingTimes.takeWhile { it < creationTime }.count()
+            upload(relativePath, scenario.outputs.getValue(relativePath), afterListings)
         }
 
         val artifacts = mirror(expectedPaths = listOf("smallPhone/junit.xml"))
 
-        assertThat(artifacts).extracting<String> { it.relativePath }
-            .containsExactlyInAnyOrderElementsOf(listing.items.map { it.name.removePrefix("$SESSION_DIRECTORY/") })
+        assertThat(artifacts).extracting<String> { it.relativePath }.containsExactlyInAnyOrderElementsOf(scenario.outputs.keys)
         assertThat(mirrorRoot / "smallPhone/execution-000-rerun-001/junit.xml")
             .content()
-            .isEqualTo(outputs["smallPhone/execution-000-rerun-001/junit.xml"])
+            .isEqualTo(scenario.outputs["smallPhone/execution-000-rerun-001/junit.xml"])
         assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL)
     }
 

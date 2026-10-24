@@ -7,8 +7,6 @@ import com.google.api.services.devicerun.v1alpha.model.CancelSessionResponse
 import com.google.api.services.devicerun.v1alpha.model.GoogleLongrunningOperation
 import com.google.api.services.devicerun.v1alpha.model.GoogleRpcStatus
 import com.google.api.services.devicerun.v1alpha.model.Session
-import com.google.api.services.devicerun.v1alpha.model.SessionReport
-import com.google.api.services.devicerun.v1alpha.model.Status
 import io.technoirlab.device.run.core.DeviceRunException
 import io.technoirlab.device.run.core.VirtualClock
 import io.technoirlab.device.run.core.client.DeviceRunLocation
@@ -23,6 +21,7 @@ import io.technoirlab.device.run.core.client.errorResponse
 import io.technoirlab.device.run.core.client.testDeviceRunClient
 import io.technoirlab.device.run.core.recordLogs
 import io.technoirlab.device.run.core.storage.GcsUri
+import io.technoirlab.device.run.core.testrun.results.buildSession
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -621,9 +620,7 @@ class SessionLifecycleTest {
     }
 
     private fun enqueueStatus(statusType: String, vararg progressMessages: String, interrupting: Boolean = false) {
-        val status = Status().setStatusType(statusType).setProgressMessages(progressMessages.toList().ifEmpty { null })
-        val session = Session().setSessionReport(SessionReport().setStatus(status))
-        transport.enqueueJson(session, response(interrupting))
+        transport.enqueueJson(buildSession { status(statusType, *progressMessages) }, response(interrupting))
     }
 
     /**
