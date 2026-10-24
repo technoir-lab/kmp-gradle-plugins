@@ -19,6 +19,14 @@ data class GcsUri(
      */
     internal operator fun div(path: String): GcsUri = copy(objectName = "${objectName.removeSuffix("/")}/$path")
 
+    /**
+     * Returns the path of this object below [directory], which [div] joins to it, or null when the object lies elsewhere.
+     */
+    internal fun relativeTo(directory: GcsUri): String? {
+        val prefix = "${directory.objectName.removeSuffix("/")}/"
+        return objectName.removePrefix(prefix).takeIf { bucket == directory.bucket && objectName.startsWith(prefix) }
+    }
+
     internal companion object {
         const val SCHEME = "gs://"
 

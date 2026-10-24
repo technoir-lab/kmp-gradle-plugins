@@ -95,8 +95,8 @@ class TestSuiteResultFactoryTest {
             name = "runs",
             time = time,
             status = TestOutcome.Status.PASSED,
-            recovered = false,
             detail = null,
+            failedAttempts = emptyList(),
         )
         return ExecutedTest(outcome, startTime, artifacts)
     }

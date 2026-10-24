@@ -1,0 +1,85 @@
+{
+  "kind": "storage#objects",
+  "items": [
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-b059e4c1-75cf-481d-b366-be7600c11d96/smallPhone/execution-000-rerun-000/instrument.log",
+      "size": "5009",
+      "contentType": "text/plain",
+      "timeCreated": "2026-10-20T13:55:26.868Z"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-b059e4c1-75cf-481d-b366-be7600c11d96/smallPhone/execution-000-rerun-000/junit.xml",
+      "size": "1378",
+      "contentType": "application/xml",
+      "timeCreated": "2026-10-20T13:55:26.557Z"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-b059e4c1-75cf-481d-b366-be7600c11d96/smallPhone/execution-000-rerun-000/logcat.txt",
+      "size": "366222",
+      "contentType": "text/plain",
+      "timeCreated": "2026-10-20T13:55:26.585Z"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-b059e4c1-75cf-481d-b366-be7600c11d96/smallPhone/execution-000-rerun-001/instrument.log",
+      "size": "5009",
+      "contentType": "text/plain",
+      "timeCreated": "2026-10-20T13:55:27.333Z"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-b059e4c1-75cf-481d-b366-be7600c11d96/smallPhone/execution-000-rerun-001/junit.xml",
+      "size": "1378",
+      "contentType": "application/xml",
+      "timeCreated": "2026-10-20T13:55:27.643Z"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-b059e4c1-75cf-481d-b366-be7600c11d96/smallPhone/execution-000-rerun-001/logcat.txt",
+      "size": "321128",
+      "contentType": "text/plain",
+      "timeCreated": "2026-10-20T13:55:27.752Z"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-b059e4c1-75cf-481d-b366-be7600c11d96/smallPhone/execution-000/instrument.log",
+      "size": "9615",
+      "contentType": "text/plain",
+      "timeCreated": "2026-10-20T13:55:25.662Z"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-b059e4c1-75cf-481d-b366-be7600c11d96/smallPhone/execution-000/junit.xml",
+      "size": "2812",
+      "contentType": "application/xml",
+      "timeCreated": "2026-10-20T13:55:26.087Z"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-b059e4c1-75cf-481d-b366-be7600c11d96/smallPhone/execution-000/logcat.txt",
+      "size": "346512",
+      "contentType": "text/plain",
+      "timeCreated": "2026-10-20T13:55:26.023Z"
+    },
+    {
+      "kind": "storage#object",
+      "bucket": "example-bucket",
+      "name": "automation/sessions/session-b059e4c1-75cf-481d-b366-be7600c11d96/smallPhone/junit.xml",
+      "size": "6983",
+      "contentType": "application/xml",
+      "timeCreated": "2026-10-20T13:55:25.192Z"
+    }
+  ]
+}

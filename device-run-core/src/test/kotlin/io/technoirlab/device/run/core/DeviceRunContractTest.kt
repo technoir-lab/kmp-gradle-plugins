@@ -13,6 +13,7 @@ import com.google.api.services.devicerun.v1alpha.model.Session
 import com.google.api.services.storage.model.Objects
 import io.technoirlab.device.run.core.client.RecordingHttpTransport
 import io.technoirlab.device.run.core.client.deviceRunFixture
+import io.technoirlab.device.run.core.client.deviceRunFixtures
 import io.technoirlab.device.run.core.client.enqueueFixture
 import io.technoirlab.device.run.core.client.parseDeviceRunFixture
 import org.assertj.core.api.Assertions.assertThat
@@ -24,6 +25,9 @@ import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.MethodSource
 import org.w3c.dom.Document
 import org.w3c.dom.Element
+import java.math.BigDecimal
+import java.time.Duration
+import java.time.Instant
 import javax.xml.parsers.DocumentBuilderFactory
 
 class DeviceRunContractTest {
@@ -64,6 +68,44 @@ class DeviceRunContractTest {
 
         assertThat(session.sessionReport.result.resultType).isEqualTo("PASSED")
         assertThat(session.sessionReport.jobReports).isNull()
+    }
+
+    @Test
+    fun `final reports can omit the executions of a job whose outputs exist`() {
+        val session = parseDeviceRunFixture<Session>("sessions/report-without-executions/session-full.json")
+        val listing = parseDeviceRunFixture<Objects>("sessions/report-without-executions/objects.json")
+
+        val job = session.sessionReport.jobReports.single()
+        assertThat(session.sessionReport.result.resultType).isEqualTo("FAILED")
+        assertThat(session.sessionReport.result.cause.summary.reason).isEqualTo("SESSION_HAS_FAILED_JOBS")
+        assertThat(job.result.resultType).isEqualTo("FAILED")
+        assertThat(job.result.cause).isNull()
+        assertThat(job.executionReports).isNull()
+        assertThat(job.outputFiles).isNull()
+        assertThat(listing.items.map { it.name.substringAfter("/smallPhone/") }).containsExactly(
+            "execution-000-rerun-000/instrument.log",
+            "execution-000-rerun-000/junit.xml",
+            "execution-000-rerun-000/logcat.txt",
+            "execution-000-rerun-001/instrument.log",
+            "execution-000-rerun-001/junit.xml",
+            "execution-000-rerun-001/logcat.txt",
+            "execution-000/instrument.log",
+            "execution-000/junit.xml",
+            "execution-000/logcat.txt",
+            "junit.xml",
+        )
+    }
+
+    @Test
+    fun `outputs are uploaded within seconds after the session ends, the job report first`() {
+        val session = parseDeviceRunFixture<Session>("sessions/report-without-executions/session-full.json")
+        val listing = parseDeviceRunFixture<Objects>("sessions/report-without-executions/objects.json")
+
+        val sessionEnd = Instant.parse(session.sessionReport.endTime)
+        val uploads = listing.items.sortedBy { it.timeCreated.value }
+        val delays = uploads.map { Duration.between(sessionEnd, Instant.ofEpochMilli(it.timeCreated.value)) }
+        assertThat(uploads.first().name).endsWith("/smallPhone/junit.xml")
+        assertThat(delays).allSatisfy { delay -> assertThat(delay).isPositive().isLessThan(Duration.ofSeconds(5)) }
     }
 
     @Test
@@ -111,7 +153,7 @@ class DeviceRunContractTest {
     }
 
     @Test
-    fun `recovered flaky tests keep their first failure in the job report`() {
+    fun `retries reduced to failed tests rerun only the failed test, which the job report marks flaky`() {
         val aggregate = parseXml("sessions/flaky-retry-passed/outputs/mediumPhone/junit.xml")
         val rerun = parseXml("sessions/flaky-retry-passed/outputs/mediumPhone/execution-000-rerun-000/test_result.xml")
 
@@ -123,6 +165,179 @@ class DeviceRunContractTest {
         assertThat(
             rerun.testCaseNames(),
         ).containsExactly("io.technoirlab.device.run.fixture.ProbeTest#fails unless reduced to failed tests")
+    }
+
+    @ParameterizedTest
+    @MethodSource("retriedSessions")
+    fun `job reports roll up the attempts of each test into one test case`(scenario: String) {
+        val jobReport = parseXml("sessions/$scenario/outputs/smallPhone/junit.xml")
+        val attempts = attemptReports(scenario)
+
+        val runsByTest = attempts.values.flatMap { it.testCases() }.groupBy { it.testName() }
+        assertThat(jobReport.testCases().map { it.rollup() }).containsExactlyInAnyOrderElementsOf(
+            runsByTest.map { (name, runs) ->
+                RolledUpTest(
+                    name = name,
+                    flaky = runs.any { it.failures().isNotEmpty() } && runs.any { it.failures().isEmpty() },
+                    // Each failure repeats the trace of its attempt.
+                    failures = runs.flatMap { it.failures() }.map { "$it\n\n$it" },
+                    time = runs.maxOf { it.time() },
+                )
+            },
+        )
+        assertThat(jobReport.getElementsByTagName("error").length).isZero()
+        assertThat(jobReport.documentElement.attributes("failures", "flakes", "errors")).containsExactly(
+            runsByTest.values.count { runs -> runs.all { it.failures().isNotEmpty() } }.toString(),
+            jobReport.testCases().count { it.getAttribute("flaky") == "true" }.toString(),
+            "0",
+        )
+        assertThat(jobReport.documentElement.time()).isEqualTo(attempts.values.maxOf { it.testSuite().time() })
+    }
+
+    @Test
+    fun `whole-shard retries fail the session when no attempt passes every test, although every test passed in some attempt`() {
+        val session = parseDeviceRunFixture<Session>("sessions/shard-retry-failed/session-full.json")
+        val jobReport = parseXml("sessions/shard-retry-failed/outputs/smallPhone/junit.xml")
+        val attempts = attemptReports("shard-retry-failed")
+
+        val job = session.sessionReport.jobReports.single()
+        val retryStrategy = session.sessionConfig.jobConfigs.single().settings.retrySettings.flakyTestRetryStrategy
+        assertThat(retryStrategy.testReductionMode).isEqualTo("NO_REDUCTION")
+        assertThat(jobReport.documentElement.attributes("tests", "failures", "flakes")).containsExactly("16", "0", "7")
+        assertThat(session.sessionReport.result.resultType).isEqualTo("FAILED")
+        assertThat(session.sessionReport.result.cause.summary.reason).isEqualTo("SESSION_HAS_FAILED_JOBS")
+        assertThat(job.result.resultType).isEqualTo("FAILED")
+        assertThat(job.result.cause.summary.reason).isEqualTo("JOB_HAS_FAILED_TESTS")
+        assertThat(job.executionReports.map { it.displayName }).containsExactlyInAnyOrderElementsOf(attempts.keys)
+        assertThat(job.executionReports).allSatisfy { execution ->
+            assertThat(execution.result.resultType).isEqualTo("FAILED")
+            assertThat(execution.result.cause.summary.type).isEqualTo("CUSTOMER")
+            assertThat(execution.result.cause.summary.reason).isEqualTo("TEST_CASE_FAILURE")
+            assertThat(attempts.getValue(execution.displayName).testCases()).anySatisfy { assertThat(it.failures()).isNotEmpty() }
+        }
+    }
+
+    @Test
+    fun `a crash under failed-test retries ends the instrumentation early, and the retry runs only the crashed test`() {
+        val session = parseDeviceRunFixture<Session>("sessions/crash-tests-lost/session-full.json")
+        val crashed = instrumentLog("sessions/crash-tests-lost/outputs/smallPhone/execution-000/instrument.log")
+        val retry = instrumentLog("sessions/crash-tests-lost/outputs/smallPhone/execution-000-rerun-000/instrument.log")
+        val jobReport = parseXml("sessions/crash-tests-lost/outputs/smallPhone/junit.xml")
+
+        assertThat(crashed.statusValues("numtests")).containsOnly("4")
+        assertThat(crashed.statusValues("test").distinct()).containsExactly("a_passes", "b_crashesOnFirstAttempt")
+        assertThat(crashed.count { it == "INSTRUMENTATION_STATUS_CODE: 1" }).isEqualTo(2)
+        assertThat(crashed.takeLast(2)).containsExactlyElementsOf(PROCESS_CRASH_END)
+        assertThat(retry.statusValues("numtests")).containsOnly("1")
+        assertThat(retry.statusValues("test").distinct()).containsExactly("b_crashesOnFirstAttempt")
+        assertThat(retry.last()).isEqualTo("INSTRUMENTATION_CODE: -1")
+        assertThat(jobReport.testCaseNames()).containsExactly(
+            "io.technoirlab.device.run.fixture.CrashTest#a_passes",
+            "io.technoirlab.device.run.fixture.CrashTest#b_crashesOnFirstAttempt",
+        )
+        assertThat(session.sessionReport.result.resultType).isEqualTo("PASSED")
+    }
+
+    @Test
+    fun `a crash in the last test starts every planned test`() {
+        val crashed = instrumentLog("sessions/crash-last-test/outputs/smallPhone/execution-000/instrument.log")
+
+        assertThat(crashed.statusValues("numtests")).containsOnly("2")
+        assertThat(crashed.count { it == "INSTRUMENTATION_STATUS_CODE: 1" }).isEqualTo(2)
+        assertThat(crashed.takeLast(2)).containsExactlyElementsOf(PROCESS_CRASH_END)
+    }
+
+    @Test
+    fun `instrumentation summaries list each failure of a test, while the runner reports the test once`() {
+        val session = parseDeviceRunFixture<Session>("sessions/multiple-failures/session-full.json")
+        val log = instrumentLog("sessions/multiple-failures/outputs/smallPhone/execution-000/instrument.log")
+        val executionReport = parseXml("sessions/multiple-failures/outputs/smallPhone/execution-000/junit.xml")
+
+        assertThat(log.count { it == "INSTRUMENTATION_STATUS_CODE: -2" }).isEqualTo(2)
+        assertThat(log).containsSubsequence(
+            "There were 4 failures:",
+            "1) failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)",
+            "2) failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)",
+            "3) collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)",
+            "4) collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)",
+            "FAILURES!!!",
+        )
+        // The reports keep the last failure of each test, which the runner reported.
+        assertThat(executionReport.testCases().map { it.failures() }).containsExactly(
+            listOf(
+                "java.lang.IllegalStateException: Fails in @After unless the retry is reduced: test=@After reduced=false args=[]\n" +
+                    "\tat io.technoirlab.device.run.fixture.AfterFailureTest.failUnlessReduced(AfterFailureTest.java:15)",
+            ),
+            listOf(
+                "java.lang.AssertionError: Second collected error\n" +
+                    "\tat io.technoirlab.device.run.fixture.ErrorCollectorTest.collectsTwoErrorsUnlessReduced(ErrorCollectorTest.java:18)",
+            ),
+            emptyList(),
+        )
+        assertThat(session.sessionReport.result.resultType).isEqualTo("PASSED")
+    }
+
+    @Test
+    fun `a class event stands for several planned tests in a run that crashed in its last test`() {
+        val session = parseDeviceRunFixture<Session>("sessions/class-level-crash-last/session-full.json")
+        val crashed = instrumentLog("sessions/class-level-crash-last/outputs/smallPhone/execution-000/instrument.log")
+        val jobReport = parseXml("sessions/class-level-crash-last/outputs/smallPhone/junit.xml")
+
+        assertThat(crashed.statusValues("numtests")).containsOnly("4")
+        assertThat(crashed.count { it == "INSTRUMENTATION_STATUS_CODE: 1" }).isEqualTo(3)
+        assertThat(crashed.statusValues("test").distinct()).containsExactly("null", "a_passes", "b_crashesUnlessReduced")
+        assertThat(crashed.takeLast(2)).containsExactlyElementsOf(PROCESS_CRASH_END)
+        assertThat(jobReport.testCaseNames()).containsExactly(
+            "io.technoirlab.device.run.fixture.AssumeBeforeClassTest#null",
+            "io.technoirlab.device.run.fixture.CrashLastTest#a_passes",
+            "io.technoirlab.device.run.fixture.CrashLastTest#b_crashesUnlessReduced",
+        )
+        assertThat(session.sessionReport.result.resultType).isEqualTo("PASSED")
+    }
+
+    @Test
+    fun `class-level events start one entry for several tests of a run that ends normally`() {
+        val log = instrumentLog("instrument-logs/class-level-events.log")
+
+        assertThat(log.statusValues("numtests")).containsOnly("8")
+        assertThat(log.count { it == "INSTRUMENTATION_STATUS_CODE: 1" }).isEqualTo(6)
+        assertThat(log.statusValues("test").distinct()).containsExactly("null", "assumesInTest", "passes", "isIgnored")
+        assertThat(log).containsSubsequence(
+            "There was 1 failure:",
+            "1) io.technoirlab.device.run.fixture.FailBeforeClassTest",
+            "java.lang.IllegalStateException: Fails the class in @BeforeClass",
+            "FAILURES!!!",
+            "INSTRUMENTATION_CODE: -1",
+        )
+    }
+
+    @Test
+    fun `instrumentation summaries of the orchestrator list class failures that the reports omit`() {
+        val session = parseDeviceRunFixture<Session>("sessions/orchestrator-class-failure/session-full.json")
+        val log = instrumentLog("sessions/orchestrator-class-failure/outputs/smallPhone/execution-000/instrument.log")
+        val jobReport = parseXml("sessions/orchestrator-class-failure/outputs/smallPhone/junit.xml")
+        val executionReport = parseXml("sessions/orchestrator-class-failure/outputs/smallPhone/execution-000/junit.xml")
+
+        val execution = session.sessionReport.jobReports.single().executionReports.single()
+        assertThat(session.sessionConfig.jobConfigs.single().action.androidInstrumentationTest.orchestratorVersion).isEqualTo("1.6.1")
+        assertThat(log).containsSubsequence(
+            "There were 2 failures:",
+            "1) (io.technoirlab.device.run.fixture.FailBeforeClassTest)",
+            "java.lang.IllegalStateException: Fails the class in @BeforeClass",
+            "2) (io.technoirlab.device.run.fixture.FailBeforeClassTest)",
+            "java.lang.IllegalStateException: Fails the class in @BeforeClass",
+            "FAILURES!!!",
+            "Tests found: 3, Tests run: 1,  Failures: 2",
+            "INSTRUMENTATION_CODE: -1",
+        )
+        assertThat(log).doesNotContain("INSTRUMENTATION_STATUS_CODE: -2")
+        assertThat(jobReport.testCaseNames()).containsExactly("io.technoirlab.device.run.fixture.PassingTest#passes")
+        assertThat(executionReport.testCaseNames()).containsExactly("io.technoirlab.device.run.fixture.PassingTest#passes")
+        assertThat(jobReport.getElementsByTagName("failure").length + executionReport.getElementsByTagName("failure").length).isZero()
+        assertThat(execution.result.resultType).isEqualTo("FAILED")
+        assertThat(execution.result.cause.summary.reason).isEqualTo("TEST_CASE_FAILURE")
+        assertThat(session.sessionReport.result.resultType).isEqualTo("FAILED")
+        assertThat(session.sessionReport.result.cause.summary.reason).isEqualTo("SESSION_HAS_FAILED_JOBS")
     }
 
     private fun GoogleLongrunningOperation.operationMetadata(): OperationMetadata =
@@ -142,14 +357,67 @@ class DeviceRunContractTest {
         .newDocumentBuilder()
         .parse(deviceRunFixture(path).byteInputStream())
 
-    private fun Document.testCases(): List<Element> = getElementsByTagName("testcase").let { nodes ->
-        List(nodes.length) { index -> nodes.item(index) as Element }
-    }
+    private fun Document.testCases(): List<Element> = getElementsByTagName("testcase").elements()
 
-    private fun Document.testCaseNames(): List<String> = testCases().map { "${it.getAttribute("classname")}#${it.getAttribute("name")}" }
+    private fun Document.testCaseNames(): List<String> = testCases().map { it.testName() }
+
+    private fun Document.testSuite(): Element = documentElement.getElementsByTagName("testsuite").item(0) as Element
+
+    /**
+     * Returns the execution reports of the job of [scenario], by execution name in attempt order.
+     */
+    private fun attemptReports(scenario: String): Map<String, Document> = deviceRunFixtures("sessions/$scenario/outputs").keys
+        .mapNotNull { EXECUTION_REPORT.matchEntire(it)?.groupValues?.get(1) }
+        .sorted()
+        .associateWith { parseXml("sessions/$scenario/outputs/smallPhone/$it/junit.xml") }
+
+    private fun instrumentLog(path: String): List<String> = deviceRunFixture(path).trimEnd().lines()
+
+    private fun List<String>.statusValues(key: String): List<String> =
+        mapNotNull { line -> line.removePrefix("INSTRUMENTATION_STATUS: $key=").takeIf { it != line } }
+
+    private fun Element.testName(): String = "${getAttribute("classname")}#${getAttribute("name")}"
+
+    private fun Element.failures(): List<String> = getElementsByTagName("failure").elements().map { it.textContent.trim() }
+
+    private fun Element.rollup(): RolledUpTest = RolledUpTest(
+        name = testName(),
+        flaky = getAttribute("flaky") == "true",
+        failures = failures(),
+        time = time(),
+    )
+
+    /**
+     * Returns the `time` attribute without trailing zeros, since reports write times with varying precision, such as 0.0 and 0.000.
+     */
+    private fun Element.time(): BigDecimal = getAttribute("time").toBigDecimal().stripTrailingZeros()
+
+    private fun Element.attributes(vararg names: String): List<String> = names.map { getAttribute(it) }
+
+    /**
+     * The outcome of a test across its attempts.
+     */
+    private data class RolledUpTest(
+        val name: String,
+        val flaky: Boolean,
+        val failures: List<String>,
+        val time: BigDecimal,
+    )
 
     private companion object {
         private const val PARENT = "projects/example-project/locations/global"
+        private val PROCESS_CRASH_END = listOf("INSTRUMENTATION_RESULT: shortMsg=Process crashed.", "INSTRUMENTATION_CODE: 0")
+        private val EXECUTION_REPORT = Regex("smallPhone/([^/]+)/junit\\.xml")
+        private val CAPTURED_ROLLUP_SESSIONS = listOf(
+            "shard-retry-failed",
+            "retry-outcomes",
+            "crash-tests-lost",
+            "crash-last-test",
+            "orchestrator-class-failure",
+            "report-without-executions",
+            "multiple-failures",
+            "class-level-crash-last",
+        )
 
         @JvmStatic
         fun responses() = listOf(
@@ -174,6 +442,15 @@ class DeviceRunContractTest {
             arguments("sessions/flaky-retry-passed/objects.json", Objects::class.java),
             arguments("sessions/cancelled/cancel-response.json", CancelSessionResponse::class.java),
             arguments("sessions/cancelled/session-full.json", Session::class.java),
-        )
+        ) + CAPTURED_ROLLUP_SESSIONS.flatMap { scenario ->
+            listOf(
+                arguments("sessions/$scenario/request.json", Session::class.java),
+                arguments("sessions/$scenario/session-full.json", Session::class.java),
+            )
+        } + arguments("sessions/report-without-executions/objects.json", Objects::class.java)
+
+        // The orchestrator session ran a single attempt of each test, so its job report has no attempts to roll up.
+        @JvmStatic
+        fun retriedSessions() = CAPTURED_ROLLUP_SESSIONS - "orchestrator-class-failure"
     }
 }

@@ -62,14 +62,13 @@ internal class JUnitReportParser {
         name = element.getAttribute("name"),
         time = element.attributeOrNull("time"),
         flaky = element.getAttribute("flaky") == "true",
-        failure = element.outcomeElement("failure"),
-        error = element.outcomeElement("error"),
-        skipped = element.outcomeElement("skipped"),
+        failures = element.childElements("failure").map { it.outcomeElement() },
+        error = element.childElements("error").firstOrNull()?.outcomeElement(),
+        skipped = element.childElements("skipped").firstOrNull()?.outcomeElement(),
     )
 
-    private fun Element.outcomeElement(tagName: String): JUnitOutcomeElement? = childElements(tagName).firstOrNull()?.let { child ->
-        JUnitOutcomeElement(child.attributeOrNull("message"), child.attributeOrNull("type"), child.textContent)
-    }
+    private fun Element.outcomeElement(): JUnitOutcomeElement =
+        JUnitOutcomeElement(attributeOrNull("message"), attributeOrNull("type"), textContent)
 
     private fun Element.childElements(tagName: String): List<Element> =
         List(childNodes.length) { childNodes.item(it) }.filterIsInstance<Element>().filter { it.tagName == tagName }

@@ -16,14 +16,16 @@ internal data class JUnitReport(
  * @property className the fully qualified class name from the `classname` attribute.
  * @property time the duration in seconds, as reported.
  * @property flaky whether Device Run marked the test as flaky because it passed in some attempts and failed in others.
- * @property failure the first `failure` element; job reports have one for each failed attempt.
+ * @property failures the `failure` elements in their order; job reports have one for each failed attempt, in attempt order.
+ * @property error the first `error` element.
+ * @property skipped the first `skipped` element.
  */
 internal data class JUnitTestCase(
     val className: String,
     val name: String,
     val time: String?,
     val flaky: Boolean,
-    val failure: JUnitOutcomeElement?,
+    val failures: List<JUnitOutcomeElement>,
     val error: JUnitOutcomeElement?,
     val skipped: JUnitOutcomeElement?,
 ) {

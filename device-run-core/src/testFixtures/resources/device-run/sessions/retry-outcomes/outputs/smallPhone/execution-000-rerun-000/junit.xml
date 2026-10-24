@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name='' hostname='localhost' tests='7' failures='3' skipped='0' errors='0' time='0.022' timestamp='2026-10-20T06:47:20'>
+    <properties />
+    <testcase name='passes' classname='io.technoirlab.device.run.fixture.ShardCoinTest' time='0.0' />
+    <testcase name='coin0' classname='io.technoirlab.device.run.fixture.ShardCoinTest' time='0.0'>
+      <failure>java.lang.AssertionError: Coin flip failed: test=coin0 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231025 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.device.run.fixture.ShardCoinTest.coin0(ShardCoinTest.java:21)
+
+      </failure>
+    </testcase>
+    <testcase name='coin1' classname='io.technoirlab.device.run.fixture.ShardCoinTest' time='0.0' />
+    <testcase name='coin2' classname='io.technoirlab.device.run.fixture.ShardCoinTest' time='0.001'>
+      <failure>java.lang.AssertionError: Coin flip failed: test=coin2 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231025 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at io.technoirlab.device.run.fixture.ShardCoinTest.coin2(ShardCoinTest.java:31)
+
+      </failure>
+    </testcase>
+    <testcase name='coin3' classname='io.technoirlab.device.run.fixture.ShardCoinTest' time='0.003' />
+    <testcase name='failsOnFirstAttempt' classname='io.technoirlab.device.run.fixture.ShardCoinTest' time='0.005'>
+      <failure>java.lang.AssertionError: Fails on the first attempt: test=failsOnFirstAttempt attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=231025 args=[probeNonce=1792503928]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.device.run.fixture.ShardCoinTest.failsOnFirstAttempt(ShardCoinTest.java:11)
+
+      </failure>
+    </testcase>
+    <testcase name='failsOnSecondAttempt' classname='io.technoirlab.device.run.fixture.ShardCoinTest' time='0.013' />
+  </testsuite>
+</testsuites>

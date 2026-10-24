@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="" tests="3" failures="0" flakes="2" errors="0" skipped="0" time="0.04" hostname="localhost">
+  <testcase name="failsTwiceUnlessReduced" classname="io.technoirlab.device.run.fixture.AfterFailureTest" time="0.022" flaky="true">
+    <failure>java.lang.IllegalStateException: Fails in &#64;After unless the retry is reduced: test=&#64;After reduced=false args=[]
+	at io.technoirlab.device.run.fixture.AfterFailureTest.failUnlessReduced(AfterFailureTest.java:15)
+
+java.lang.IllegalStateException: Fails in &#64;After unless the retry is reduced: test=&#64;After reduced=false args=[]
+	at io.technoirlab.device.run.fixture.AfterFailureTest.failUnlessReduced(AfterFailureTest.java:15)
+</failure>
+  </testcase>
+  <testcase name="collectsTwoErrorsUnlessReduced" classname="io.technoirlab.device.run.fixture.ErrorCollectorTest" time="0.018" flaky="true">
+    <failure>java.lang.AssertionError: Second collected error
+	at io.technoirlab.device.run.fixture.ErrorCollectorTest.collectsTwoErrorsUnlessReduced(ErrorCollectorTest.java:18)
+
+java.lang.AssertionError: Second collected error
+	at io.technoirlab.device.run.fixture.ErrorCollectorTest.collectsTwoErrorsUnlessReduced(ErrorCollectorTest.java:18)
+</failure>
+  </testcase>
+  <testcase name="passes" classname="io.technoirlab.device.run.fixture.PassingTest" time="0.0" />
+</testsuite>

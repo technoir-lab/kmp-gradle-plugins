@@ -1,0 +1,97 @@
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+io.technoirlab.device.run.fixture.ParallelTest:
+INSTRUMENTATION_STATUS: test=coin0
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=coin0
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=coin1
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=coin1
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=coin2
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=coin2
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=coin3
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin3 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=214356 args=[class=io.technoirlab.device.run.fixture.ParallelTest#coin0,io.technoirlab.device.run.fixture.ParallelTest#coin1,io.technoirlab.device.run.fixture.ParallelTest#coin2,io.technoirlab.device.run.fixture.ParallelTest#coin3,io.technoirlab.device.run.fixture.ParallelTest#failsOnFirstAttempt, probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin3(ParallelTest.java:33)
+
+INSTRUMENTATION_STATUS: stream=
+Error in coin3(io.technoirlab.device.run.fixture.ParallelTest):
+java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin3 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=214356 args=[class=io.technoirlab.device.run.fixture.ParallelTest#coin0,io.technoirlab.device.run.fixture.ParallelTest#coin1,io.technoirlab.device.run.fixture.ParallelTest#coin2,io.technoirlab.device.run.fixture.ParallelTest#coin3,io.technoirlab.device.run.fixture.ParallelTest#failsOnFirstAttempt, probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin3(ParallelTest.java:33)
+
+INSTRUMENTATION_STATUS: test=coin3
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=failsOnFirstAttempt
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=io.technoirlab.device.run.fixture.ParallelTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=failsOnFirstAttempt
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 0.068
+There was 1 failure:
+1) coin3(io.technoirlab.device.run.fixture.ParallelTest)
+java.lang.AssertionError: Fails on the first attempt, then in one of four retries: test=coin3 attempt=0 boot=d9817265-154c-44ac-ac43-17ee78384d94 start=214356 args=[class=io.technoirlab.device.run.fixture.ParallelTest#coin0,io.technoirlab.device.run.fixture.ParallelTest#coin1,io.technoirlab.device.run.fixture.ParallelTest#coin2,io.technoirlab.device.run.fixture.ParallelTest#coin3,io.technoirlab.device.run.fixture.ParallelTest#failsOnFirstAttempt, probeNonce=1792504415]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at io.technoirlab.device.run.fixture.ParallelTest.coin3(ParallelTest.java:33)
+
+FAILURES!!!
+Tests run: 5,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

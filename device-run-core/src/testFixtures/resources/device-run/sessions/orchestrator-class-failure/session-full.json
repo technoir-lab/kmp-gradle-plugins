@@ -1,0 +1,149 @@
+{
+  "name": "projects/example-project/locations/global/sessions/session-e89052f3-cde0-4fa6-8a2f-6c2ce2d388d4",
+  "sessionConfig": {
+    "displayName": "orchestrator-class-failure debug smallPhone",
+    "jobConfigs": [
+      {
+        "action": {
+          "androidInstrumentationTest": {
+            "instrumentationTimeout": "300s",
+            "orchestratorVersion": "1.6.1",
+            "testInstallable": {
+              "files": [
+                {
+                  "gcsInputFile": {
+                    "path": "gs://example-bucket/automation/inputs/175dfd3f2938b8d8efefae8f4f27280df3402c3ca0267b03bcea3a68801d3090/orchestrator-class-failure-debug-androidTest.apk"
+                  }
+                }
+              ]
+            },
+            "testRunnerClass": "androidx.test.runner.AndroidJUnitRunner"
+          }
+        },
+        "allocationConfig": {
+          "deviceConfigs": [
+            {
+              "actions": [
+                {
+                  "androidLogcat": {}
+                }
+              ],
+              "requirement": {
+                "deviceId": "smallphone-arm-35"
+              }
+            }
+          ]
+        },
+        "displayName": "smallPhone",
+        "labels": {
+          "project": ":orchestrator-class-failure",
+          "variant": "debug",
+          "device": "smallPhone"
+        },
+        "settings": {
+          "retrySettings": {
+            "flakyTestRetryStrategy": {
+              "flakyTestAttempts": 1,
+              "testReductionMode": "NO_REDUCTION"
+            }
+          }
+        }
+      }
+    ],
+    "outputDirectoryConfig": {
+      "gcsOutputDirectory": {
+        "path": "gs://example-bucket/automation/sessions"
+      }
+    }
+  },
+  "sessionReport": {
+    "endTime": "2026-10-22T22:11:18.686Z",
+    "id": "2311cbf8-5775-40eb-8158-bbc1d55665bc",
+    "jobReports": [
+      {
+        "displayName": "smallPhone",
+        "endTime": "2026-10-22T22:11:15.851Z",
+        "executionReports": [
+          {
+            "displayName": "execution-000",
+            "endTime": "2026-10-22T22:11:14.382Z",
+            "id": "f124dc9d-64d2-48ba-a9bb-84ca8d37fdb6",
+            "outputFiles": [
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-e89052f3-cde0-4fa6-8a2f-6c2ce2d388d4/smallPhone/execution-000/logcat.txt"
+                }
+              },
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-e89052f3-cde0-4fa6-8a2f-6c2ce2d388d4/smallPhone/execution-000/instrument.log"
+                }
+              },
+              {
+                "gcsOutputFile": {
+                  "path": "gs://example-bucket/automation/sessions/session-e89052f3-cde0-4fa6-8a2f-6c2ce2d388d4/smallPhone/execution-000/junit.xml"
+                }
+              }
+            ],
+            "result": {
+              "cause": {
+                "summary": {
+                  "message": "One or more test assertions or test methods failed. Inspect the test runner logs and structured test results for details.",
+                  "reason": "TEST_CASE_FAILURE",
+                  "type": "CUSTOMER"
+                }
+              },
+              "resultType": "FAILED"
+            },
+            "startTime": "2026-10-22T22:10:49.416Z",
+            "status": {
+              "progressMessages": [
+                "1 test cases passed"
+              ],
+              "statusType": "DONE"
+            }
+          }
+        ],
+        "id": "ccf7e42c-c8b4-498e-951c-4f2989cd48dc",
+        "labels": {
+          "project": ":orchestrator-class-failure",
+          "device": "smallPhone",
+          "variant": "debug"
+        },
+        "outputFiles": [
+          {
+            "gcsOutputFile": {
+              "path": "gs://example-bucket/automation/sessions/session-e89052f3-cde0-4fa6-8a2f-6c2ce2d388d4/smallPhone/junit.xml"
+            }
+          }
+        ],
+        "result": {
+          "cause": {
+            "summary": {
+              "message": "Job has one or more failed tests. See execution reports for details.",
+              "reason": "JOB_HAS_FAILED_TESTS"
+            }
+          },
+          "resultType": "FAILED"
+        },
+        "startTime": "2026-10-22T22:10:38.628Z",
+        "status": {
+          "statusType": "DONE"
+        }
+      }
+    ],
+    "result": {
+      "cause": {
+        "summary": {
+          "message": "Session has one or more failed jobs. See job reports for details.",
+          "reason": "SESSION_HAS_FAILED_JOBS"
+        }
+      },
+      "resultType": "FAILED"
+    },
+    "startTime": "2026-10-22T22:10:37.207Z",
+    "status": {
+      "statusType": "DONE"
+    }
+  }
+}

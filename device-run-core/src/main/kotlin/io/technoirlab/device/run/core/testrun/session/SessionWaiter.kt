@@ -68,7 +68,7 @@ internal class SessionWaiter(
         checkNotInterrupted()
         if (status != null) {
             progress.report(status)
-            return if (status.statusType == DONE) WaitResult.Finished else null
+            return if (StatusType.of(status.statusType) == StatusType.DONE) WaitResult.Finished else null
         }
         val operation = operationName?.let(sessionManager::operation) ?: return null
         checkNotInterrupted()
@@ -101,10 +101,10 @@ internal class SessionWaiter(
         fun report(status: Status) {
             val messages = status.progressMessages.orEmpty()
             if (status.statusType != statusType) {
-                when (status.statusType) {
-                    SUSPENDED -> logger.warn("Device Run suspended session {}, usually until quota is available.", sessionId)
-                    in KNOWN_STATUS_TYPES -> {}
-                    else -> logger.warn("Device Run reports the unknown status {} for session {}.", status.statusType, sessionId)
+                when (StatusType.of(status.statusType)) {
+                    StatusType.SUSPENDED -> logger.warn("Device Run suspended session {}, usually until quota is available.", sessionId)
+                    StatusType.PENDING, StatusType.RUNNING, StatusType.DONE -> {}
+                    null -> logger.warn("Device Run reports the unknown status {} for session {}.", status.statusType, sessionId)
                 }
             }
             if (status.statusType != statusType || messages != progressMessages) {
@@ -164,10 +164,7 @@ internal class SessionWaiter(
     }
 
     private companion object {
-        private const val DONE = "DONE"
-        private const val SUSPENDED = "SUSPENDED"
         private const val STATUS_MESSAGE = "statusMessage"
-        private val KNOWN_STATUS_TYPES = setOf("PENDING", "RUNNING", SUSPENDED, DONE)
 
         // Requests retry for seconds, while network and service outages can last minutes.
         private val POLL_FAILURE_TIMEOUT = Duration.ofMinutes(5)

@@ -6,16 +6,22 @@ import com.google.api.services.devicerun.v1alpha.model.GcsPath
 import com.google.api.services.devicerun.v1alpha.model.JobReport
 import com.google.api.services.devicerun.v1alpha.model.OutputFile
 import com.google.api.services.devicerun.v1alpha.model.Result
+import com.google.api.services.devicerun.v1alpha.model.Session
 import com.google.api.services.devicerun.v1alpha.model.SessionReport
 import com.google.testing.platform.proto.api.core.AndroidTestDeviceInfoProto.AndroidTestDeviceInfo
 import com.google.testing.platform.proto.api.core.TestStatusProto.TestStatus
 import com.google.testing.platform.proto.api.core.TestSuiteResultProto.TestSuiteResult
 import io.technoirlab.device.run.core.DeviceRunException
+import io.technoirlab.device.run.core.VirtualClock
 import io.technoirlab.device.run.core.client.DeviceRunLocation
 import io.technoirlab.device.run.core.client.FakeCloudTransport
 import io.technoirlab.device.run.core.client.StubCloudConnector
+import io.technoirlab.device.run.core.client.deviceRunFixtures
+import io.technoirlab.device.run.core.client.parseDeviceRunFixture
 import io.technoirlab.device.run.core.device.MEDIUM_PHONE_SNAPSHOT
+import io.technoirlab.device.run.core.elements
 import io.technoirlab.device.run.core.files.PROBE_PUSHED_FILE
+import io.technoirlab.device.run.core.recordLogs
 import io.technoirlab.device.run.core.testDeviceRunner
 import io.technoirlab.device.run.core.testrun.job.ArtifactCapture
 import io.technoirlab.device.run.core.testrun.session.SessionMetadataSerializer
@@ -28,7 +34,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import org.w3c.dom.Element
+import org.junit.jupiter.params.provider.ValueSource
+import org.slf4j.event.Level
 import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.CyclicBarrier
@@ -40,12 +47,16 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.writeText
 
 class DeviceRunTestRunnerTest {
-    private val cloud = FakeCloudTransport().apply { sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT) }
+    private val cloud = FakeCloudTransport().apply {
+        sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, EXECUTION_REPORT_PATH to EXECUTION_REPORT)
+    }
+    private val clock = VirtualClock()
+    private val logs = recordLogs()
     private val location = DeviceRunLocation(StubCloudConnector.QUOTA_PROJECT_ID)
     private val executor = Executors.newFixedThreadPool(2)
 
     @AutoClose
-    private val runner = testDeviceRunner(cloud)
+    private val runner = testDeviceRunner(cloud, clock)
 
     @TempDir
     private lateinit var tempDir: Path
@@ -136,9 +147,8 @@ class DeviceRunTestRunnerTest {
     }
 
     @Test
-    fun `downloads the outputs that the session report references but listings leave out`() {
-        cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, EXECUTION_REPORT_PATH to EXECUTION_REPORT)
-        cloud.unlistedOutputs = setOf(JOB_REPORT_PATH, EXECUTION_REPORT_PATH)
+    fun `downloads the outputs that the session report references once Device Run has uploaded them`() {
+        cloud.outputUploadListings = mapOf(EXECUTION_REPORT_PATH to 2)
         cloud.sessionReport = { sessionDirectory ->
             sessionReport("PASSED").setJobReports(
                 listOf(
@@ -154,10 +164,94 @@ class DeviceRunTestRunnerTest {
 
         val passed = runner.runTests(request)
 
-        // The verdict needs the job report, which only the session report names.
+        // The report lists every execution, so the first listing of every file that it references is final.
         assertThat(passed).isTrue()
         assertThat(request.resultsDirectory / "device-run" / JOB_REPORT_PATH).content().isEqualTo(JOB_REPORT)
         assertThat(request.resultsDirectory / "device-run" / EXECUTION_REPORT_PATH).content().isEqualTo(EXECUTION_REPORT)
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL)
+    }
+
+    @Test
+    fun `reports an interrupted wait for the outputs as an interruption`() {
+        clock.interruptNextSleep()
+        val request = request()
+
+        val failure = catchThrowable { runner.runTests(request) }
+        val interrupted = Thread.interrupted()
+
+        assertThat(failure).isInstanceOf(InterruptedException::class.java)
+        assertThat(interrupted).isFalse()
+        assertThat(cloud.requests).containsOnlyOnce(FakeCloudTransport.Request("GET", FakeCloudTransport.STORAGE_HOST, OBJECT_LISTING_PATH))
+        assertThat(request.resultsDirectory / "device-run").doesNotExist()
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["PASSED", "FAILED"])
+    fun `waits for the outputs of a session whose tests ran when its report omits them`(resultType: String) {
+        cloud.outputUploadListings = mapOf(JOB_REPORT_PATH to 1)
+        cloud.sessionReport = { sessionReport(resultType) }
+        val request = request()
+
+        val passed = runner.runTests(request)
+
+        // A missing job report would fail the test run.
+        assertThat(passed).isEqualTo(resultType == "PASSED")
+        assertThat(request.resultsDirectory / "device-run" / JOB_REPORT_PATH).content().isEqualTo(JOB_REPORT)
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL)
+    }
+
+    @Test
+    fun `fails a session whose tests ran without a job report once its other outputs stop changing`() {
+        cloud.sessionOutputs = mapOf(EXECUTION_REPORT_PATH to EXECUTION_REPORT)
+        cloud.sessionReport = { sessionReport("FAILED") }
+        val request = request()
+
+        val passed = runner.runTests(request)
+
+        val suiteResult = (request.resultsDirectory / "test-result.pb").inputStream().use(TestSuiteResult::parseFrom)
+        assertThat(passed).isFalse()
+        assertThat(suiteResult.platformError.errorsList.map { it.summary.errorName }).containsExactly("MISSING_JOB_REPORT")
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
+    }
+
+    @Test
+    fun `passes a session that failed only because no attempt passed every test, once the retries that its report omits arrive`() {
+        replayFlakyShardSession()
+        cloud.outputUploadListings = cloud.sessionOutputs.keys.filter { "-rerun-" in it }.associateWith { 1 }
+        val request = request()
+
+        val passed = runner.runTests(request)
+
+        // A single early listing would miss the retries, which confirm that every failed attempt failed tests.
+        assertThat(passed).isTrue()
+        assertThat(request.resultsDirectory / "device-run/mediumPhone/execution-000-rerun-001/instrument.log").exists()
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL)
+    }
+
+    @Test
+    fun `passes a session that failed only because no attempt passed every test, once its executions arrive after its job report`() {
+        replayFlakyShardSession()
+        cloud.outputUploadListings = cloud.sessionOutputs.keys.filter { it.count { char -> char == '/' } > 1 }.associateWith { 2 }
+
+        val passed = runner.runTests(request())
+
+        // Listings of the job report alone do not settle the outputs, without which the failed session would stay unexplained.
+        assertThat(passed).isTrue()
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL, SETTLE_INTERVAL, SETTLE_INTERVAL)
+    }
+
+    @Test
+    fun `mirrors the outputs of a session that ended with an error without waiting for a job report`() {
+        cloud.sessionOutputs = mapOf(DEVICE_LOG_PATH to "logcat")
+        cloud.sessionReport = { sessionReport("ERROR") }
+        val request = request()
+
+        val passed = runner.runTests(request)
+
+        assertThat(passed).isFalse()
+        assertThat(request.resultsDirectory / "device-run" / DEVICE_LOG_PATH).exists()
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
+        assertThat(logs.entries.map { it.first }).doesNotContain(Level.WARN)
     }
 
     @Test
@@ -188,10 +282,10 @@ class DeviceRunTestRunnerTest {
 
     @ParameterizedTest
     @CsvSource("ON_FAILURE, FAILED", "ALWAYS, PASSED")
-    fun `downloads device logs that the logcat policy keeps for the session result`(logcat: ArtifactCapture, resultType: String) {
+    fun `downloads device logs that the logcat policy keeps for the verdict on the tests`(logcat: ArtifactCapture, resultType: String) {
         cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, DEVICE_LOG_PATH to "logcat")
         cloud.sessionReport = { sessionReport(resultType) }
-        val request = request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = logcat))))
+        val request = request(logcat)
 
         val passed = runner.runTests(request)
 
@@ -202,16 +296,52 @@ class DeviceRunTestRunnerTest {
 
     @ParameterizedTest
     @CsvSource("ON_FAILURE, PASSED", "DISABLED, FAILED")
-    fun `skips device logs that the logcat policy discards for the session result`(logcat: ArtifactCapture, resultType: String) {
+    fun `skips device logs that the logcat policy discards for the verdict on the tests`(logcat: ArtifactCapture, resultType: String) {
         cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, DEVICE_LOG_PATH to "logcat")
         cloud.sessionReport = { sessionReport(resultType) }
-        val request = request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = logcat))))
+        val request = request(logcat)
 
         val passed = runner.runTests(request)
 
         assertThat(passed).isEqualTo(resultType == "PASSED")
         assertThat(request.resultsDirectory / "device-run" / JOB_REPORT_PATH).exists()
         assertThat(request.resultsDirectory / "device-run" / DEVICE_LOG_PATH).doesNotExist()
+    }
+
+    @Test
+    fun `downloads the device logs of tests that fail when Device Run passed the session`() {
+        cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to FAILING_JOB_REPORT, DEVICE_LOG_PATH to "logcat")
+        cloud.sessionReport = { sessionReport("PASSED") }
+        val request = request(ArtifactCapture.ON_FAILURE)
+
+        val passed = runner.runTests(request)
+
+        assertThat(passed).isFalse()
+        assertThat(request.resultsDirectory / "device-run" / DEVICE_LOG_PATH).exists()
+    }
+
+    @Test
+    fun `skips the device logs of tests that pass when Device Run failed the session`() {
+        replayFlakyShardSession()
+        val request = request(ArtifactCapture.ON_FAILURE)
+
+        val passed = runner.runTests(request)
+
+        assertThat(passed).isTrue()
+        assertThat(request.resultsDirectory / "device-run/mediumPhone/execution-000/instrument.log").exists()
+        assertThat(request.resultsDirectory / "device-run" / DEVICE_LOG_PATH).doesNotExist()
+    }
+
+    @Test
+    fun `passes a session that failed only because no attempt passed every test, whatever other directories its job has`() {
+        replayFlakyShardSession()
+        cloud.sessionOutputs += "mediumPhone/coverage/coverage.ec" to "coverage"
+        val request = request()
+
+        val passed = runner.runTests(request)
+
+        assertThat(passed).isTrue()
+        assertThat(request.resultsDirectory / "device-run/mediumPhone/coverage/coverage.ec").exists()
     }
 
     @Test
@@ -241,22 +371,44 @@ class DeviceRunTestRunnerTest {
         instrumentationRunnerArguments = mapOf("class" to "com.example.LoginTest", "clearPackageData" to "true"),
     )
 
+    private fun request(logcat: ArtifactCapture): TestRunRequest =
+        request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = logcat))))
+
     private fun sessionReport(resultType: String): SessionReport = SessionReport().setResult(Result().setResultType(resultType))
+
+    /**
+     * Makes Device Run replay `shard-retry-failed`, which it failed although every test passed in some attempt, with a device log
+     * for each execution and a final report that omits the executions, as the report of `report-without-executions` does.
+     */
+    private fun replayFlakyShardSession() {
+        val outputs = deviceRunFixtures("sessions/shard-retry-failed/outputs").mapKeys { (path, _) ->
+            "mediumPhone/${path.substringAfter('/')}"
+        }
+        val executionDirectories = outputs.keys.map { it.substringBeforeLast('/') }.filter { it.count { char -> char == '/' } == 1 }
+        val report = parseDeviceRunFixture<Session>("sessions/report-without-executions/session-full.json").sessionReport
+        report.jobReports.single().displayName = "mediumPhone"
+        cloud.sessionOutputs = outputs + executionDirectories.distinct().associate { "$it/logcat.txt" to "logcat" }
+        cloud.sessionReport = { report }
+    }
 
     private fun outputFile(path: String): OutputFile = OutputFile().setGcsOutputFile(GcsPath().setPath(path))
 
     private fun reportProperties(report: Path): Map<String, String> {
         val properties = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(report.toFile()).getElementsByTagName("property")
-        return List(properties.length) { properties.item(it) as Element }.associate { it.getAttribute("name") to it.getAttribute("value") }
+        return properties.elements().associate { it.getAttribute("name") to it.getAttribute("value") }
     }
 
     private companion object {
         private const val BUCKET = "example-bucket"
+        private const val OBJECT_LISTING_PATH = "/storage/v1/b/$BUCKET/o"
         private const val TIMEOUT_SECONDS = 10L
+        private val SETTLE_INTERVAL = Duration.ofSeconds(5)
         private const val JOB_REPORT_PATH = "mediumPhone/junit.xml"
         private const val EXECUTION_REPORT_PATH = "mediumPhone/execution-000/test_result.xml"
         private const val DEVICE_LOG_PATH = "mediumPhone/execution-000/logcat.txt"
         private const val JOB_REPORT = """<testsuite><testcase classname="com.example.LoginTest" name="logsIn"/></testsuite>"""
+        private const val FAILING_JOB_REPORT =
+            """<testsuite><testcase classname="com.example.LoginTest" name="logsIn"><failure>Failed</failure></testcase></testsuite>"""
         private const val EXECUTION_REPORT = "<testsuites>$JOB_REPORT</testsuites>"
         private val SMART_SHARDING =
             RunOptions(BUCKET, job = RunOptions.Job(sharding = RunOptions.Sharding.Smart(Duration.ofMinutes(5), "login")))

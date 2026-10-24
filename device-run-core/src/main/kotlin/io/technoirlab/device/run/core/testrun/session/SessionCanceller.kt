@@ -43,13 +43,12 @@ internal class SessionCanceller(
      * A reported finish counts as a cancellation: Device Run does not tell whether the request or the session itself finished it,
      * and the session had not finished when its status was read.
      */
-    private fun requestCancellation(sessionName: String): CancellationResult = when (statusType(sessionName)) {
-        null -> CancellationResult.NOT_FOUND
-        DONE -> CancellationResult.ALREADY_FINISHED
-        else -> if (cleanupManager.cancelSession(sessionName).cancelResult == SESSION_FINISHED) {
-            CancellationResult.CANCELLED
-        } else {
-            CancellationResult.UNCONFIRMED
+    private fun requestCancellation(sessionName: String): CancellationResult {
+        val session = cleanupManager.findSession(sessionName, SessionView.BASIC) ?: return CancellationResult.NOT_FOUND
+        return when {
+            session.statusType() == StatusType.DONE -> CancellationResult.ALREADY_FINISHED
+            cleanupManager.cancelSession(sessionName).cancelResult == SESSION_FINISHED -> CancellationResult.CANCELLED
+            else -> CancellationResult.UNCONFIRMED
         }
     }
 
@@ -70,18 +69,14 @@ internal class SessionCanceller(
     private fun awaitCancellation(sessionName: String, deadline: Deadline): CancellationResult {
         while (!deadline.hasPassed()) {
             sleeper.sleep(pollDelay(deadline).toMillis())
-            if (statusType(sessionName) == DONE) {
+            if (cleanupManager.findSession(sessionName, SessionView.BASIC)?.statusType() == StatusType.DONE) {
                 return CancellationResult.CANCELLED
             }
         }
         return CancellationResult.UNCONFIRMED
     }
 
-    private fun statusType(sessionName: String): String? = cleanupManager.findSession(sessionName, SessionView.BASIC)
-        ?.let { it.sessionReport?.status?.statusType.orEmpty() }
-
     private companion object {
-        private const val DONE = "DONE"
         private const val SESSION_FINISHED = "SESSION_FINISHED"
     }
 }

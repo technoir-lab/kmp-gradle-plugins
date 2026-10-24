@@ -2,9 +2,8 @@ package io.technoirlab.device.run.core.testrun.results
 
 import com.google.api.services.devicerun.v1alpha.model.Session
 import com.google.testing.platform.proto.api.core.TestStatusProto.TestStatus
+import io.technoirlab.device.run.core.testrun.displayCount
 import org.slf4j.LoggerFactory
-import java.time.Instant
-import java.time.format.DateTimeParseException
 import kotlin.io.path.div
 import kotlin.io.path.name
 import kotlin.io.path.outputStream
@@ -13,43 +12,72 @@ import kotlin.io.path.outputStream
  * Converts a finished Device Run session and its mirrored artifacts into the results that AGP and Android Studio read:
  * `TEST-<device>.xml`, `test-result.pb`, and `device-info.pb` in the results directory.
  *
- * The session result is the verdict authority, because it is available even when the final report omits job reports. The job
- * report `<job>/junit.xml`, found by its path, provides the final outcome of each test; execution reports only serve as evidence,
- * so tests are never counted twice. A run passes only when the session passed and its job report lists passing tests.
+ * The job report `<job>/junit.xml`, found by its path, provides the final outcome of each test, counting a test that passed in some
+ * attempt as passed; execution reports and instrumentation logs only serve as evidence, so tests are never counted twice. The
+ * verdict follows the session result, which is available even when the final report omits job reports, with one exception: Device
+ * Run fails a shard when no attempt passes every test, so a failed session whose job report lists only passing tests passes when
+ * [FailedSessionReview] confirms that failed attempts alone failed it. A run passes only when its job report lists passing tests
+ * and the instrumentation logs show neither tests that never ran nor failures that the reports omit.
+ *
+ * The verdict does not depend on the device logs of the executions, so it can decide whether they are downloaded before the results
+ * are written.
  */
 internal class DeviceRunResultConverter {
     private val logger = LoggerFactory.getLogger(DeviceRunResultConverter::class.java)
 
     private val reportParser = JUnitReportParser()
     private val outcomeMapper = TestOutcomeMapper()
+    private val instrumentationEvidence = InstrumentationEvidence()
+    private val failedSessionReview = FailedSessionReview()
     private val reportWriter = TestReportWriter()
     private val deviceInfoWriter = DeviceInfoWriter()
     private val suiteResultFactory = TestSuiteResultFactory()
 
     /**
-     * Writes the AGP results of [session] and returns whether its tests passed.
+     * Decides whether the tests of [session] passed, from its report and its mirrored [artifacts], which need not include the
+     * device logs of the executions.
      */
-    fun convert(session: Session, artifacts: List<MirroredArtifact>, context: ResultContext): Boolean {
-        val verdict = evaluate(session, artifacts, context.jobDirectory)
-        writeResults(session, artifacts, context, verdict)
-        report(session, verdict)
-        return verdict.status == TestStatus.PASSED
+    fun evaluate(session: Session, artifacts: List<MirroredArtifact>, context: ResultContext): Verdict {
+        val executions = JobExecutions(session, artifacts, context.jobDirectory)
+        val resultType = session.sessionReport?.result?.resultType
+        val testsRan = session.testsRanToCompletion()
+        val jobReport = artifacts.find { it.relativePath == context.jobReportPath }?.let { parseJobReport(it) }
+        val report = jobReport?.getOrNull()
+        val outcomes = report?.testCases?.map(outcomeMapper::map)
+        val evidence = examineEvidence(testsRan, jobReport, executions)
+        val failures = remoteFailures(session, resultType) +
+            reportFailures(testsRan, context.jobReportPath, jobReport, outcomes) +
+            evidence.failures
+        val verdict = Verdict(
+            outcomes = outcomes,
+            time = report?.time,
+            executions = executions,
+            platformFailures = failures,
+            warnings = evidence.warnings,
+            status = suiteStatus(resultType, failures, outcomes.orEmpty()),
+        )
+        val review = failedSessionReview.review(
+            session = session,
+            outcomes = outcomes,
+            platformFailures = failures,
+            executions = executions.executions,
+            deviceName = context.deviceName,
+        )
+        return when (review) {
+            null -> verdict
+            is FailedSessionReview.Review.TestsPass ->
+                verdict.copy(status = TestStatus.PASSED, warnings = verdict.warnings + review.warning)
+            // The verdict keeps the failure of the session, which the unexplained failures explain.
+            is FailedSessionReview.Review.Unexplained -> verdict.copy(platformFailures = verdict.platformFailures + review.failures)
+        }
     }
 
-    private fun evaluate(session: Session, artifacts: List<MirroredArtifact>, jobDirectory: String): Verdict {
-        val resultType = session.sessionReport?.result?.resultType
-        val jobReportPath = "$jobDirectory/$JOB_REPORT"
-        val jobReport = artifacts.find { it.relativePath == jobReportPath }?.let { parseJobReport(it) }
-        val outcomes = jobReport?.getOrNull()?.testCases?.map(outcomeMapper::map)
-        val platformFailures = remoteFailures(session, resultType) + reportFailures(resultType, jobReportPath, jobReport, outcomes)
-        return Verdict(
-            resultType = resultType,
-            jobReportPath = jobReportPath,
-            outcomes = outcomes,
-            time = jobReport?.getOrNull()?.time,
-            platformFailures = platformFailures,
-            status = suiteStatus(resultType, platformFailures, outcomes.orEmpty()),
-        )
+    /**
+     * Writes the AGP results of [session] with its [verdict] and mirrored [artifacts], and logs the verdict.
+     */
+    fun write(session: Session, artifacts: List<MirroredArtifact>, context: ResultContext, verdict: Verdict) {
+        writeResults(session, artifacts, context, verdict)
+        report(session, verdict, context.deviceName)
     }
 
     /**
@@ -62,15 +90,18 @@ internal class DeviceRunResultConverter {
             val reportFile = context.resultsDirectory / "TEST-${context.deviceName}.xml"
             reportWriter.write(reportFile, verdict.outcomes, context.reportProperties, verdict.time)
         }
-        val executions = JobExecutions(session, artifacts, context.jobDirectory)
+        val deviceLogs = verdict.executions.deviceLogs(artifacts)
         val suiteResult = suiteResultFactory.create(
             suiteName = context.deviceName,
             deviceInfo = deviceInfoFile,
             status = verdict.status,
-            tests = verdict.outcomes.orEmpty().map { ExecutedTest(it, executions.startTimeOf(it), executions.logsOf(it)) },
-            artifacts = artifacts.map { resultArtifact(it, verdict.jobReportPath) },
+            tests = verdict.outcomes.orEmpty().map { outcome ->
+                val deviceLog = deviceLogs[outcome.key]?.let { resultArtifact(it, context.jobReportPath) }
+                ExecutedTest(outcome, verdict.executions.startTimeOf(outcome), listOfNotNull(deviceLog))
+            },
+            artifacts = artifacts.map { resultArtifact(it, context.jobReportPath) },
             platformFailures = verdict.platformFailures,
-            warnings = warnings(session),
+            warnings = verdict.warnings + warnings(session),
         )
         (context.resultsDirectory / TEST_RESULT_FILE).outputStream().use { suiteResult.writeTo(it) }
     }
@@ -89,20 +120,20 @@ internal class DeviceRunResultConverter {
      * infrastructure errors.
      */
     private fun remoteFailures(session: Session, resultType: String?): List<PlatformFailure> {
-        if (resultType == PASSED) {
+        if (resultType == ResultType.PASSED) {
             // Failed attempts of a recovered session remain evidence and do not affect its result.
             return emptyList()
         }
-        val executionFailures = if (resultType == CANCELLED) emptyList() else executionFailures(session)
-        if (executionFailures.isNotEmpty() || resultType == FAILED) {
+        val executionFailures = if (resultType == ResultType.CANCELLED) emptyList() else executionFailures(session)
+        if (executionFailures.isNotEmpty() || resultType == ResultType.FAILED) {
             return executionFailures
         }
         val summary = session.sessionReport?.result?.cause?.summary
         val outcome = "The session ended with ${resultType ?: "no result"}"
         return listOf(
             PlatformFailure(
-                reason = summary?.reason ?: resultType ?: UNSPECIFIED,
-                classification = resultType ?: UNSPECIFIED,
+                reason = summary?.reason ?: resultType ?: ResultType.UNSPECIFIED,
+                classification = resultType ?: ResultType.UNSPECIFIED,
                 message = summary?.message?.let { "$outcome: $it" } ?: "$outcome.",
             ),
         )
@@ -127,28 +158,42 @@ internal class DeviceRunResultConverter {
      * Returns the platform failures of the job report of a session whose tests ran to completion.
      */
     private fun reportFailures(
-        resultType: String?,
+        testsRan: Boolean,
         jobReportPath: String,
         jobReport: Result<JUnitReport>?,
         outcomes: List<TestOutcome>?,
     ): List<PlatformFailure> = when {
-        resultType != PASSED && resultType != FAILED -> emptyList()
-        jobReport == null -> listOf(PlatformFailure(MISSING_REPORT, REPORTING, "Device Run wrote no job report $jobReportPath."))
-        outcomes == null -> listOf(PlatformFailure(MALFORMED_REPORT, REPORTING, jobReport.exceptionOrNull()?.message.orEmpty()))
-        outcomes.isEmpty() -> listOf(PlatformFailure(NO_TESTS, REPORTING, "The job report $jobReportPath lists no tests."))
+        !testsRan -> emptyList()
+        jobReport == null -> listOf(PlatformFailure(RunnerFailure.MISSING_JOB_REPORT, "Device Run wrote no job report $jobReportPath."))
+        outcomes == null -> listOf(PlatformFailure(RunnerFailure.MALFORMED_JOB_REPORT, jobReport.exceptionOrNull()?.message.orEmpty()))
+        outcomes.isEmpty() -> listOf(PlatformFailure(RunnerFailure.NO_TESTS, "The job report $jobReportPath lists no tests."))
         else -> emptyList()
+    }
+
+    /**
+     * Returns what the instrumentation logs of the executions show for a session whose tests ran to completion. Without a job report,
+     * the missing report explains the failure.
+     */
+    private fun examineEvidence(
+        testsRan: Boolean,
+        jobReport: Result<JUnitReport>?,
+        executions: JobExecutions,
+    ): InstrumentationEvidence.Findings = if (testsRan && jobReport != null) {
+        instrumentationEvidence.examine(executions.executions)
+    } else {
+        InstrumentationEvidence.Findings(failures = emptyList(), warnings = emptyList())
     }
 
     private fun suiteStatus(resultType: String?, platformFailures: List<PlatformFailure>, outcomes: List<TestOutcome>): TestStatus =
         when (resultType) {
-            PASSED -> when {
+            ResultType.PASSED -> when {
                 platformFailures.isNotEmpty() -> TestStatus.ERROR
                 outcomes.any { it.status.isFailure } -> TestStatus.FAILED
                 else -> TestStatus.PASSED
             }
-            FAILED -> TestStatus.FAILED
-            "ERROR", "TIMED_OUT" -> TestStatus.ERROR
-            CANCELLED -> TestStatus.CANCELLED
+            ResultType.FAILED -> TestStatus.FAILED
+            ResultType.ERROR, ResultType.TIMED_OUT -> TestStatus.ERROR
+            ResultType.CANCELLED -> TestStatus.CANCELLED
             else -> TestStatus.TEST_STATUS_UNSPECIFIED
         }
 
@@ -164,9 +209,9 @@ internal class DeviceRunResultConverter {
         val label = when {
             artifact.relativePath == jobReportPath -> "deviceRun.junit"
             "/artifacts/" in artifact.relativePath -> "deviceRun.pulledFile"
-            name == LOGCAT -> "logcat"
-            name in EXECUTION_REPORTS -> "deviceRun.testResult"
-            name == "instrument.log" -> "deviceRun.instrumentLog"
+            name == JobExecution.LOGCAT -> "logcat"
+            name in JobExecution.REPORT_NAMES -> "deviceRun.testResult"
+            name == JobExecution.INSTRUMENT_LOG -> "deviceRun.instrumentLog"
             name.startsWith("video") -> "deviceRun.video"
             else -> "deviceRun.artifact"
         }
@@ -180,23 +225,52 @@ internal class DeviceRunResultConverter {
         return ResultArtifact(label, artifact.path, mimeType)
     }
 
-    private fun report(session: Session, verdict: Verdict) {
+    /**
+     * Logs the result of the session next to the verdict on the tests of [deviceName], which can differ, the flaky tests, and what
+     * explains the verdict.
+     */
+    private fun report(session: Session, verdict: Verdict, deviceName: String) {
         val outcomes = verdict.outcomes.orEmpty()
         fun count(status: TestOutcome.Status) = outcomes.count { it.status == status }
+        val testVerdict = when (verdict.status) {
+            TestStatus.PASSED -> "passed"
+            TestStatus.FAILED -> "failed"
+            TestStatus.ERROR -> "ended with an error"
+            TestStatus.CANCELLED -> "were cancelled"
+            else -> "have no result"
+        }
         logger.info(
-            "Device Run session {} finished with {}: {} tests, {} passed ({} after a retry), {} failed, {} errors, {} skipped.",
+            "Device Run session {} finished with {}, and the tests {}: {} tests, {} passed ({} flaky), {} failed, {} errors, {} skipped.",
             session.name,
-            verdict.resultType ?: "no result",
+            session.sessionReport?.result?.resultType ?: "no result",
+            testVerdict,
             outcomes.size,
             count(TestOutcome.Status.PASSED),
-            outcomes.count { it.recovered },
+            outcomes.count { it.flaky },
             count(TestOutcome.Status.FAILED),
             count(TestOutcome.Status.ERROR),
             count(TestOutcome.Status.SKIPPED),
         )
+        reportFlakyTests(outcomes.filter { it.flaky }, deviceName)
+        verdict.warnings.forEach { logger.warn(it.message) }
         if (verdict.status != TestStatus.PASSED) {
             verdict.platformFailures.forEach { logger.error("Device Run {} {}: {}", it.classification, it.reason, it.message) }
         }
+    }
+
+    /**
+     * Logs one warning that names the [flakyTests] of [deviceName], at most [MAX_NAMED_FLAKY_TESTS] of them, with the number of
+     * attempts that each failed.
+     */
+    private fun reportFlakyTests(flakyTests: List<TestOutcome>, deviceName: String) {
+        if (flakyTests.isEmpty()) {
+            return
+        }
+        val tests = if (flakyTests.size == 1) "1 test of $deviceName is" else "${flakyTests.size} tests of $deviceName are"
+        val named = flakyTests.take(MAX_NAMED_FLAKY_TESTS).map { "${it.key} (${displayCount(it.failedAttempts.size, "failed attempt")})" }
+        val unnamed = flakyTests.size - named.size
+        val more = if (unnamed > 0) ", and $unnamed more" else ""
+        logger.warn("{} flaky, failing in some attempts and passing in others: {}{}.", tests, named.joinToString(), more)
     }
 
     /**
@@ -204,109 +278,28 @@ internal class DeviceRunResultConverter {
      *
      * @property outcomes the outcomes of the job report, or null when the report is missing or malformed.
      * @property time the duration of the suite in seconds, as the job report states it.
+     * @property executions the executions of the job, which ran the tests.
+     * @property warnings the warnings about the verdict, such as one that explains why the tests of a failed session pass.
      */
-    private data class Verdict(
-        val resultType: String?,
-        val jobReportPath: String,
+    data class Verdict(
         val outcomes: List<TestOutcome>?,
         val time: String?,
+        val executions: JobExecutions,
         val platformFailures: List<PlatformFailure>,
+        val warnings: List<ReportWarning>,
         val status: TestStatus,
-    )
-
-    /**
-     * The executions of the job, which provide the logcat file and the start time of each test that exactly one execution ran.
-     *
-     * Retry attempts and shards are executions, such as `execution-000-rerun-000` and `execution-001`. When an execution report
-     * is missing or malformed, which executions ran a test is unknown, so logs stay attached to the suite only and tests take the
-     * start time of the session; executions are never ordered by name.
-     */
-    private inner class JobExecutions(
-        session: Session,
-        artifacts: List<MirroredArtifact>,
-        private val jobDirectory: String,
     ) {
-        private val executionByTest: Map<String, String>
-        private val logcatByExecution: Map<String, MirroredArtifact?>
-        private val startTimeByExecution: Map<String, Instant>
-        private val sessionStartTime = instant(session.sessionReport?.startTime)
-
-        init {
-            val executions = artifacts
-                .filter { it.relativePath.startsWith("$jobDirectory/") }
-                .groupBy { it.relativePath.removePrefix("$jobDirectory/").substringBefore('/', missingDelimiterValue = "") }
-                .filterKeys { it.isNotEmpty() }
-            val testsByExecution = executions.mapValues { (execution, files) ->
-                files.find { it.path.name in EXECUTION_REPORTS && it.isDirectlyIn(execution) }?.let(::testKeys)
-            }
-            logcatByExecution = executions.mapValues { (execution, files) ->
-                files.find { it.path.name == LOGCAT && it.isDirectlyIn(execution) }
-            }
-            executionByTest = if (testsByExecution.values.any { it == null }) {
-                emptyMap()
-            } else {
-                testsByExecution.entries
-                    .flatMap { (execution, tests) -> tests.orEmpty().map { test -> test to execution } }
-                    .groupBy({ it.first }, { it.second })
-                    .filterValues { it.size == 1 }
-                    .mapValues { (_, testExecutions) -> testExecutions.single() }
-            }
-            // The final report can omit job reports, and with them the start times of executions.
-            startTimeByExecution = session.sessionReport?.jobReports.orEmpty()
-                .filter { it.displayName == jobDirectory }
-                .flatMap { it.executionReports.orEmpty() }
-                .mapNotNull { execution -> instant(execution.startTime)?.let { execution.displayName to it } }
-                .toMap()
-        }
-
-        fun logsOf(outcome: TestOutcome): List<ResultArtifact> {
-            val logcat = executionByTest[outcome.key]?.let { logcatByExecution[it] } ?: return emptyList()
-            return listOf(ResultArtifact("logcat", logcat.path, "text/plain"))
-        }
-
         /**
-         * Returns when the only execution that ran [outcome] started, or else when the session started.
+         * Whether the tests passed.
          */
-        fun startTimeOf(outcome: TestOutcome): Instant? = executionByTest[outcome.key]?.let(startTimeByExecution::get) ?: sessionStartTime
-
-        /**
-         * Returns whether the artifact lies directly in the directory of [execution], unlike files pulled from the device.
-         */
-        private fun MirroredArtifact.isDirectlyIn(execution: String): Boolean = relativePath == "$jobDirectory/$execution/${path.name}"
-
-        private fun testKeys(executionReport: MirroredArtifact): Set<String>? = try {
-            reportParser.parse(executionReport.path).testCases.map { it.key }.toSet()
-        } catch (e: MalformedReportException) {
-            logger.warn("Unable to read the Device Run execution report {}: {}", executionReport.relativePath, e.message)
-            null
-        }
-
-        /**
-         * Returns the instant of an RFC 3339 [timestamp] of Device Run, or null when it is missing or malformed.
-         */
-        private fun instant(timestamp: String?): Instant? = try {
-            timestamp?.let(Instant::parse)
-        } catch (_: DateTimeParseException) {
-            null
-        }
+        val passed: Boolean
+            get() = status == TestStatus.PASSED
     }
 
     private companion object {
-        private const val PASSED = "PASSED"
-        private const val FAILED = "FAILED"
-        private const val CANCELLED = "CANCELLED"
-        private const val UNSPECIFIED = "RESULT_UNSPECIFIED"
-        private const val REPORTING = "REPORTING"
-        private const val MISSING_REPORT = "MISSING_JOB_REPORT"
-        private const val MALFORMED_REPORT = "MALFORMED_JOB_REPORT"
-        private const val NO_TESTS = "NO_TESTS"
-        private const val JOB_REPORT = "junit.xml"
-        private const val LOGCAT = "logcat.txt"
         private const val DEVICE_INFO_FILE = "device-info.pb"
         private const val TEST_RESULT_FILE = "test-result.pb"
-        private val PLATFORM_RESULTS = setOf("ERROR", "TIMED_OUT", CANCELLED)
-
-        // Executions write junit.xml; older executions on virtual devices wrote test_result.xml, as in the fixtures.
-        private val EXECUTION_REPORTS = setOf("test_result.xml", JOB_REPORT)
+        private const val MAX_NAMED_FLAKY_TESTS = 10
+        private val PLATFORM_RESULTS = setOf(ResultType.ERROR, ResultType.TIMED_OUT, ResultType.CANCELLED)
     }
 }

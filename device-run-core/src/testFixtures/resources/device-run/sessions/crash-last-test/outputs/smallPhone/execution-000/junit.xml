@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name='' hostname='localhost' tests='2' failures='1' skipped='0' errors='0' time='0.021' timestamp='2026-10-22T15:11:04'>
+    <properties />
+    <testcase name='a_passes' classname='io.technoirlab.device.run.fixture.CrashLastTest' time='0.0' />
+    <testcase name='b_crashesUnlessReduced' classname='io.technoirlab.device.run.fixture.CrashLastTest' time='0.021'>
+      <failure>java.lang.IllegalStateException: Crashes the instrumentation process in the last test
+	at io.technoirlab.device.run.fixture.CrashLastTest.lambda$b_crashesUnlessReduced$0(CrashLastTest.java:22)
+	at io.technoirlab.device.run.fixture.CrashLastTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1012)
+
+      </failure>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -14,8 +14,11 @@ import com.google.testing.platform.proto.api.core.TestResultProto.TestResult
 import com.google.testing.platform.proto.api.core.TestStatusProto.TestStatus
 import com.google.testing.platform.proto.api.core.TestSuiteResultProto.TestSuiteResult
 import io.technoirlab.device.run.core.client.deviceRunFixture
+import io.technoirlab.device.run.core.client.deviceRunFixtures
 import io.technoirlab.device.run.core.client.parseDeviceRunFixture
 import io.technoirlab.device.run.core.device.MEDIUM_PHONE_SNAPSHOT
+import io.technoirlab.device.run.core.elements
+import io.technoirlab.device.run.core.recordLogs
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.tuple
 import org.junit.jupiter.api.Test
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
+import org.slf4j.event.Level
 import org.w3c.dom.Element
 import java.nio.file.Path
 import java.time.Instant
@@ -33,6 +37,7 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.writeText
 
 class DeviceRunResultConverterTest {
+    private val logs = recordLogs()
     private val converter = DeviceRunResultConverter()
 
     @TempDir
@@ -43,7 +48,7 @@ class DeviceRunResultConverterTest {
         val artifacts = mirror("library-passed", "library/junit.xml", "library/execution-000/test_result.xml") +
             fakeArtifact("library/execution-000/logcat.txt")
 
-        val passed = converter.convert(session("library-passed"), artifacts, context(jobDirectory = "library"))
+        val passed = convert(session("library-passed"), artifacts, context(jobDirectory = "library"))
 
         val results = suiteResult()
         assertThat(passed).isTrue()
@@ -83,7 +88,7 @@ class DeviceRunResultConverterTest {
         }
         val artifacts = mirror("test-failure", "mediumPhone/junit.xml", "mediumPhone/execution-000/test_result.xml")
 
-        val passed = converter.convert(session, artifacts, context())
+        val passed = convert(session, artifacts, context())
 
         val results = suiteResult()
         val failure = results.testResultList.single { it.testStatus == TestStatus.FAILED }
@@ -104,16 +109,16 @@ class DeviceRunResultConverterTest {
     }
 
     @Test
-    fun `reports a test that ended with an error as a failure that AGP counts, even when Device Run marks it flaky`() {
+    fun `reports a test that ended with an error as a failure that AGP counts`() {
         val artifacts = fakeArtifact(
             "mediumPhone/junit.xml",
             "<testsuite>" +
-                """<testcase classname="a.FirstTest" name="crashes" flaky="true"><error>$CRASH_TRACE</error></testcase>""" +
+                """<testcase classname="a.FirstTest" name="crashes"><error>$CRASH_TRACE</error></testcase>""" +
                 """<testcase classname="a.FirstTest" name="runs"/>""" +
                 "</testsuite>",
         )
 
-        converter.convert(session("test-failure"), artifacts, context())
+        convert(session("test-failure"), artifacts, context())
 
         val errored = suiteResult().testResultList.single { it.testCase.testMethod == "crashes" }
         assertThat(errored.testStatus).isEqualTo(TestStatus.ERROR)
@@ -131,7 +136,7 @@ class DeviceRunResultConverterTest {
     }
 
     @Test
-    fun `counts a recovered flaky test as passed while keeping the raw job report`() {
+    fun `counts a flaky test as passed while keeping the raw job report`() {
         val artifacts = mirror(
             "flaky-retry-passed",
             "mediumPhone/junit.xml",
@@ -139,25 +144,316 @@ class DeviceRunResultConverterTest {
             "mediumPhone/execution-000-rerun-000/test_result.xml",
         ) + fakeArtifact("mediumPhone/execution-000/logcat.txt") + fakeArtifact("mediumPhone/execution-000-rerun-000/logcat.txt")
 
-        val passed = converter.convert(session("flaky-retry-passed"), artifacts, context())
+        val passed = convert(session("flaky-retry-passed"), artifacts, context())
 
         val results = suiteResult()
-        val recovered = results.testResultList.single { it.testCase.testMethod == "fails unless reduced to failed tests" }
+        val flaky = results.testResultList.single { it.testCase.testMethod == "fails unless reduced to failed tests" }
         assertThat(passed).isTrue()
         assertThat(results.testStatus).isEqualTo(TestStatus.PASSED)
         assertThat(results.testResultList).hasSize(7)
-        assertThat(recovered.testStatus).isEqualTo(TestStatus.PASSED)
-        assertThat(recovered.hasError()).isFalse()
-        assertThat(recovered.artifactLabels()).containsExactly("device-info")
-        assertThat(results.testResultList.filter { it != recovered }).allSatisfy { result ->
+        assertThat(flaky.testStatus).isEqualTo(TestStatus.PASSED)
+        assertThat(flaky.hasError()).isFalse()
+        assertThat(flaky.artifactLabels()).containsExactly("device-info")
+        assertThat(results.testResultList.filter { it != flaky }).allSatisfy { result ->
             assertThat(result.outputArtifactList.map { it.sourcePath.path }).contains(
                 (tempDir / "mirror/mediumPhone/execution-000/logcat.txt").toString(),
             )
         }
         val testReport = testReport()
-        assertThat(testReport.attributes("tests", "failures", "skipped")).containsExactly("7", "0", "2")
-        assertThat(testReport.testCase("fails unless reduced to failed tests").getElementsByTagName("failure").length).isZero()
+        val flakyTest = testReport.testCase("fails unless reduced to failed tests")
+        assertThat(testReport.attributes("tests", "failures", "skipped", "flakes")).containsExactly("7", "0", "2", "1")
+        assertThat(flakyTest.getAttribute("flaky")).isEqualTo("true")
+        assertThat(flakyTest.getElementsByTagName("failure").length).isZero()
+        assertThat(flakyTest.child("flakyFailure").attributes("type", "message")).containsExactly(
+            "java.lang.AssertionError",
+            "Fails until a retry runs only failed tests: [$FLAKY_RETRY_ARGUMENTS]",
+        )
+        assertThat(flakyTest.child("flakyFailure").child("stackTrace").textContent).isEqualTo(
+            FAILURE_TRACE.replace("tests: []", "tests: [$FLAKY_RETRY_ARGUMENTS]"),
+        )
         assertThat(tempDir / "mirror/mediumPhone/junit.xml").content().contains("flaky=\"true\">\n    <failure>")
+        assertThat(logs.entries).contains(
+            Level.WARN to "1 test of mediumPhone is flaky, failing in some attempts and passing in others: " +
+                "$FIXTURE_PACKAGE.ProbeTest#fails unless reduced to failed tests (1 failed attempt).",
+        )
+    }
+
+    @Test
+    fun `writes a flaky failure for each failed attempt of a flaky test and a rerun failure for each later failure of a failed test`() {
+        convertCaptured("retry-outcomes")
+
+        val testReport = testReport()
+        assertThat(testReport.attributes("tests", "failures", "errors", "skipped", "flakes")).containsExactly("7", "1", "0", "0", "4")
+        assertThat(testReport.childElements("testcase").associate { it.getAttribute("name") to it.childTags() }).containsExactlyEntriesOf(
+            mapOf(
+                "passes" to emptyList(),
+                "coin0" to listOf("flakyFailure", "flakyFailure"),
+                "coin1" to listOf("flakyFailure"),
+                "coin2" to listOf("flakyFailure", "flakyFailure"),
+                "coin3" to listOf("flakyFailure"),
+                "failsOnFirstAttempt" to listOf("failure", "rerunFailure", "rerunFailure"),
+                "failsOnSecondAttempt" to emptyList(),
+            ),
+        )
+        assertThat(testReport.getElementsByTagName("system-out").length).isZero()
+        val failedTest = testReport.testCase("failsOnFirstAttempt")
+        val attemptStarts = listOf(failedTest.child("failure").textContent) +
+            failedTest.childElements("rerunFailure").map { it.child("stackTrace").textContent }
+        assertThat(attemptStarts.map { START.find(it)?.value }).containsExactly("start=231078", "start=231025", "start=246578")
+        assertThat(failedTest.childElements("rerunFailure")).allSatisfy { rerun ->
+            assertThat(rerun.attributes("type")).containsExactly("java.lang.AssertionError")
+            assertThat(rerun.getAttribute("message")).startsWith("Fails on the first attempt: test=failsOnFirstAttempt attempt=0")
+        }
+    }
+
+    @Test
+    fun `names at most ten flaky tests in one warning`() {
+        val flakyTests = (1..12).joinToString("") { index ->
+            """<testcase classname="a.FlakyTest" name="flaky$index" flaky="true"><failure>$CRASH_TRACE</failure></testcase>"""
+        }
+        val artifacts = fakeArtifact("mediumPhone/junit.xml", "<testsuite>$flakyTests</testsuite>")
+
+        convert(session("flaky-retry-passed"), artifacts, context())
+
+        assertThat(logs.entries.filter { it.first == Level.WARN }.map { it.second }).containsExactly(
+            "12 tests of mediumPhone are flaky, failing in some attempts and passing in others: " +
+                (1..10).joinToString { "a.FlakyTest#flaky$it (1 failed attempt)" } + ", and 2 more.",
+        )
+    }
+
+    @Test
+    fun `fails a passed session whose crash left tests that no attempt ran`() {
+        val passed = convertCaptured("crash-tests-lost")
+
+        val results = suiteResult()
+        assertThat(passed).isFalse()
+        assertThat(results.testStatus).isEqualTo(TestStatus.ERROR)
+        assertThat(results.testResultList.map { it.testCase.testMethod to it.testStatus }).containsExactly(
+            "a_passes" to TestStatus.PASSED,
+            "b_crashesOnFirstAttempt" to TestStatus.PASSED,
+        )
+        assertThat(results.platformError.errorsList.map { it.summary })
+            .extracting({ it.errorName }, { it.errorClassification }, { it.errorMessage })
+            .containsExactly(
+                tuple(
+                    "INCOMPLETE_TEST_RUN",
+                    "INSTRUMENTATION",
+                    "The instrumentation of execution-000 ended with \"Process crashed.\" after starting 2 of its 4 tests, and no retry " +
+                        "ran the rest, so 2 tests did not run.",
+                ),
+            )
+    }
+
+    @Test
+    fun `warns instead of failing when class events leave it uncertain whether a crash left tests unrun`() {
+        val passed = convertCaptured("class-level-crash-last")
+
+        val results = suiteResult()
+        val warning = "The instrumentation of execution-000 ended with \"Process crashed.\" after starting 3 entries for its 4 tests, " +
+            "and no retry ran the rest. Entries of class events, such as an assumption in @BeforeClass, stand for several tests, so " +
+            "up to 1 test may not have run."
+        assertThat(passed).isTrue()
+        assertThat(results.testStatus).isEqualTo(TestStatus.PASSED)
+        assertThat(results.hasPlatformError()).isFalse()
+        assertThat(results.issueList.map { it.name to it.message }).containsExactly("POSSIBLY_INCOMPLETE_TEST_RUN" to warning)
+        assertThat(logs.entries).contains(Level.WARN to warning)
+    }
+
+    @Test
+    fun `passes a session whose flaky tests had several failures in one attempt, which the summary lists separately`() {
+        val passed = convertCaptured("multiple-failures")
+
+        val results = suiteResult()
+        assertThat(passed).isTrue()
+        assertThat(results.testStatus).isEqualTo(TestStatus.PASSED)
+        assertThat(results.hasPlatformError()).isFalse()
+        assertThat(results.issueList).isEmpty()
+    }
+
+    @Test
+    fun `passes a session whose crash in the last test started every planned test`() {
+        val passed = convertCaptured("crash-last-test")
+
+        val results = suiteResult()
+        assertThat(passed).isTrue()
+        assertThat(results.testStatus).isEqualTo(TestStatus.PASSED)
+        assertThat(results.hasPlatformError()).isFalse()
+        assertThat(testReport().testCase("b_crashesUnlessReduced").getAttribute("flaky")).isEqualTo("true")
+    }
+
+    @Test
+    fun `explains a failed session with the class failures that only the instrumentation summary lists`() {
+        val passed = convertCaptured("orchestrator-class-failure")
+
+        val results = suiteResult()
+        val explanation = "The instrumentation summary of execution-000 lists 2 failures that the test results omit: " +
+            "$FIXTURE_PACKAGE.FailBeforeClassTest java.lang.IllegalStateException: Fails the class in @BeforeClass"
+        assertThat(passed).isFalse()
+        assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
+        assertThat(results.testResultList.map { it.testStatus }).containsExactly(TestStatus.PASSED)
+        assertThat(results.platformError.errorsList.map { it.summary })
+            .extracting({ it.errorName }, { it.errorClassification }, { it.errorMessage })
+            .containsExactly(tuple("UNREPORTED_TEST_FAILURES", "INSTRUMENTATION", explanation))
+        assertThat(logs.entries).contains(Level.ERROR to "Device Run INSTRUMENTATION UNREPORTED_TEST_FAILURES: $explanation")
+    }
+
+    @Test
+    fun `finds no tests that did not run or failures that the reports omit when every retry completes`() {
+        val passed = convertCaptured("retry-outcomes")
+
+        val results = suiteResult()
+        assertThat(passed).isFalse()
+        assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
+        assertThat(results.hasPlatformError()).isFalse()
+        assertThat(results.testResultList.filter { it.testStatus == TestStatus.FAILED }.map { it.testCase.testMethod })
+            .containsExactly("failsOnFirstAttempt")
+        assertThat(results.issueList).isEmpty()
+    }
+
+    @Test
+    fun `passes a session that Device Run failed only because no attempt of its shard passed every test`() {
+        val passed = convertCaptured("shard-retry-failed")
+
+        val results = suiteResult()
+        val warning = "Device Run failed session $SHARD_RETRY_SESSION (JOB_HAS_FAILED_TESTS) because no attempt of execution-000 passed " +
+            "every test. Every test passed in some attempt, so the tests of mediumPhone pass."
+        assertThat(passed).isTrue()
+        assertThat(results.testStatus).isEqualTo(TestStatus.PASSED)
+        assertThat(results.hasPlatformError()).isFalse()
+        assertThat(results.testResultList).hasSize(16).allSatisfy { assertThat(it.testStatus).isEqualTo(TestStatus.PASSED) }
+        assertThat(results.issueList.map { it.name to it.message }).containsExactly("JOB_HAS_FAILED_TESTS" to warning)
+        assertThat(logs.entries).contains(
+            Level.INFO to
+                "Device Run session projects/example-project/locations/global/sessions/$SHARD_RETRY_SESSION finished with FAILED, and " +
+                "the tests passed: 16 tests, 16 passed (7 flaky), 0 failed, 0 errors, 0 skipped.",
+            Level.WARN to warning,
+        )
+    }
+
+    @Test
+    fun `passes such a session by the outputs of its attempts when the final report omits them`() {
+        val session = shardRetryWithoutExecutions()
+
+        val passed = convertCaptured("shard-retry-failed", session = session)
+
+        assertThat(passed).isTrue()
+        assertThat(suiteResult().issueList.map { it.name to it.message }).containsExactly(
+            "SESSION_HAS_FAILED_JOBS" to
+                "Device Run failed session $SHARD_RETRY_SESSION (SESSION_HAS_FAILED_JOBS) because no attempt of execution-000 passed " +
+                "every test. Every test passed in some attempt, so the tests of mediumPhone pass.",
+        )
+    }
+
+    @Test
+    fun `keeps the failure of such a session when an execution ended with an error`() {
+        val session = session("shard-retry-failed").withExecutionResult(
+            execution = "execution-000-rerun-001",
+            resultType = "ERROR",
+            cause = IssueSummary().setType("INFRA").setReason("PLATFORM_INFRASTRUCTURE_ERROR"),
+        )
+
+        val passed = convertCaptured("shard-retry-failed", session = session)
+
+        val results = suiteResult()
+        assertThat(passed).isFalse()
+        assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
+        assertThat(results.platformError.errorsList.map { it.summary.errorName to it.summary.errorMessage }).containsExactly(
+            "PLATFORM_INFRASTRUCTURE_ERROR" to "Execution execution-000-rerun-001 of job smallPhone ended with ERROR.",
+        )
+        assertThat(results.issueList).isEmpty()
+    }
+
+    @Test
+    fun `keeps the failure of such a session when Device Run blames something other than failed jobs`() {
+        val session = session("shard-retry-failed").apply { sessionReport.result.cause.summary.reason = "SESSION_HAS_ERROR_JOBS" }
+
+        val passed = convertCaptured("shard-retry-failed", session = session)
+
+        assertThat(passed).isFalse()
+        assertThat(unexplainedFailures()).containsExactly(
+            "the cause is SESSION_HAS_ERROR_JOBS, not SESSION_HAS_FAILED_JOBS",
+        )
+    }
+
+    @Test
+    fun `keeps the failure of such a session when the report of a failed execution lists no failed test`() {
+        val artifacts = mirrorOutputs(
+            "shard-retry-failed",
+            mapOf("smallPhone/execution-000/junit.xml" to "<testsuites>${testSuite("a.FirstTest")}</testsuites>"),
+        )
+
+        val passed = convertCaptured("shard-retry-failed", artifacts = artifacts)
+
+        assertThat(passed).isFalse()
+        assertThat(unexplainedFailures()).containsExactly("execution-000 failed, but its report lists no failed test")
+    }
+
+    @Test
+    fun `keeps the failure of such a session when no execution failed`() {
+        val session = session("shard-retry-failed").apply {
+            for (execution in listOf("execution-000", "execution-000-rerun-000", "execution-000-rerun-001")) {
+                withExecutionResult(execution, resultType = "PASSED")
+            }
+        }
+
+        val passed = convertCaptured("shard-retry-failed", session = session)
+
+        assertThat(passed).isFalse()
+        assertThat(unexplainedFailures()).containsExactly("no execution failed")
+    }
+
+    @Test
+    fun `keeps the failure of such a session when the final report omits an attempt without an instrumentation log`() {
+        val session = shardRetryWithoutExecutions()
+        val artifacts = mirrorOutputs("shard-retry-failed", mapOf(RETRY_LOG to null))
+
+        val passed = convertCaptured("shard-retry-failed", session = session, artifacts = artifacts)
+
+        assertThat(passed).isFalse()
+        assertThat(unexplainedFailures()).containsExactly(
+            "the session report omits execution-000-rerun-001, whose outputs lack an instrumentation log that ended normally",
+        )
+    }
+
+    @Test
+    fun `keeps the failure of such a session when the final report omits an attempt whose instrumentation log ended abnormally`() {
+        val session = shardRetryWithoutExecutions()
+        val crashedLog = deviceRunFixture("sessions/shard-retry-failed/outputs/$RETRY_LOG")
+            .replace("INSTRUMENTATION_CODE: -1", "INSTRUMENTATION_RESULT: shortMsg=Process crashed.\nINSTRUMENTATION_CODE: 0")
+        val artifacts = mirrorOutputs("shard-retry-failed", mapOf(RETRY_LOG to crashedLog))
+
+        val passed = convertCaptured("shard-retry-failed", session = session, artifacts = artifacts)
+
+        assertThat(passed).isFalse()
+        assertThat(unexplainedFailures()).containsExactly(
+            "the session report omits execution-000-rerun-001, whose outputs lack an instrumentation log that ended normally",
+        )
+    }
+
+    @Test
+    fun `keeps the failure of a session whose crash left tests that no attempt ran`() {
+        val session = session("crash-tests-lost").apply {
+            sessionReport.result = Result().setResultType("FAILED").setCause(
+                ResultCause().setSummary(IssueSummary().setReason("SESSION_HAS_FAILED_JOBS")),
+            )
+        }
+
+        val passed = convertCaptured("crash-tests-lost", session = session)
+
+        val results = suiteResult()
+        assertThat(passed).isFalse()
+        assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
+        assertThat(results.platformError.errorsList.map { it.summary.errorName }).containsExactly("INCOMPLETE_TEST_RUN")
+        assertThat(results.issueList).isEmpty()
+    }
+
+    @Test
+    fun `explains a session without a job report by the missing report rather than its instrumentation logs`() {
+        val artifacts = mirrorOutputs("crash-tests-lost").filter { it.relativePath != "smallPhone/junit.xml" }
+
+        convertCaptured("crash-tests-lost", artifacts = artifacts)
+
+        assertThat(suiteResult().platformError.errorsList.map { it.summary.errorName }).containsExactly("MISSING_JOB_REPORT")
     }
 
     @Test
@@ -166,7 +462,7 @@ class DeviceRunResultConverterTest {
             fakeArtifact("mediumPhone/execution-000/video-1.webm") +
             fakeArtifact("mediumPhone/execution-000/artifacts/sdcard/test-output/probe-input.txt")
 
-        val passed = converter.convert(session("infra-error"), artifacts, context())
+        val passed = convert(session("infra-error"), artifacts, context())
 
         val results = suiteResult()
         assertThat(passed).isFalse()
@@ -214,7 +510,7 @@ class DeviceRunResultConverterTest {
             )
         }
 
-        val passed = converter.convert(session, artifacts = emptyList(), context())
+        val passed = convert(session, artifacts = emptyList(), context())
 
         val results = suiteResult()
         assertThat(passed).isFalse()
@@ -234,7 +530,7 @@ class DeviceRunResultConverterTest {
     fun `fails a passing session without a usable job report`(reason: String, jobReport: String?) {
         val artifacts = jobReport?.let { fakeArtifact("library/junit.xml", it) }.orEmpty()
 
-        val passed = converter.convert(session("library-passed"), artifacts, context(jobDirectory = "library"))
+        val passed = convert(session("library-passed"), artifacts, context(jobDirectory = "library"))
 
         val results = suiteResult()
         assertThat(passed).isFalse()
@@ -251,7 +547,7 @@ class DeviceRunResultConverterTest {
             """<testsuite><testcase classname="a.FirstTest" name="runs"><$outcome>$CRASH_TRACE</$outcome></testcase></testsuite>""",
         )
 
-        val passed = converter.convert(session("library-passed"), artifacts, context(jobDirectory = "library"))
+        val passed = convert(session("library-passed"), artifacts, context(jobDirectory = "library"))
 
         val results = suiteResult()
         assertThat(passed).isFalse()
@@ -268,7 +564,7 @@ class DeviceRunResultConverterTest {
             fakeArtifact("mediumPhone/execution-001/test_result.xml", testSuite("b.SecondTest")) +
             fakeArtifact("mediumPhone/execution-001/logcat.txt")
 
-        converter.convert(session("library-passed"), artifacts, context())
+        convert(session("library-passed"), artifacts, context())
 
         val results = suiteResult()
         assertThat(results.testResultList.associate { it.testCase.testClass to it.logcatPath() }).containsExactlyInAnyOrderEntriesOf(
@@ -286,7 +582,7 @@ class DeviceRunResultConverterTest {
             fakeArtifact("mediumPhone/execution-000/junit.xml", "<testsuites>${testSuite("a.FirstTest")}</testsuites>") +
             fakeArtifact("mediumPhone/execution-000/logcat.txt")
 
-        converter.convert(session("library-passed"), artifacts, context())
+        convert(session("library-passed"), artifacts, context())
 
         val results = suiteResult()
         val logcat = tempDir / "mirror/mediumPhone/execution-000/logcat.txt"
@@ -324,7 +620,7 @@ class DeviceRunResultConverterTest {
             fakeArtifact("mediumPhone/execution-001/test_result.xml", testSuite("a.SecondTest")) +
             fakeArtifact("mediumPhone/execution-002/test_result.xml", testSuite("a.ThirdTest"))
 
-        converter.convert(session, artifacts, context())
+        convert(session, artifacts, context())
 
         val results = suiteResult()
         assertThat(results.testResultList.map { it.testCase.testClass to it.testCase.startTime.toInstant() }).containsExactly(
@@ -345,7 +641,7 @@ class DeviceRunResultConverterTest {
             "mediumPhone/execution-000-rerun-000/test_result.xml",
         )
 
-        converter.convert(session("flaky-retry-passed"), artifacts, context())
+        convert(session("flaky-retry-passed"), artifacts, context())
 
         val results = suiteResult()
         assertThat(results.testResultList).hasSize(7).allSatisfy { result ->
@@ -353,7 +649,32 @@ class DeviceRunResultConverterTest {
         }
     }
 
+    /**
+     * Writes the results of [session] as the runner does, and returns whether its tests passed.
+     */
+    private fun convert(session: Session, artifacts: List<MirroredArtifact>, context: ResultContext): Boolean {
+        val verdict = converter.evaluate(session, artifacts, context)
+        converter.write(session, artifacts, context, verdict)
+        return verdict.passed
+    }
+
+    /**
+     * Writes the results of the captured [session] of [scenario], whose job is `smallPhone`, with the mirrored [artifacts], and returns
+     * whether its tests passed.
+     */
+    private fun convertCaptured(
+        scenario: String,
+        session: Session = session(scenario),
+        artifacts: List<MirroredArtifact> = mirrorOutputs(scenario),
+    ): Boolean = convert(session, artifacts, context(jobDirectory = "smallPhone"))
+
     private fun session(scenario: String): Session = parseDeviceRunFixture("sessions/$scenario/session-full.json")
+
+    /**
+     * Returns the session of `shard-retry-failed` with the final report of `report-without-executions`, which omits the executions.
+     */
+    private fun shardRetryWithoutExecutions(): Session =
+        session("shard-retry-failed").setSessionReport(session("report-without-executions").sessionReport)
 
     private fun context(jobDirectory: String = "mediumPhone"): ResultContext = ResultContext(
         jobDirectory = jobDirectory,
@@ -369,6 +690,36 @@ class DeviceRunResultConverterTest {
 
     private fun mirror(scenario: String, vararg relativePaths: String): List<MirroredArtifact> = relativePaths.flatMap { relativePath ->
         fakeArtifact(relativePath, deviceRunFixture("sessions/$scenario/outputs/$relativePath"))
+    }
+
+    /**
+     * Mirrors every output of [scenario] that the fixtures keep, with the contents of [replacements] instead, or without the
+     * outputs that it maps to null.
+     */
+    private fun mirrorOutputs(scenario: String, replacements: Map<String, String?> = emptyMap()): List<MirroredArtifact> =
+        (deviceRunFixtures("sessions/$scenario/outputs") + replacements).flatMap { (relativePath, content) ->
+            content?.let { fakeArtifact(relativePath, it) }.orEmpty()
+        }
+
+    private fun Session.withExecutionResult(execution: String, resultType: String, cause: IssueSummary? = null): Session = apply {
+        sessionReport.jobReports.single().executionReports.single { it.displayName == execution }
+            .setResult(Result().setResultType(resultType).setCause(cause?.let { ResultCause().setSummary(it) }))
+    }
+
+    /**
+     * Returns why the failure of the converted session is unexplained, as its platform errors state.
+     */
+    private fun unexplainedFailures(): List<String> {
+        val results = suiteResult()
+        assertThat(results.testStatus).isEqualTo(TestStatus.FAILED)
+        assertThat(results.issueList).isEmpty()
+        return results.platformError.errorsList.map { it.summary }.map { summary ->
+            assertThat(summary.errorName).isEqualTo("UNEXPLAINED_SESSION_FAILURE")
+            assertThat(summary.errorClassification).isEqualTo("REPORTING")
+            summary.errorMessage
+                .removePrefix("Device Run failed the session although its job report lists no failed test: ")
+                .removeSuffix(".")
+        }
     }
 
     private fun fakeArtifact(relativePath: String, content: String = "artifact"): List<MirroredArtifact> {
@@ -409,10 +760,13 @@ class DeviceRunResultConverterTest {
 
     private fun Element.child(tagName: String): Element = childElements(tagName).single()
 
-    private fun Element.childElements(tagName: String): List<Element> =
-        List(childNodes.length) { childNodes.item(it) }.filterIsInstance<Element>().filter { it.tagName == tagName }
+    private fun Element.childElements(tagName: String): List<Element> = childNodes.elements().filter { it.tagName == tagName }
+
+    private fun Element.childTags(): List<String> = childNodes.elements().map { it.tagName }
 
     private companion object {
+        private const val SHARD_RETRY_SESSION = "session-75dc46f0-4f32-4106-9af2-55c7539451dd"
+        private const val RETRY_LOG = "smallPhone/execution-000-rerun-001/instrument.log"
         private const val FIXTURE_PACKAGE = "io.technoirlab.device.run.fixture"
         private val ASSUMPTION_TRACE =
             """
@@ -429,5 +783,8 @@ class DeviceRunResultConverterTest {
             """.trimIndent()
         private const val CRASH_TRACE =
             "java.lang.IllegalStateException: Instrumentation crashed\n\tat a.FirstTest.crashes(FirstTest.kt:12)"
+        private val START = Regex("start=\\d+")
+        private const val FLAKY_RETRY_ARGUMENTS = "class=$FIXTURE_PACKAGE.OutcomesTest,$FIXTURE_PACKAGE.ParameterizedTest," +
+            "$FIXTURE_PACKAGE.ProbeTest, probeOption=probe-value"
     }
 }

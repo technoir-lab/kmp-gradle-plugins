@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name='' hostname='localhost' tests='3' failures='2' skipped='0' errors='0' time='0.04' timestamp='2026-10-24T05:17:52'>
+    <properties />
+    <testcase name='failsTwiceUnlessReduced' classname='io.technoirlab.device.run.fixture.AfterFailureTest' time='0.022'>
+      <failure>java.lang.IllegalStateException: Fails in @After unless the retry is reduced: test=@After reduced=false args=[]
+	at io.technoirlab.device.run.fixture.AfterFailureTest.failUnlessReduced(AfterFailureTest.java:15)
+
+      </failure>
+    </testcase>
+    <testcase name='collectsTwoErrorsUnlessReduced' classname='io.technoirlab.device.run.fixture.ErrorCollectorTest' time='0.018'>
+      <failure>java.lang.AssertionError: Second collected error
+	at io.technoirlab.device.run.fixture.ErrorCollectorTest.collectsTwoErrorsUnlessReduced(ErrorCollectorTest.java:18)
+
+      </failure>
+    </testcase>
+    <testcase name='passes' classname='io.technoirlab.device.run.fixture.PassingTest' time='0.0' />
+  </testsuite>
+</testsuites>
