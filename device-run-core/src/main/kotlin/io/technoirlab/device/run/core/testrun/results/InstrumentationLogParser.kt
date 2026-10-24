@@ -37,6 +37,8 @@ internal class InstrumentationLogParser {
         private var continuedValue: Pair<MutableMap<String, String>, String>? = null
         private var plannedTests: Int? = null
         private var resultCode: Int? = null
+        private var classEntries = 0
+        private var isClassEntryOpen = false
         private var isInstrumentationOutput = false
 
         fun read(line: String) {
@@ -62,6 +64,8 @@ internal class InstrumentationLogParser {
             return InstrumentationLog(
                 plannedTests = plannedTests,
                 startedEntries = entryCodes.count { it == STARTED },
+                // A class event that never ended, such as one that crashed the process, stands for its tests too.
+                classEntries = classEntries + if (isClassEntryOpen) 1 else 0,
                 failedEntries = failedEntries.toList(),
                 endedNormally = resultCode == RESULT_OK && shortMessage == null,
                 endMessage = shortMessage,
@@ -79,11 +83,22 @@ internal class InstrumentationLogParser {
 
         private fun endEntry(code: Int?) {
             status[NUM_TESTS]?.trim()?.toIntOrNull()?.let { plannedTests = it }
+            val test = status[TEST].orEmpty().trim()
+            when (code) {
+                null -> {}
+                STARTED -> isClassEntryOpen = test == CLASS_EVENT_TEST
+                else -> {
+                    if (test == CLASS_EVENT_TEST && code != IGNORED) {
+                        classEntries++
+                    }
+                    isClassEntryOpen = false
+                }
+            }
             if (code != null) {
                 entryCodes += code
             }
             if (code == FAILED) {
-                failedEntries += describe(status[CLASS].orEmpty().trim(), status[TEST].orEmpty().trim())
+                failedEntries += describe(status[CLASS].orEmpty().trim(), test)
             }
             status = mutableMapOf()
             continuedValue = null
@@ -94,7 +109,7 @@ internal class InstrumentationLogParser {
          * Returns how JUnit describes a test in summaries: `<test>(<class>)`, or the class for an event of the whole class, which
          * the runner reports as the test `null`.
          */
-        private fun describe(className: String, test: String): String = if (test == CLASS_LEVEL_TEST) className else "$test($className)"
+        private fun describe(className: String, test: String): String = if (test == CLASS_EVENT_TEST) className else "$test($className)"
 
         /**
          * Returns the number of failures that the summary of the run lists and the failures that it numbers, or null when the run
@@ -129,9 +144,10 @@ internal class InstrumentationLogParser {
         private const val TEST = "test"
         private const val SHORT_MESSAGE = "shortMsg"
         private const val STREAM = "stream"
-        private const val CLASS_LEVEL_TEST = "null"
+        private const val CLASS_EVENT_TEST = "null"
         private const val STARTED = 1
         private const val FAILED = -2
+        private const val IGNORED = -3
 
         // Activity.RESULT_OK, which am instrument reports when the run finished.
         private const val RESULT_OK = -1

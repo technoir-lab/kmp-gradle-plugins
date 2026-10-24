@@ -238,9 +238,43 @@ class DeviceRunResultConverterTest {
                     "INCOMPLETE_TEST_RUN",
                     "INSTRUMENTATION",
                     "The instrumentation of execution-000 ended with \"Process crashed.\" after starting 2 of its 4 tests, and no retry " +
-                        "ran the rest, so up to 2 tests did not run.",
+                        "ran the rest, so 2 tests did not run.",
                 ),
             )
+    }
+
+    @Test
+    fun `warns instead of failing when class events leave it uncertain whether a crash left tests unrun`() {
+        val passed = converter.convert(
+            session("class-level-crash-last"),
+            mirrorOutputs("class-level-crash-last"),
+            context(jobDirectory = "smallPhone"),
+        )
+
+        val results = suiteResult()
+        val warning = "The instrumentation of execution-000 ended with \"Process crashed.\" after starting 3 entries for its 4 tests, " +
+            "and no retry ran the rest. Entries of class events, such as an assumption in @BeforeClass, stand for several tests, so " +
+            "up to 1 test may not have run."
+        assertThat(passed).isTrue()
+        assertThat(results.testStatus).isEqualTo(TestStatus.PASSED)
+        assertThat(results.hasPlatformError()).isFalse()
+        assertThat(results.issueList.map { it.name to it.message }).containsExactly("POSSIBLY_INCOMPLETE_TEST_RUN" to warning)
+        assertThat(logs.entries).contains(Level.WARN to warning)
+    }
+
+    @Test
+    fun `passes a session whose flaky tests had several failures in one attempt, which the summary lists separately`() {
+        val passed = converter.convert(
+            session("multiple-failures"),
+            mirrorOutputs("multiple-failures"),
+            context(jobDirectory = "smallPhone"),
+        )
+
+        val results = suiteResult()
+        assertThat(passed).isTrue()
+        assertThat(results.testStatus).isEqualTo(TestStatus.PASSED)
+        assertThat(results.hasPlatformError()).isFalse()
+        assertThat(results.issueList).isEmpty()
     }
 
     @Test

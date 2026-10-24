@@ -24,6 +24,7 @@ class InstrumentationLogParserTest {
             InstrumentationLog(
                 plannedTests = 4,
                 startedEntries = 2,
+                classEntries = 0,
                 failedEntries = listOf("b_crashesOnFirstAttempt(io.technoirlab.device.run.fixture.CrashTest)"),
                 endedNormally = false,
                 endMessage = "Process crashed.",
@@ -41,6 +42,7 @@ class InstrumentationLogParserTest {
             InstrumentationLog(
                 plannedTests = 1,
                 startedEntries = 1,
+                classEntries = 0,
                 failedEntries = emptyList(),
                 endedNormally = true,
                 endMessage = null,
@@ -74,6 +76,7 @@ class InstrumentationLogParserTest {
             InstrumentationLog(
                 plannedTests = 8,
                 startedEntries = 6,
+                classEntries = 2,
                 failedEntries = listOf("io.technoirlab.device.run.fixture.FailBeforeClassTest"),
                 endedNormally = true,
                 endMessage = null,
@@ -100,6 +103,7 @@ class InstrumentationLogParserTest {
             InstrumentationLog(
                 plannedTests = 3,
                 startedEntries = 1,
+                classEntries = 0,
                 failedEntries = emptyList(),
                 endedNormally = true,
                 endMessage = null,
@@ -126,6 +130,44 @@ class InstrumentationLogParserTest {
         assertThat(
             log?.summaryFailures?.first()?.firstLine,
         ).isEqualTo("java.lang.IllegalStateException: Crashes the instrumentation process")
+    }
+
+    @Test
+    fun `reads a class event as an entry of the class that stands for its tests, also in a run that crashed later`() {
+        val log = parseFixture("sessions/class-level-crash-last/outputs/smallPhone/execution-000/instrument.log")
+
+        assertThat(log?.plannedTests).isEqualTo(4)
+        assertThat(log?.startedEntries).isEqualTo(3)
+        assertThat(log?.classEntries).isEqualTo(1)
+        assertThat(log?.endedNormally).isFalse()
+        assertThat(log?.endMessage).isEqualTo("Process crashed.")
+    }
+
+    @Test
+    fun `reads a test once among the failed entries, while the summary lists each of its failures`() {
+        val log = parseFixture("sessions/multiple-failures/outputs/smallPhone/execution-000/instrument.log")
+
+        assertThat(log?.failedEntries).containsExactly(
+            "failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)",
+            "collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)",
+        )
+        assertThat(log?.summaryFailureCount).isEqualTo(4)
+        assertThat(log?.summaryFailures).extracting<String> { it.test }.containsExactly(
+            "failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)",
+            "failsTwiceUnlessReduced(io.technoirlab.device.run.fixture.AfterFailureTest)",
+            "collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)",
+            "collectsTwoErrorsUnlessReduced(io.technoirlab.device.run.fixture.ErrorCollectorTest)",
+        )
+    }
+
+    @Test
+    fun `reads a class event that started but never ended as an entry of the class`() {
+        val text = deviceRunFixture("instrument-logs/class-level-events.log").substringBefore("INSTRUMENTATION_STATUS_CODE: -4")
+
+        val log = parse(text)
+
+        assertThat(log?.startedEntries).isEqualTo(1)
+        assertThat(log?.classEntries).isEqualTo(1)
     }
 
     @ParameterizedTest

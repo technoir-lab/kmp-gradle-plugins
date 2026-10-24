@@ -50,9 +50,10 @@ internal class DeviceRunResultConverter {
         val resultType = session.sessionReport?.result?.resultType
         val jobReport = artifacts.find { it.relativePath == context.jobReportPath }?.let { parseJobReport(it) }
         val outcomes = jobReport?.getOrNull()?.testCases?.map(outcomeMapper::map)
+        val evidence = examineEvidence(resultType, jobReport, executions)
         val failures = remoteFailures(session, resultType) +
             reportFailures(resultType, context.jobReportPath, jobReport, outcomes) +
-            evidenceFailures(resultType, jobReport, executions)
+            evidence.failures
         val review = reviewFailedSession(
             session = session,
             resultType = resultType,
@@ -68,7 +69,7 @@ internal class DeviceRunResultConverter {
             outcomes = outcomes,
             time = jobReport?.getOrNull()?.time,
             platformFailures = platformFailures,
-            warnings = listOfNotNull((review as? FailedSessionReview.Review.TestsPass)?.warning),
+            warnings = evidence.warnings + listOfNotNull((review as? FailedSessionReview.Review.TestsPass)?.warning),
             status = if (review is FailedSessionReview.Review.TestsPass) {
                 TestStatus.PASSED
             } else {
@@ -170,15 +171,18 @@ internal class DeviceRunResultConverter {
     }
 
     /**
-     * Returns the platform failures that the instrumentation logs of the executions show for a session whose tests ran to
-     * completion. Without a job report, the missing report explains the failure.
+     * Returns what the instrumentation logs of the executions show for a session whose tests ran to completion. Without a job report,
+     * the missing report explains the failure.
      */
-    private fun evidenceFailures(resultType: String?, jobReport: Result<JUnitReport>?, executions: JobExecutions): List<PlatformFailure> =
-        if ((resultType == PASSED || resultType == FAILED) && jobReport != null) {
-            instrumentationEvidence.failures(executions.executions)
-        } else {
-            emptyList()
-        }
+    private fun examineEvidence(
+        resultType: String?,
+        jobReport: Result<JUnitReport>?,
+        executions: JobExecutions,
+    ): InstrumentationEvidence.Findings = if ((resultType == PASSED || resultType == FAILED) && jobReport != null) {
+        instrumentationEvidence.examine(executions.executions)
+    } else {
+        InstrumentationEvidence.Findings(failures = emptyList(), warnings = emptyList())
+    }
 
     /**
      * Reviews a session that Device Run failed although its job report lists tests that all passed and no platform failure explains

@@ -495,7 +495,9 @@ consumers that read them count flaky tests as failed. TeamCity before 2024.03 co
 A test task fails when a test fails, when the session ends with an infrastructure error, a timeout, or cancellation, or when the
 session reports no tests. It also fails when the instrumentation log of an attempt shows tests that never ran, or failures that the
 reports omit, such as a failing `@BeforeClass` under Android Test Orchestrator; the task logs the reason, which `test-result.pb`
-lists as a platform error. Tests that ended with an error are reported as failures.
+lists as a platform error. An event of a whole class, such as an assumption in `@BeforeClass`, stands for several tests, so when an
+attempt with such an event ends early, the log cannot show whether tests never ran, and the task logs a warning instead. Tests that
+ended with an error are reported as failures.
 
 Device Run fails a session when no attempt of a shard passes every test that it ran, even when every test passed in some attempt. The
 test task of such a session passes, logs a warning, and adds it to `test-result.pb` as an issue, provided that Device Run blames
