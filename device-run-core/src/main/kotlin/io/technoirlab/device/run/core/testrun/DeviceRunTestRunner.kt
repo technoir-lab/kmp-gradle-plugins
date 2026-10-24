@@ -12,8 +12,10 @@ import io.technoirlab.device.run.core.testrun.job.OrchestratorVersions
 import io.technoirlab.device.run.core.testrun.results.DeviceRunResultConverter
 import io.technoirlab.device.run.core.testrun.results.MirroredArtifact
 import io.technoirlab.device.run.core.testrun.results.ResultContext
+import io.technoirlab.device.run.core.testrun.results.SessionOutputs
 import io.technoirlab.device.run.core.testrun.results.SessionStorage
 import io.technoirlab.device.run.core.testrun.session.SessionLifecycle
+import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
 
@@ -35,8 +37,8 @@ internal class DeviceRunTestRunner(
      * Runs the tests of [testRun], writes their results to the results directory of its request, and returns whether they passed.
      *
      * Session outputs are mirrored below `device-run/` in the results directory once Device Run has uploaded them, apart from
-     * device logs that the logcat policy discards, and `device-run-session.json` identifies the session for manual cleanup if the
-     * runner stops before the session does.
+     * device logs that the logcat policy discards for the verdict on the tests, and `device-run-session.json` identifies the session
+     * for manual cleanup if the runner stops before the session does.
      *
      * @throws DeviceRunException when the orchestrator version is not available, or the session cannot be prepared, run, or
      * downloaded.
@@ -69,9 +71,18 @@ internal class DeviceRunTestRunner(
             device = request.catalogDevice,
             reportProperties = request.reportProperties,
         )
-        val includeDeviceLogs = keepsDeviceLogs(spec.job.capture.logcat, finishedSession)
-        val artifacts = mirror(spec.bucket, finishedSession, context, includeDeviceLogs)
-        return resultConverter.convert(finishedSession, artifacts, context)
+        val outputs = listOutputs(spec.bucket, finishedSession)
+        val mirrorRoot = request.resultsDirectory / MIRROR_DIRECTORY
+        // The verdict does not depend on the device logs, which the logcat policy keeps or discards for it.
+        val artifacts = mirror(spec.bucket, finishedSession, outputs.withoutDeviceLogs, mirrorRoot)
+        val verdict = resultConverter.evaluate(finishedSession, artifacts, context)
+        val deviceLogs = if (keepsDeviceLogs(spec.job.capture.logcat, verdict.passed)) {
+            mirror(spec.bucket, finishedSession, outputs.deviceLogs, mirrorRoot)
+        } else {
+            emptyList()
+        }
+        resultConverter.write(finishedSession, (artifacts + deviceLogs).sortedBy { it.relativePath }, context, verdict)
+        return verdict.passed
     }
 
     /**
@@ -84,38 +95,41 @@ internal class DeviceRunTestRunner(
     }
 
     /**
-     * Returns whether the device logs of [session] are downloaded. Device Run cannot discard them on its own, so
-     * [ArtifactCapture.ON_FAILURE] is applied to the session result.
+     * Returns whether the device logs of tests that [passed] or not are downloaded. Device Run cannot discard them on its own, so
+     * [ArtifactCapture.ON_FAILURE] is applied to the verdict on the tests, which can differ from the session result.
      */
-    private fun keepsDeviceLogs(logcat: ArtifactCapture, session: Session): Boolean = when (logcat) {
+    private fun keepsDeviceLogs(logcat: ArtifactCapture, passed: Boolean): Boolean = when (logcat) {
         ArtifactCapture.DISABLED -> false
-        ArtifactCapture.ON_FAILURE -> session.sessionReport?.result?.resultType != PASSED
+        ArtifactCapture.ON_FAILURE -> !passed
         ArtifactCapture.ALWAYS -> true
     }
 
     /**
-     * Downloads the outputs of [session] below `device-run/` in the results directory of [context], once Device Run has uploaded
-     * the files that its reports reference and, when its tests ran to completion, the job report.
+     * Lists the outputs of [session] once Device Run has uploaded the files that its reports reference and, when its tests ran to
+     * completion, its first outputs, which include the job report.
      */
-    private fun mirror(bucket: String, session: Session, context: ResultContext, includeDeviceLogs: Boolean): List<MirroredArtifact> {
-        val sessionId = session.name.substringAfterLast('/')
+    private fun listOutputs(bucket: String, session: Session): SessionOutputs {
         val resultType = session.sessionReport?.result?.resultType
-        val jobReport = sessionStorage.outputDirectory(bucket) / sessionId / context.jobReportPath
-        val expectedFiles = referencedFiles(session) + listOfNotNull(jobReport.takeIf { resultType == PASSED || resultType == FAILED })
-        return try {
-            sessionStorage.mirror(
+        return accessOutputs(bucket, session) {
+            sessionStorage.listOutputs(
                 bucket = bucket,
-                sessionId = sessionId,
-                mirrorRoot = context.resultsDirectory / MIRROR_DIRECTORY,
-                expectedFiles = expectedFiles,
-                includeDeviceLogs = includeDeviceLogs,
-            )
-        } catch (e: GoogleJsonResponseException) {
-            throw DeviceRunException(
-                "Unable to download the outputs of Device Run session ${session.name} from bucket $bucket: ${e.reason()}",
-                e,
+                sessionId = session.name.substringAfterLast('/'),
+                expectedFiles = referencedFiles(session),
+                outputsExpected = resultType == PASSED || resultType == FAILED,
             )
         }
+    }
+
+    private fun mirror(bucket: String, session: Session, outputs: SessionOutputs, mirrorRoot: Path): List<MirroredArtifact> =
+        accessOutputs(bucket, session) { sessionStorage.mirror(outputs, mirrorRoot) }
+
+    private fun <T> accessOutputs(bucket: String, session: Session, access: () -> T): T = try {
+        access()
+    } catch (e: GoogleJsonResponseException) {
+        throw DeviceRunException(
+            "Unable to download the outputs of Device Run session ${session.name} from bucket $bucket: ${e.reason()}",
+            e,
+        )
     }
 
     /**

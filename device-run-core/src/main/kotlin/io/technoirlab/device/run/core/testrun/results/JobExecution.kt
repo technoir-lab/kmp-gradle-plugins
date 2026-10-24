@@ -11,7 +11,6 @@ import com.google.api.services.devicerun.v1alpha.model.ExecutionReport
  * @property reportEntry the entry of the execution in the session report, or null when the report omits the execution.
  * @property report the JUnit report of the execution, or null when it is missing or malformed.
  * @property instrumentationLog the instrumentation log of the execution, or null when it is missing or unreadable.
- * @property logcat the device log of the execution, or null when it was not downloaded.
  */
 internal data class JobExecution(
     val name: String,
@@ -19,7 +18,6 @@ internal data class JobExecution(
     val reportEntry: ExecutionReport?,
     val report: JUnitReport?,
     val instrumentationLog: InstrumentationLog?,
-    val logcat: MirroredArtifact?,
 ) {
     companion object {
         /**

@@ -34,68 +34,63 @@ internal class SessionStorage(
     fun outputDirectory(bucket: String): GcsUri = GcsUri(bucket, SESSIONS_DIRECTORY)
 
     /**
-     * Downloads the outputs of session [sessionId] in [bucket] into [mirrorRoot], keeping the paths below the session directory.
+     * Lists the outputs of session [sessionId] in [bucket] once Device Run has uploaded them.
      *
      * Device Run uploads the outputs seconds after the session ends, and final reports can omit job and execution reports, so the
      * session directory is listed until its outputs settle: until a listing contains the objects of [expectedFiles] below the
-     * session directory and equals the listing taken [SETTLE_INTERVAL] earlier. After [SETTLE_TIMEOUT], the last listing is
-     * mirrored, and a warning names the expected objects that it lacks. An interrupted wait throws [InterruptedException].
+     * session directory, has outputs when [outputsExpected], and equals the listing taken [SETTLE_INTERVAL] earlier. Device Run
+     * uploads the job report first, so a listing with outputs contains it when Device Run wrote one. After [SETTLE_TIMEOUT], the
+     * last listing counts, and a warning names what it lacks. An interrupted wait throws [InterruptedException].
      *
-     * Directory placeholders and object names that would leave [mirrorRoot] are skipped, and so are objects deleted before they
-     * could be downloaded. Without [includeDeviceLogs], the device logs of the executions, `<job>/<execution>/logcat.txt`, are
-     * skipped too.
+     * @param outputsExpected whether the session has outputs, such as a session whose tests ran.
      */
-    fun mirror(
-        bucket: String,
-        sessionId: String,
-        mirrorRoot: Path,
-        expectedFiles: Collection<GcsUri>,
-        includeDeviceLogs: Boolean,
-    ): List<MirroredArtifact> {
-        val prefix = "$SESSIONS_DIRECTORY/$sessionId/"
+    fun listOutputs(bucket: String, sessionId: String, expectedFiles: Collection<GcsUri>, outputsExpected: Boolean): SessionOutputs {
+        val directory = outputDirectory(bucket) / sessionId
+        val prefix = "${directory.objectName}/"
         val expectedPaths = expectedFiles
             .filter { it.bucket == bucket && it.objectName.startsWith(prefix) }
             .map { it.objectName.removePrefix(prefix) }
             .toSet()
-        val root = mirrorRoot.toAbsolutePath().normalize()
-        return settledOutputs(bucket, sessionId, expectedPaths)
-            .filter { relativePath -> includeDeviceLogs || !DEVICE_LOG.matches(relativePath) }
-            .mapNotNull { relativePath -> mirror(GcsUri(bucket, prefix + relativePath), relativePath, root) }
-    }
-
-    /**
-     * Lists the outputs of session [sessionId] until they settle, and returns their paths below the session directory.
-     */
-    private fun settledOutputs(bucket: String, sessionId: String, expectedPaths: Set<String>): List<String> {
-        val prefix = "$SESSIONS_DIRECTORY/$sessionId/"
         val wait = Stopwatch.createStarted(ticker)
         var previous: Set<String>? = null
         while (true) {
             val listing = storageManager.listObjectNames(bucket, prefix).map { it.removePrefix(prefix) }
             val missing = expectedPaths - listing.toSet()
-            if (missing.isEmpty() && listing.toSet() == previous) {
-                return listing
+            val complete = missing.isEmpty() && (listing.isNotEmpty() || !outputsExpected)
+            if (complete && listing.toSet() == previous) {
+                return SessionOutputs(directory, listing)
             }
             if (wait.elapsed() >= SETTLE_TIMEOUT) {
-                reportUnsettled(sessionId, missing)
-                return listing
+                reportUnsettled(sessionId, missing, listing.isEmpty() && outputsExpected)
+                return SessionOutputs(directory, listing)
             }
             previous = listing.toSet()
             sleeper.sleep(SETTLE_INTERVAL.toMillis())
         }
     }
 
-    private fun reportUnsettled(sessionId: String, missing: Set<String>) {
-        if (missing.isEmpty()) {
-            logger.warn(
-                "Device Run was still uploading the outputs of session {} after {}, so the results can lack some of them.",
+    /**
+     * Downloads [outputs] into [mirrorRoot], keeping their paths below the session directory.
+     *
+     * Directory placeholders and object names that would leave [mirrorRoot] are skipped, and so are objects deleted before they
+     * could be downloaded.
+     */
+    fun mirror(outputs: SessionOutputs, mirrorRoot: Path): List<MirroredArtifact> {
+        val root = mirrorRoot.toAbsolutePath().normalize()
+        return outputs.paths.mapNotNull { relativePath -> mirror(outputs.directory / relativePath, relativePath, root) }
+    }
+
+    private fun reportUnsettled(sessionId: String, missing: Set<String>, noOutputs: Boolean) {
+        when {
+            missing.isNotEmpty() -> logger.warn(
+                "Device Run did not upload {} of session {} within {}, so the results lack them.",
+                missing.sorted().joinToString(),
                 sessionId,
                 SETTLE_TIMEOUT.toDisplayString(),
             )
-        } else {
-            logger.warn(
-                "Device Run did not upload {} of session {} within {}, so the results lack them.",
-                missing.sorted().joinToString(),
+            noOutputs -> logger.warn("Device Run uploaded no outputs of session {} within {}.", sessionId, SETTLE_TIMEOUT.toDisplayString())
+            else -> logger.warn(
+                "Device Run was still uploading the outputs of session {} after {}, so the results can lack some of them.",
                 sessionId,
                 SETTLE_TIMEOUT.toDisplayString(),
             )
@@ -127,10 +122,7 @@ internal class SessionStorage(
     private companion object {
         private const val SESSIONS_DIRECTORY = "automation/sessions"
 
-        // Files pulled from the device lie deeper, below the artifacts directory of the execution.
-        private val DEVICE_LOG = Regex("[^/]+/[^/]+/logcat\\.txt")
-
-        // Device Run finished uploading within 5 seconds after the end of each observed session.
+        // Device Run uploaded the outputs of each of 84 observed sessions in one burst, with at most 3 seconds between objects.
         private val SETTLE_INTERVAL = Duration.ofSeconds(5)
         private val SETTLE_TIMEOUT = Duration.ofMinutes(1)
     }

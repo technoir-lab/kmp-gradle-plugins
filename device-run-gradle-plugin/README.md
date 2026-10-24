@@ -466,9 +466,9 @@ downloaded with the other [session outputs](#test-results).
 `capture.logcat` and `capture.video` select when the device log and the screen recordings are kept: `DISABLED`, `ON_FAILURE`,
 or `ALWAYS`.
 
-Device Run cannot discard device logs on its own, so with `ON_FAILURE` the plugin downloads them only when the session does not
-pass; they remain in the bucket otherwise. Device Run decides itself which recordings to keep, so with `ON_FAILURE` it can also keep
-the recording of a passing run, such as one that passed after a retry.
+Device Run cannot discard device logs on its own, so with `ON_FAILURE` the plugin downloads them only when the test task fails, which
+it decides from the other outputs; they remain in the bucket otherwise. Device Run decides itself which recordings to keep, so with
+`ON_FAILURE` it can also keep the recording of a passing run, such as one that passed after a retry.
 
 ## Test results
 
@@ -482,8 +482,8 @@ Test tasks write their results to the AGP results directory of the device, such 
 - `device-run-session.json`: the project and name of the session.
 
 Device Run uploads the session outputs in the seconds after the session ends. The plugin downloads them once two listings 5 seconds
-apart match and contain the files that the session reports name. After a minute, it downloads the outputs that exist and warns
-about the missing ones.
+apart match and contain the files that the session reports name, and, when the tests ran, at least one output, since Device Run
+uploads the job report first. After a minute, it downloads the outputs that exist and warns about the missing ones.
 
 `TEST-<device>.xml` reports retries as Maven Surefire does. A test that failed in some attempts and passed in others passes, is
 marked `flaky="true"`, has a `<flakyFailure>` with the trace of each failed attempt, and counts toward the `flakes` of the suite. A

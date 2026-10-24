@@ -171,7 +171,7 @@ class DeviceRunTestRunnerTest {
 
     @ParameterizedTest
     @ValueSource(strings = ["PASSED", "FAILED"])
-    fun `waits for the job report of a session whose tests ran when its report omits the job`(resultType: String) {
+    fun `waits for the outputs of a session whose tests ran when its report omits them`(resultType: String) {
         cloud.outputUploadListings = mapOf(JOB_REPORT_PATH to 1)
         cloud.sessionReport = { sessionReport(resultType) }
         val request = request()
@@ -185,15 +185,23 @@ class DeviceRunTestRunnerTest {
     }
 
     @Test
+    fun `fails a session whose tests ran without a job report once its other outputs stop changing`() {
+        cloud.sessionOutputs = mapOf(EXECUTION_REPORT_PATH to EXECUTION_REPORT)
+        cloud.sessionReport = { sessionReport("FAILED") }
+        val request = request()
+
+        val passed = runner.runTests(request)
+
+        val suiteResult = (request.resultsDirectory / "test-result.pb").inputStream().use(TestSuiteResult::parseFrom)
+        assertThat(passed).isFalse()
+        assertThat(suiteResult.platformError.errorsList.map { it.summary.errorName }).containsExactly("MISSING_JOB_REPORT")
+        assertThat(clock.sleeps).containsExactly(SETTLE_INTERVAL)
+    }
+
+    @Test
     fun `passes a session that failed only because no attempt passed every test, once the retries that its report omits arrive`() {
-        val outputs = deviceRunFixtures("sessions/shard-retry-failed/outputs").mapKeys { (path, _) ->
-            "mediumPhone/${path.substringAfter('/')}"
-        }
-        val report = parseDeviceRunFixture<Session>("sessions/report-without-executions/session-full.json").sessionReport
-        report.jobReports.single().displayName = "mediumPhone"
-        cloud.sessionOutputs = outputs
-        cloud.outputUploadListings = outputs.keys.filter { "-rerun-" in it }.associateWith { 1 }
-        cloud.sessionReport = { report }
+        replayFlakyShardSession()
+        cloud.outputUploadListings = cloud.sessionOutputs.keys.filter { "-rerun-" in it }.associateWith { 1 }
         val request = request()
 
         val passed = runner.runTests(request)
@@ -246,7 +254,7 @@ class DeviceRunTestRunnerTest {
 
     @ParameterizedTest
     @CsvSource("ON_FAILURE, FAILED", "ALWAYS, PASSED")
-    fun `downloads device logs that the logcat policy keeps for the session result`(logcat: ArtifactCapture, resultType: String) {
+    fun `downloads device logs that the logcat policy keeps for the verdict on the tests`(logcat: ArtifactCapture, resultType: String) {
         cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, DEVICE_LOG_PATH to "logcat")
         cloud.sessionReport = { sessionReport(resultType) }
         val request = request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = logcat))))
@@ -260,7 +268,7 @@ class DeviceRunTestRunnerTest {
 
     @ParameterizedTest
     @CsvSource("ON_FAILURE, PASSED", "DISABLED, FAILED")
-    fun `skips device logs that the logcat policy discards for the session result`(logcat: ArtifactCapture, resultType: String) {
+    fun `skips device logs that the logcat policy discards for the verdict on the tests`(logcat: ArtifactCapture, resultType: String) {
         cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to JOB_REPORT, DEVICE_LOG_PATH to "logcat")
         cloud.sessionReport = { sessionReport(resultType) }
         val request = request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = logcat))))
@@ -269,6 +277,30 @@ class DeviceRunTestRunnerTest {
 
         assertThat(passed).isEqualTo(resultType == "PASSED")
         assertThat(request.resultsDirectory / "device-run" / JOB_REPORT_PATH).exists()
+        assertThat(request.resultsDirectory / "device-run" / DEVICE_LOG_PATH).doesNotExist()
+    }
+
+    @Test
+    fun `downloads the device logs of tests that fail when Device Run passed the session`() {
+        cloud.sessionOutputs = mapOf(JOB_REPORT_PATH to FAILING_JOB_REPORT, DEVICE_LOG_PATH to "logcat")
+        cloud.sessionReport = { sessionReport("PASSED") }
+        val request = request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = ArtifactCapture.ON_FAILURE))))
+
+        val passed = runner.runTests(request)
+
+        assertThat(passed).isFalse()
+        assertThat(request.resultsDirectory / "device-run" / DEVICE_LOG_PATH).exists()
+    }
+
+    @Test
+    fun `skips the device logs of tests that pass when Device Run failed the session`() {
+        replayFlakyShardSession()
+        val request = request(RunOptions(BUCKET, job = RunOptions.Job(capture = RunOptions.Capture(logcat = ArtifactCapture.ON_FAILURE))))
+
+        val passed = runner.runTests(request)
+
+        assertThat(passed).isTrue()
+        assertThat(request.resultsDirectory / "device-run/mediumPhone/execution-000/instrument.log").exists()
         assertThat(request.resultsDirectory / "device-run" / DEVICE_LOG_PATH).doesNotExist()
     }
 
@@ -301,6 +333,21 @@ class DeviceRunTestRunnerTest {
 
     private fun sessionReport(resultType: String): SessionReport = SessionReport().setResult(Result().setResultType(resultType))
 
+    /**
+     * Makes Device Run replay `shard-retry-failed`, which it failed although every test passed in some attempt, with a device log
+     * for each execution and a final report that omits the executions, as the report of `report-without-executions` does.
+     */
+    private fun replayFlakyShardSession() {
+        val outputs = deviceRunFixtures("sessions/shard-retry-failed/outputs").mapKeys { (path, _) ->
+            "mediumPhone/${path.substringAfter('/')}"
+        }
+        val executionDirectories = outputs.keys.map { it.substringBeforeLast('/') }.filter { it.count { char -> char == '/' } == 1 }
+        val report = parseDeviceRunFixture<Session>("sessions/report-without-executions/session-full.json").sessionReport
+        report.jobReports.single().displayName = "mediumPhone"
+        cloud.sessionOutputs = outputs + executionDirectories.distinct().associate { "$it/logcat.txt" to "logcat" }
+        cloud.sessionReport = { report }
+    }
+
     private fun outputFile(path: String): OutputFile = OutputFile().setGcsOutputFile(GcsPath().setPath(path))
 
     private fun reportProperties(report: Path): Map<String, String> {
@@ -316,6 +363,8 @@ class DeviceRunTestRunnerTest {
         private const val EXECUTION_REPORT_PATH = "mediumPhone/execution-000/test_result.xml"
         private const val DEVICE_LOG_PATH = "mediumPhone/execution-000/logcat.txt"
         private const val JOB_REPORT = """<testsuite><testcase classname="com.example.LoginTest" name="logsIn"/></testsuite>"""
+        private const val FAILING_JOB_REPORT =
+            """<testsuite><testcase classname="com.example.LoginTest" name="logsIn"><failure>Failed</failure></testcase></testsuite>"""
         private const val EXECUTION_REPORT = "<testsuites>$JOB_REPORT</testsuites>"
         private val SMART_SHARDING =
             RunOptions(BUCKET, job = RunOptions.Job(sharding = RunOptions.Sharding.Smart(Duration.ofMinutes(5), "login")))

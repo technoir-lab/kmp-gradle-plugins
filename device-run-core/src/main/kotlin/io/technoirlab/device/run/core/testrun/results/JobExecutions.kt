@@ -12,10 +12,10 @@ import kotlin.io.path.name
  * `execution-000-rerun-000`.
  *
  * The final session report can omit executions, and Device Run can leave an execution without outputs, so the executions are
- * those that either the report lists or the mirrored outputs contain. They also provide the logcat file and the start time of each
+ * those that either the report lists or the mirrored outputs contain. They also provide the device log and the start time of each
  * test that exactly one execution ran. When the report of an execution with outputs is missing or malformed, which executions ran a
- * test is unknown, so logs stay attached to the suite only and tests take the start time of the session. Executions are never
- * ordered by name.
+ * test is unknown, so device logs stay attached to the suite only and tests take the start time of the session. Executions are
+ * never ordered by name.
  */
 internal class JobExecutions(
     session: Session,
@@ -60,10 +60,11 @@ internal class JobExecutions(
     }
 
     /**
-     * Returns the logcat file of the only execution that ran [outcome], if it was downloaded.
+     * Returns the device log among [artifacts] of the only execution that ran [outcome], if it was downloaded.
      */
-    fun logsOf(outcome: TestOutcome): List<ResultArtifact> {
-        val logcat = executionByTest[outcome.key]?.logcat ?: return emptyList()
+    fun logsOf(outcome: TestOutcome, artifacts: List<MirroredArtifact>): List<ResultArtifact> {
+        val execution = executionByTest[outcome.key] ?: return emptyList()
+        val logcat = artifacts.find { it.relativePath == "$jobDirectory/${execution.name}/${JobExecution.LOGCAT}" } ?: return emptyList()
         return listOf(ResultArtifact("logcat", logcat.path, "text/plain"))
     }
 
@@ -81,7 +82,6 @@ internal class JobExecutions(
             reportEntry = reportEntry,
             report = files.find { it.path.name in JobExecution.REPORT_NAMES }?.let(::parseReport),
             instrumentationLog = files.find { it.path.name == JobExecution.INSTRUMENT_LOG }?.let { logParser.parse(it.path) },
-            logcat = files.find { it.path.name == JobExecution.LOGCAT },
         )
     }
 

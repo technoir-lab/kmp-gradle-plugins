@@ -12,7 +12,7 @@ interface CaptureOptions {
      * When the device log is kept. Defaults to [CapturePolicy.ON_FAILURE].
      *
      * Device Run cannot discard device logs on its own, so with [CapturePolicy.ON_FAILURE] they are recorded but downloaded only
-     * when the session does not pass; they remain in the bucket otherwise.
+     * when the test task fails; they remain in the bucket otherwise.
      */
     val logcat: Property<CapturePolicy>
 
