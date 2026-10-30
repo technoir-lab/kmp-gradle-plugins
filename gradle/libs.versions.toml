@@ -13,7 +13,7 @@ kotlin-gradle-plugin = "2.4.21"
 openapi-generator = "7.26.0"
 protobuf = "3.25.5"
 slf4j = "2.0.20"
-swagger-models = "2.2.55"
+swagger-models = "3.0.0"
 
 [libraries]
 android-builder-test-api = { module = "com.android.tools.build:builder-test-api", version.ref = "android-gradle-plugin" }
