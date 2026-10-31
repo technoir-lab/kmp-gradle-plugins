@@ -35,17 +35,17 @@ internal class CMakeRunner(
         }
     }
 
-    fun build(configureDir: Path, target: String, buildType: String) {
+    fun build(configureDir: Path, target: String, buildType: String, parallelLevel: String?) {
         execOperations.exec {
             executable = "cmake"
             args(
-                "--build",
-                configureDir.absolutePathString(),
-                "--target",
-                target,
-                "--config",
-                buildType,
-                "--parallel",
+                buildArguments(
+                    configureDir = configureDir,
+                    target = target,
+                    buildType = buildType,
+                    parallelLevel = parallelLevel,
+                    availableProcessors = Runtime.getRuntime().availableProcessors(),
+                ),
             )
         }
     }
@@ -64,6 +64,24 @@ internal class CMakeRunner(
             if (component != null) {
                 args("--component", component)
             }
+        }
+    }
+
+    /**
+     * Returns the arguments of `cmake --build`, which runs one job per available processor unless [parallelLevel], the value of the
+     * `CMAKE_BUILD_PARALLEL_LEVEL` environment variable, sets the limit.
+     */
+    internal fun buildArguments(
+        configureDir: Path,
+        target: String,
+        buildType: String,
+        parallelLevel: String?,
+        availableProcessors: Int,
+    ): List<String> = buildList {
+        addAll(listOf("--build", configureDir.absolutePathString(), "--target", target, "--config", buildType))
+        // A bare --parallel lets Makefile generators start every job at once and overrides CMAKE_BUILD_PARALLEL_LEVEL.
+        if (parallelLevel.isNullOrBlank()) {
+            addAll(listOf("--parallel", availableProcessors.toString()))
         }
     }
 }

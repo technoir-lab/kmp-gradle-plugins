@@ -66,6 +66,9 @@ cinterop. They form a dependency chain that generates a toolchain, generates the
 system, builds the selected target, stages its interop surface, and generates its C-interop
 definition.
 
+`cmakeBuild<Target>` runs at most one parallel build job per available processor. Set the
+`CMAKE_BUILD_PARALLEL_LEVEL` environment variable to choose another limit.
+
 The generated toolchain reuses Kotlin/Native's prepared compiler, compiler arguments,
 target triple, sysroot, LLVM archiver, linker, and Apple or Android platform settings. This
 makes the CMake library use the same cross-compilation environment as the Kotlin/Native binary.
