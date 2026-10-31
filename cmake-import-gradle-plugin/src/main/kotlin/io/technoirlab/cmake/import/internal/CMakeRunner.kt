@@ -13,6 +13,7 @@ internal class CMakeRunner(
         toolchainFile: Path,
         buildType: String,
         generator: String?,
+        installPrefix: String,
         defines: Map<String, String>,
     ) {
         execOperations.exec {
@@ -23,12 +24,14 @@ internal class CMakeRunner(
                 "-B",
                 configureDir.absolutePathString(),
                 "-DCMAKE_BUILD_TYPE=$buildType",
+                "-DCMAKE_INSTALL_PREFIX:PATH=$installPrefix",
                 "--toolchain",
                 toolchainFile.absolutePathString(),
             )
             if (generator != null) {
                 args("-G", generator)
             }
+            // Definitions come last so that they override the cache entries above, such as the install prefix.
             defines.toSortedMap().forEach { (name, value) ->
                 args("-D$name=$value")
             }
