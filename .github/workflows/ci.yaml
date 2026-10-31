@@ -54,11 +54,6 @@ jobs:
       - name: Set up KMP
         uses: technoir-lab/actions/setup-kotlin-multiplatform@v1.0.0
 
-      - name: Configure CMake generator
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: echo "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
-
       - name: Build with Gradle on Windows
         if: runner.os == 'Windows'
         shell: pwsh
