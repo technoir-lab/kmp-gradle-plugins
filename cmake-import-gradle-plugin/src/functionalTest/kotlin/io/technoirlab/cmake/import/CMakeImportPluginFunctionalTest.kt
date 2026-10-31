@@ -591,6 +591,27 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
+    fun `application links when the configured install prefix contains spaces`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val installPrefix = (gradleRunner.root.dir / "configured prefix/hello").cmakePath()
+        project.appendBuildScript(
+            """
+            cmakeImport {
+                defines.put("CMAKE_INSTALL_PREFIX", "$installPrefix")
+            }
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner.build(":kmp-application:runReleaseExecutable${hostTargetSuffix()}")
+
+        val pkgConfigFile = project.buildDir / "outputs/cmake/${hostTargetName()}/lib/pkgconfig/hello.pc"
+        assertThat(pkgConfigFile)
+            .content()
+            .contains("prefix=$installPrefix")
+        assertThat(result.output).contains("Hello, world!")
+    }
+
+    @Test
     fun `uppercase pkg-config linker change invalidates definition and CInterop`() {
         val suffix = hostTargetSuffix()
         val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition$suffix"
