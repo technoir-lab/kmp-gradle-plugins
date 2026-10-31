@@ -121,6 +121,7 @@ abstract class CMakeGenerateTask @Inject internal constructor(
             toolchainFile = toolchainFile,
             buildType = buildType,
             generator = cmakeGenerator.orNull,
+            installPrefix = INSTALL_PREFIX,
             defines = cmakeDefines.get(),
         )
 
@@ -138,6 +139,12 @@ abstract class CMakeGenerateTask @Inject internal constructor(
     }
 
     internal companion object {
+        /**
+         * Install prefix configured on every host in place of CMake's default, which depends on the host rather than the target.
+         * Projects write the prefix into generated files such as pkg-config metadata; installation stages into the install directory.
+         */
+        private const val INSTALL_PREFIX = "/usr/local"
+
         val CACHE_FILE_NOT_GENERATED =
             ProblemId.create("cache-file-not-generated", "CMake cache file was not generated", PROBLEM_GROUP)
     }

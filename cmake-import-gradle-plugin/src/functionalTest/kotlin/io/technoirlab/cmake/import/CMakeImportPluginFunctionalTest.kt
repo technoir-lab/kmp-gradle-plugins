@@ -79,6 +79,33 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
+    fun `configures the same install prefix on every host`() {
+        gradleRunner.build(":kmp-application:cmakeGenerate${hostTargetSuffix()}")
+
+        val cache = gradleRunner.root.project("kmp-application").buildDir /
+            "intermediates/cmake/${hostTargetName()}/CMakeCache.txt"
+        assertThat(cache).content().contains("CMAKE_INSTALL_PREFIX:PATH=/usr/local")
+    }
+
+    @Test
+    fun `configured definitions override the install prefix`() {
+        val installPrefix = (gradleRunner.root.dir / "custom-prefix").cmakePath()
+        gradleRunner.root.project("kmp-application").appendBuildScript(
+            """
+            cmakeImport {
+                defines.put("CMAKE_INSTALL_PREFIX", "$installPrefix")
+            }
+            """.trimIndent(),
+        )
+
+        gradleRunner.build(":kmp-application:cmakeGenerate${hostTargetSuffix()}")
+
+        val cache = gradleRunner.root.project("kmp-application").buildDir /
+            "intermediates/cmake/${hostTargetName()}/CMakeCache.txt"
+        assertThat(cache).content().contains("CMAKE_INSTALL_PREFIX:PATH=$installPrefix")
+    }
+
+    @Test
     fun `changing the generated toolchain recreates CMake state`() {
         val suffix = hostTargetSuffix()
         val generateTask = ":kmp-application:cmakeGenerate$suffix"

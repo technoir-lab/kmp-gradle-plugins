@@ -105,6 +105,10 @@ install(TARGETS hello
 )
 ```
 
+The plugin configures `CMAKE_INSTALL_PREFIX` as `/usr/local` on every host, so that files the project generates from
+its install prefix, such as pkg-config metadata, do not depend on the host. Installation stages into the build directory
+regardless. A `CMAKE_INSTALL_PREFIX` entry in `defines` takes precedence.
+
 ### Supported targets
 
 All non-deprecated Kotlin/Native [targets](https://kotlinlang.org/docs/native-target-support.html) are supported.
