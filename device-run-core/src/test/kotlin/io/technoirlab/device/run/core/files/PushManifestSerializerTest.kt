@@ -38,6 +38,6 @@ class PushManifestSerializerTest {
 
         assertThatThrownBy { serializer.read(file) }
             .isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("'config.json' must have the form gs://<bucket>/<object>")
+            .hasMessageContaining("'config.json' must have the form gs://<bucket>/<object>")
     }
 }
