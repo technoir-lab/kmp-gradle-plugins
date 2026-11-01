@@ -6,6 +6,7 @@ import io.technoirlab.cmake.import.internal.CInteropDefinitionGenerator
 import io.technoirlab.cmake.import.internal.CMakeInstallOutput
 import io.technoirlab.cmake.import.internal.CMakeInstallScanner.Companion.INCLUDE_DIRECTORY_NAME
 import io.technoirlab.cmake.import.internal.CMakeInstallScanner.Companion.LIBRARY_DIRECTORY_NAME
+import io.technoirlab.cmake.import.internal.LinkerOptionsArranger
 import io.technoirlab.cmake.import.internal.portablePathString
 import io.technoirlab.cmake.import.pkconfig.PkgConfigLinkerOptionsResolver
 import io.technoirlab.gradle.asPath
@@ -27,6 +28,7 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
+import org.jetbrains.kotlin.konan.target.KonanTarget
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import javax.inject.Inject
@@ -42,6 +44,9 @@ import kotlin.io.path.writeText
 abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
     private val problems: Problems,
 ) : DefaultTask() {
+    @get:Input
+    internal abstract val konanTarget: Property<KonanTarget>
+
     @get:Internal
     abstract val cmakeComponent: Property<String>
 
@@ -72,33 +77,24 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
 
     @TaskAction
     internal fun generate() {
-        val component = cmakeComponent.orNull
         val includedHeaders = includedHeaders.get()
+        val output = installOutput()
+        output.validate(cmakeComponent.orNull, includedHeaders)
+
+        val definition = output.definition(includedHeaders)
+        definitionFile.get().asPath()
+            .createParentDirectories()
+            .writeText(CInteropDefinitionGenerator().generate(definition), StandardCharsets.UTF_8)
+    }
+
+    private fun installOutput(): CMakeInstallOutput {
         val installDirectory = installDirectory.get().asPath()
-        val output = CMakeInstallOutput(
+        return CMakeInstallOutput(
             includeDirectory = installDirectory.resolve(INCLUDE_DIRECTORY_NAME),
             libraryDirectory = installDirectory.resolve(LIBRARY_DIRECTORY_NAME),
             headers = installedHeaderPaths.get().map(Path::of),
             archives = installedArchivePaths.get().map(installDirectory::resolve),
             pkgConfigFiles = installedPkgConfigFiles.files.map { it.toPath() }.sorted(),
-        )
-        output.validate(component, includedHeaders)
-
-        val archive = output.archives.single()
-        val definitionFile = definitionFile.get().asPath().createParentDirectories()
-        val pkgConfigLinkerOptionsResolver = PkgConfigLinkerOptionsResolver()
-        definitionFile.writeText(
-            CInteropDefinitionGenerator().generate(
-                CInteropDefinition(
-                    packageName = packageName.get(),
-                    headers = filterHeaders(output.headers, includedHeaders),
-                    headerFilter = output.headers,
-                    includeDirectory = output.includeDirectory,
-                    archive = archive,
-                    linkerOptions = pkgConfigLinkerOptionsResolver.resolve(archive, output.pkgConfigFiles),
-                ),
-            ),
-            StandardCharsets.UTF_8,
         )
     }
 
@@ -144,6 +140,19 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
                 foundProblems,
             )
         }
+    }
+
+    private fun CMakeInstallOutput.definition(includedHeaders: Set<String>): CInteropDefinition {
+        val archive = archives.single()
+        val linkerOptions = PkgConfigLinkerOptionsResolver().resolve(archive, pkgConfigFiles)
+        return CInteropDefinition(
+            packageName = packageName.get(),
+            headers = filterHeaders(headers, includedHeaders),
+            headerFilter = headers,
+            includeDirectory = includeDirectory,
+            archive = archive,
+            linkerOptions = LinkerOptionsArranger().arrange(linkerOptions, konanTarget.get()),
+        )
     }
 
     private fun filterHeaders(headers: List<Path>, includedHeaders: Set<String>): List<Path> = if (includedHeaders.isNotEmpty()) {

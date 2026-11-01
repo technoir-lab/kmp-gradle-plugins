@@ -112,6 +112,24 @@ The plugin configures `CMAKE_INSTALL_PREFIX` as `/usr/local` on every host, so t
 its install prefix, such as pkg-config metadata, do not depend on the host. Installation stages into the build directory
 regardless. A `CMAKE_INSTALL_PREFIX` entry in `defines` takes precedence.
 
+### Linker options
+
+If the CMake project installs a pkg-config file for its archive, the generated definition also lists the file's `Libs`
+and `Libs.private` linker options, except those that link the archive itself. Files that declare `Requires` or
+`Requires.private` are ignored.
+
+On Apple targets, Kotlin/Native embeds these options in static frameworks and Swift export static libraries as autolink
+entries, so apps that link those binaries need no extra linker flags for them. Only `-framework <name>` and `-l<name>`
+options can be autolinked, so the definition lists them before all other options and adds a strong copy of each weak
+framework or library:
+
+- An app still links such a framework weakly when all its references to it are weak, as references to APIs introduced
+  after the library's deployment target are. To link it weakly regardless, add `-weak_framework <name>` to the app's
+  linker flags, such as Xcode's `OTHER_LDFLAGS`.
+- Binaries that Kotlin/Native links itself, such as executables and dynamic frameworks, keep linking it weakly.
+
+Add options that can't be autolinked, such as library search paths, to the app's linker flags.
+
 ### Supported targets
 
 All non-deprecated Kotlin/Native [targets](https://kotlinlang.org/docs/native-target-support.html) are supported.

@@ -211,7 +211,7 @@ class CMakeImportPluginFunctionalTest {
                     }
                 }
             }
-
+            
             cmakeImport {
                 buildType = "Debug"
             }
@@ -436,10 +436,8 @@ class CMakeImportPluginFunctionalTest {
 
     @Test
     fun `builds and links Apple device and simulator frameworks with generated toolchains`() {
-        assumeTrue(
-            System.getProperty("os.name").startsWith("Mac", ignoreCase = true),
-            "Apple frameworks require a macOS host",
-        )
+        assumeTrue(host.isMac, "Apple targets require a macOS host")
+
         val project = gradleRunner.root.project("kmp-application")
         val targets = appleTargets()
         val linkTasks = targets.map { ":kmp-application:linkDebugFramework${it.name.capitalized()}" }
@@ -599,7 +597,27 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
-    fun `generated definition contains direct linker options`() {
+    fun `generated definition keeps direct linker options in order for non-Apple targets`() {
+        val target = nonHostTarget()
+        val project = gradleRunner.root.project("kmp-application")
+        val pkgConfigFile = gradleRunner.root.dir / "cmake/hello.pc"
+        pkgConfigFile.replaceText(
+            "-lm",
+            "-Wl,--whole-archive -lextra -Wl,--no-whole-archive -pthread -lm",
+        )
+
+        gradleRunner.build(":kmp-application:cmakeGenerateCInteropDefinition${target.name.capitalized()}")
+
+        val definition = project.buildDir / "generated/cmake/${target.name}/cmake.def"
+        assertThat(definition)
+            .content()
+            .contains("linkerOpts = --whole-archive -lextra --no-whole-archive -lpthread -lm")
+    }
+
+    @Test
+    fun `generated Apple definition lists autolinkable direct linker options first`() {
+        assumeTrue(host.isMac, "Apple targets require a macOS host")
+
         val project = gradleRunner.root.project("kmp-application")
         val pkgConfigFile = gradleRunner.root.dir / "cmake/hello.pc"
         pkgConfigFile.replaceText(
@@ -613,8 +631,66 @@ class CMakeImportPluginFunctionalTest {
         assertThat(definition)
             .content()
             .contains(
-                "-framework CoreMedia -weak_framework UniformTypeIdentifiers -lpthread -lm",
+                "linkerOpts = -framework CoreMedia -framework UniformTypeIdentifiers -lpthread -lm -lc++ " +
+                    "-weak_framework UniformTypeIdentifiers\n",
             )
+    }
+
+    @Test
+    fun `static framework consumers link imported Apple frameworks while executables keep weak linkage`() {
+        assumeTrue(host.isMac, "Apple targets require a macOS host")
+
+        val targetName = hostTargetName()
+        val suffix = targetName.capitalized()
+        val project = gradleRunner.root.project("kmp-application")
+        project.appendBuildScript(
+            """
+            cmakeImport {
+                defines.put("CMAKE_IMPORT_LINK_APPLE_FRAMEWORKS", "ON")
+            }
+            
+            kotlin {
+                $targetName {
+                    binaries.framework {
+                        baseName = "KmpApplication"
+                        isStatic = true
+                    }
+                }
+            }
+            """.trimIndent(),
+        )
+        val consumerDirectory = (gradleRunner.root.dir / "objc-consumer").createDirectories()
+        val consumerSource = consumerDirectory / "main.m"
+        consumerSource.writeText(
+            """
+            #import <KmpApplication/KmpApplication.h>
+            
+            int main(void) {
+                [KmpApplicationMainKt main];
+                return 0;
+            }
+            """.trimIndent(),
+        )
+
+        gradleRunner.build(":kmp-application:linkDebugFramework$suffix", ":kmp-application:linkDebugExecutable$suffix")
+        val consumerLink = execute(
+            "xcrun",
+            "clang",
+            "-F",
+            "${project.buildDir / "bin/$targetName/debugFramework"}",
+            "$consumerSource",
+            "-framework",
+            "KmpApplication",
+            "-o",
+            "${consumerDirectory / "consumer"}",
+        )
+        val executable = project.buildDir / "bin/$targetName/debugExecutable/kmp-application.kexe"
+        val executableLibraries = execute("xcrun", "otool", "-L", "$executable").output
+
+        assertThat(consumerLink.exitCode)
+            .describedAs(consumerLink.output)
+            .isZero()
+        assertThat(executableLibraries).containsPattern("""/CoreHaptics\.framework/.*, weak\)""")
     }
 
     @Test
@@ -765,9 +841,8 @@ class CMakeImportPluginFunctionalTest {
     }
 
     private fun nonHostTarget(): HostTarget = when {
-        System.getProperty("os.name").startsWith("Linux", ignoreCase = true) -> HostTarget("mingwX64")
-        System.getProperty("os.name").startsWith("Windows", ignoreCase = true) -> HostTarget("linuxX64")
-        System.getProperty("os.name").startsWith("Mac", ignoreCase = true) -> HostTarget("mingwX64")
+        host.isWindows -> HostTarget("linuxX64")
+        host.isLinux || host.isMac -> HostTarget("mingwX64")
         else -> error("No enabled non-host fixture target is available")
     }
 
@@ -788,6 +863,19 @@ class CMakeImportPluginFunctionalTest {
 
     private fun Path.cmakePath(): String = toString().replace('\\', '/')
 
+    private fun execute(vararg command: String): ExecutionResult {
+        val process = ProcessBuilder(*command)
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader().use { it.readText() }
+        return ExecutionResult(process.waitFor(), output)
+    }
+
+    private data class ExecutionResult(
+        val exitCode: Int,
+        val output: String,
+    )
+
     private data class HostTarget(
         val name: String,
     )
@@ -800,13 +888,12 @@ class CMakeImportPluginFunctionalTest {
     )
 
     private companion object {
+        val host = HostInfo()
+
         val hostTarget: HostTarget? = when {
-            System.getProperty("os.name").startsWith("Mac", ignoreCase = true) &&
-                System.getProperty("os.arch") in setOf("aarch64", "arm64") -> HostTarget("macosArm64")
-            System.getProperty("os.name").startsWith("Linux", ignoreCase = true) &&
-                System.getProperty("os.arch") in setOf("amd64", "x86_64") -> HostTarget("linuxX64")
-            System.getProperty("os.name").startsWith("Windows", ignoreCase = true) &&
-                System.getProperty("os.arch") in setOf("amd64", "x86_64") -> HostTarget("mingwX64")
+            host.isMac && host.isArm64 -> HostTarget("macosArm64")
+            host.isLinux && host.isX64 -> HostTarget("linuxX64")
+            host.isWindows && host.isX64 -> HostTarget("mingwX64")
             else -> null
         }
     }

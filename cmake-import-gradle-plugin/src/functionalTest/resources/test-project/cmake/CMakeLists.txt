@@ -55,6 +55,13 @@ target_compile_definitions(hello PRIVATE
     $<$<CONFIG:Debug>:HELLO_DEBUG>
 )
 
+if(APPLE AND CMAKE_IMPORT_LINK_APPLE_FRAMEWORKS)
+    target_sources(hello PRIVATE src/hello_frameworks.c)
+    target_compile_definitions(hello PRIVATE HELLO_APPLE_FRAMEWORKS)
+    # The weak framework comes first: Kotlin/Native autolinks no option after it unless the definition moves it.
+    set(HELLO_FRAMEWORKS "-Wl,-weak_framework,CoreHaptics -Wl,-framework,AudioToolbox")
+endif()
+
 install(TARGETS hello
     ARCHIVE DESTINATION lib COMPONENT hello-static
     FILE_SET HEADERS DESTINATION include COMPONENT hello-static
