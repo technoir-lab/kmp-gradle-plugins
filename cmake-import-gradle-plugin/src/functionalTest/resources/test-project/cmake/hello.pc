@@ -1,4 +1,5 @@
-libdir=/configured/prefix/lib
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
 
 Name: hello
 Description: CMake import functional-test library

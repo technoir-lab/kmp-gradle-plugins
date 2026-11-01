@@ -1,5 +1,6 @@
 package io.technoirlab.cmake.import.pkconfig
 
+import io.technoirlab.cmake.import.internal.normalizedPathString
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -153,9 +154,9 @@ class PkgConfigLinkerOptionsResolverTest {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
             $$"""
-            prefix=/installation
-            libdir=${prefix}/lib
-            dependency_dir=${prefix}/dependencies
+            root=/installation
+            libdir=${root}/lib
+            dependency_dir=${root}/dependencies
             Name: hello
             Libs: -L${libdir} -lhello -L${dependency_dir} -ldependency
             """.trimIndent(),
@@ -277,7 +278,7 @@ class PkgConfigLinkerOptionsResolverTest {
             $$"""
             prefix=/install
             libdir=${prefix}/lib
-            dependency_libdir=${prefix}/dependencies/lib
+            dependency_libdir=/opt/dependency/lib
             Name: foo
             Libs: -L${libdir}/ -lfoo -L ${dependency_libdir} -lbar
             """.trimIndent(),
@@ -285,7 +286,7 @@ class PkgConfigLinkerOptionsResolverTest {
 
         val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile))
 
-        assertThat(options).containsExactly("-L", "/install/dependencies/lib", "-lbar")
+        assertThat(options).containsExactly("-L", "/opt/dependency/lib", "-lbar")
     }
 
     @Test
@@ -323,6 +324,148 @@ class PkgConfigLinkerOptionsResolverTest {
     }
 
     @Test
+    fun `relocates prefix to the staged installation`() {
+        val pkgConfigFile = pkgConfigFile(
+            "hello.pc",
+            $$"""
+            prefix=C:/configured prefix/hello
+            exec_prefix=${prefix}
+            libdir=${exec_prefix}/lib
+            dependency_dir=${prefix}/dependencies
+            Name: hello
+            Libs: -L${libdir} -lhello -L${dependency_dir} -mwindows -lm
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
+
+        assertThat(options).containsExactly(
+            "-L${installDirectory.normalizedPathString()}/dependencies",
+            "-mwindows",
+            "-lm",
+        )
+    }
+
+    @Test
+    fun `relocates absolute directories below the original prefix`() {
+        val pkgConfigFile = pkgConfigFile(
+            "hello.pc",
+            $$"""
+            prefix=C:/configured prefix/hello/
+            libdir=C:/configured prefix/hello/lib
+            dependency_libdir=C:/configured prefix/hello/dependencies/lib
+            Name: hello
+            Libs: -L${libdir} -lhello -L${dependency_libdir} -ldependency
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
+
+        assertThat(options).containsExactly(
+            "-L${installDirectory.normalizedPathString()}/dependencies/lib",
+            "-ldependency",
+        )
+    }
+
+    @Test
+    fun `does not relocate directories beside the original prefix`() {
+        val pkgConfigFile = pkgConfigFile(
+            "hello.pc",
+            $$"""
+            prefix=/configured/hello
+            libdir=/configured/hello/lib
+            sibling_libdir=/configured/hello2/lib
+            Name: hello
+            Libs: -L${libdir} -lhello -L${sibling_libdir} -lsibling
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
+
+        assertThat(options).containsExactly("-L/configured/hello2/lib", "-lsibling")
+    }
+
+    @Test
+    fun `keeps configured prefix outside a pkgconfig directory`() {
+        val pkgConfigFile = pkgConfigFile(
+            "nested/hello.pc",
+            $$"""
+            prefix=/configured/hello
+            libdir=${prefix}/lib
+            Name: hello
+            Libs: -L${libdir} -lhello -lm
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
+
+        assertThat(options).containsExactly("-L/configured/hello/lib", "-lm")
+    }
+
+    @Test
+    fun `keeps pcfiledir paths containing spaces in one option`() {
+        installDirectory = installDirectory.resolve("staged install")
+        val pkgConfigFile = pkgConfigFile(
+            "hello.pc",
+            $$"""
+            root=${pcfiledir}/../..
+            libdir=${root}/lib
+            Name: hello
+            Libs: -L${libdir} -lhello -L${root}/dependencies/lib -ldependency
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
+
+        assertThat(options).containsExactly(
+            "-L${(installDirectory / "lib/pkgconfig").normalizedPathString()}/../../dependencies/lib",
+            "-ldependency",
+        )
+    }
+
+    @Test
+    fun `keeps quoted relocated paths containing spaces in one option`() {
+        installDirectory = installDirectory.resolve("staged install")
+        val pkgConfigFile = pkgConfigFile(
+            "hello.pc",
+            $$"""
+            prefix=/configured/hello
+            libdir=${prefix}/lib
+            Name: hello
+            Libs: -L"${libdir}" -lhello "-L${prefix}/dependencies/lib" -ldependency
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
+
+        assertThat(options).containsExactly(
+            "-L${installDirectory.normalizedPathString()}/dependencies/lib",
+            "-ldependency",
+        )
+    }
+
+    @Test
+    fun `honors quoted and escaped linker options`() {
+        val pkgConfigFile = pkgConfigFile(
+            "hello.pc",
+            """
+            Name: hello
+            Libs: -lhello "-L/opt/dependency dir/lib" -L/opt/other\ dir/lib '-Wl,-rpath,/opt/rpath dir' -ldependency
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile))
+
+        assertThat(options).containsExactly(
+            "-L/opt/dependency dir/lib",
+            "-L/opt/other dir/lib",
+            "-rpath",
+            "/opt/rpath dir",
+            "-ldependency",
+        )
+    }
+
+    @Test
     fun `returns no options when matching metadata is ambiguous`() {
         val first = pkgConfigFile("one/hello.pc", validHelloPkgConfig("-lm"))
         val second = pkgConfigFile("two/HELLO.pc", validHelloPkgConfig("-ldl"))
@@ -350,13 +493,13 @@ class PkgConfigLinkerOptionsResolverTest {
     }
 
     @Test
-    fun `returns no options for unsupported quoting`() {
+    fun `returns no options for unterminated quoting`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
             $$"""
             libdir=/install/lib
             Name: hello
-            Libs: -L${libdir} -lhello "-framework Cocoa"
+            Libs: -L${libdir} -lhello "-framework Cocoa
             """.trimIndent(),
         )
 

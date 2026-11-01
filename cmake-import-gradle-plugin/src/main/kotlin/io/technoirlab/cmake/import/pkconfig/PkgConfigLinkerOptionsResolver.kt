@@ -1,6 +1,5 @@
 package io.technoirlab.cmake.import.pkconfig
 
-import io.technoirlab.cmake.import.internal.normalizedPathString
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import kotlin.io.path.nameWithoutExtension
@@ -40,10 +39,7 @@ internal class PkgConfigLinkerOptionsResolver(
     }
 
     private fun Path.parse(): ParsedPkgConfig? = runCatching {
-        val metadata = pkgConfigParser.parse(
-            readText(StandardCharsets.UTF_8),
-            predefinedVariables = mapOf("pcfiledir" to parent.normalizedPathString()),
-        ) ?: return@runCatching null
+        val metadata = pkgConfigParser.parse(readText(StandardCharsets.UTF_8), parent) ?: return@runCatching null
         ParsedPkgConfig(this, metadata, metadata.expandedFieldTokens("Libs"))
     }.getOrNull()
 
