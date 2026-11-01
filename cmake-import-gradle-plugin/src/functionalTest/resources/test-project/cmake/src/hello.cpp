@@ -16,4 +16,9 @@ void hello(void) {
 #ifdef HELLO_DEBUG
     print_debug_build();
 #endif
+#ifdef HELLO_APPLE_FRAMEWORKS
+    if (!has_apple_frameworks()) {
+        print_message("Apple frameworks are unavailable\n");
+    }
+#endif
 }

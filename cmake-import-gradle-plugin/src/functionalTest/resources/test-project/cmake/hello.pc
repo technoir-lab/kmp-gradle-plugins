@@ -4,4 +4,4 @@ libdir=${prefix}/lib
 Name: hello
 Description: CMake import functional-test library
 Version: 1.0
-Libs: -L${libdir} -lhello -lm @HELLO_CXX_LIBRARIES@
+Libs: -L${libdir} -lhello @HELLO_FRAMEWORKS@ -lm @HELLO_CXX_LIBRARIES@

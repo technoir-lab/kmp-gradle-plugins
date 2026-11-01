@@ -7,6 +7,8 @@ extern "C" {
 
 void print_debug_build(void);
 
+int has_apple_frameworks(void);
+
 #ifdef __cplusplus
 }
 #endif

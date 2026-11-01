@@ -191,6 +191,7 @@ class CMakeImportPlugin : Plugin<Project> {
         }
         val taskName = "cmakeGenerateCInteropDefinition${target.name.capitalized()}"
         return tasks.register<CMakeGenerateCInteropDefinitionTask>(taskName) {
+            konanTarget.setDisallowChanges(target.konanTarget)
             cmakeComponent.set(extension.installComponent)
             packageName.set(extension.packageName)
             includedHeaders.set(extension.headers)

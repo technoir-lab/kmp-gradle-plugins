@@ -22,6 +22,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.kotlinx.serialization.json)
 
+    functionalTestImplementation(testFixtures(project(":cmake-import-gradle-plugin")))
     functionalTestImplementation(libs.assertj.core)
     functionalTestImplementation(libs.core.utils)
     functionalTestImplementation(libs.gradle.test.kit)
