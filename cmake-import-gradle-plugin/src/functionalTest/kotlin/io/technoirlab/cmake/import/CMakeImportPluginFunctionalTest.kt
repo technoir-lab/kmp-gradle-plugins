@@ -597,8 +597,7 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
-    fun `generated definition keeps direct linker options in order for non-Apple targets`() {
-        val target = nonHostTarget()
+    fun `generated Linux definition keeps direct linker options in order`() {
         val project = gradleRunner.root.project("kmp-application")
         val pkgConfigFile = gradleRunner.root.dir / "cmake/hello.pc"
         pkgConfigFile.replaceText(
@@ -606,12 +605,84 @@ class CMakeImportPluginFunctionalTest {
             "-Wl,--whole-archive -lextra -Wl,--no-whole-archive -pthread -lm",
         )
 
-        gradleRunner.build(":kmp-application:cmakeGenerateCInteropDefinition${target.name.capitalized()}")
+        gradleRunner.build(":kmp-application:cmakeGenerateCInteropDefinitionLinuxX64")
 
-        val definition = project.buildDir / "generated/cmake/${target.name}/cmake.def"
+        val definition = project.buildDir / "generated/cmake/linuxX64/cmake.def"
         assertThat(definition)
             .content()
             .contains("linkerOpts = --whole-archive -lextra --no-whole-archive -lpthread -lm")
+    }
+
+    @Test
+    fun `Android and MinGW executables link with compiler-driver options from pkg-config`() {
+        val project = gradleRunner.root.project("kmp-application")
+        project.appendBuildScript(
+            """
+            kotlin {
+                androidNativeArm64()
+            }
+            """.trimIndent(),
+        )
+        val pkgConfigFile = gradleRunner.root.dir / "cmake/hello.pc"
+        pkgConfigFile.replaceText("-lm", "-pthread -Wl,--gc-sections -lm")
+        val linkTasks = listOf(
+            ":kmp-application:linkDebugExecutableAndroidNativeArm64",
+            ":kmp-application:linkDebugExecutableMingwX64",
+        )
+
+        val result = gradleRunner.build(*linkTasks.toTypedArray())
+
+        linkTasks.forEach { linkTask ->
+            assertThat(result.task(linkTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        }
+        val androidDefinition = project.buildDir / "generated/cmake/androidNativeArm64/cmake.def"
+        assertThat(androidDefinition)
+            .content()
+            .contains("linkerOpts = -pthread -Wl,--gc-sections -lm -lc++_static -lc++abi\n")
+        val mingwDefinition = project.buildDir / "generated/cmake/mingwX64/cmake.def"
+        assertThat(mingwDefinition)
+            .content()
+            .contains("linkerOpts = -pthread -Wl,--gc-sections -lm\n")
+    }
+
+    @Test
+    fun `Linux executable links with compiler-driver options converted for the linker`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val pkgConfigFile = gradleRunner.root.dir / "cmake/hello.pc"
+        pkgConfigFile.replaceText(
+            "-lm",
+            "-pthread -rdynamic -static-libgcc -static-libstdc++ -Xlinker -rpath -Xlinker /opt/hello/lib -lm",
+        )
+        val linkTask = ":kmp-application:linkDebugExecutableLinuxX64"
+
+        val result = gradleRunner.build(linkTask)
+
+        assertThat(result.task(linkTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        val definition = project.buildDir / "generated/cmake/linuxX64/cmake.def"
+        assertThat(definition)
+            .content()
+            .contains("linkerOpts = -lpthread --export-dynamic -rpath /opt/hello/lib -lm -lstdc++\n")
+    }
+
+    @Test
+    fun `macOS executable links with compiler-driver options converted for the linker`() {
+        assumeTrue(host.isMac, "Apple targets require a macOS host")
+
+        val project = gradleRunner.root.project("kmp-application")
+        val pkgConfigFile = gradleRunner.root.dir / "cmake/hello.pc"
+        pkgConfigFile.replaceText(
+            "-lm",
+            "-pthread -rdynamic -static-libgcc -static-libstdc++ -Xlinker -rpath -Xlinker /opt/hello/lib -lm",
+        )
+        val linkTask = ":kmp-application:linkDebugExecutable${hostTargetSuffix()}"
+
+        val result = gradleRunner.build(linkTask)
+
+        assertThat(result.task(linkTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
+        assertThat(definition)
+            .content()
+            .contains("linkerOpts = -lpthread -lm -lc++ -export_dynamic -rpath /opt/hello/lib\n")
     }
 
     @Test

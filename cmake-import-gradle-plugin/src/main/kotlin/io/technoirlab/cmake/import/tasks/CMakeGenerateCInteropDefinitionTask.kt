@@ -144,14 +144,15 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
 
     private fun CMakeInstallOutput.definition(includedHeaders: Set<String>): CInteropDefinition {
         val archive = archives.single()
-        val linkerOptions = PkgConfigLinkerOptionsResolver().resolve(archive, pkgConfigFiles)
+        val target = konanTarget.get()
+        val linkerOptions = PkgConfigLinkerOptionsResolver().resolve(archive, pkgConfigFiles, target)
         return CInteropDefinition(
             packageName = packageName.get(),
             headers = filterHeaders(headers, includedHeaders),
             headerFilter = headers,
             includeDirectory = includeDirectory,
             archive = archive,
-            linkerOptions = LinkerOptionsArranger().arrange(linkerOptions, konanTarget.get()),
+            linkerOptions = LinkerOptionsArranger().arrange(linkerOptions, target),
         )
     }
 

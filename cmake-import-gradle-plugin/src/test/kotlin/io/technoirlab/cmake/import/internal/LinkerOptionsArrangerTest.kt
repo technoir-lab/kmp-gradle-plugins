@@ -101,7 +101,6 @@ class LinkerOptionsArrangerTest {
     private fun options(text: String): List<String> = text.split(' ')
 
     private companion object {
-        // JUnit requires static @MethodSource factories.
         @JvmStatic
         fun appleTargets() = listOf(
             KonanTarget.MACOS_ARM64,

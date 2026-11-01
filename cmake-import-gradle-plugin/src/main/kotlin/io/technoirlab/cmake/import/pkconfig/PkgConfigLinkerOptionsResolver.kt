@@ -1,5 +1,7 @@
 package io.technoirlab.cmake.import.pkconfig
 
+import org.jetbrains.kotlin.konan.target.Family
+import org.jetbrains.kotlin.konan.target.KonanTarget
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import kotlin.io.path.nameWithoutExtension
@@ -7,11 +9,22 @@ import kotlin.io.path.readText
 
 /**
  * Extracts transitive linker options from an installed pkg-config file.
+ *
+ * pkg-config files list options for the compiler driver. Kotlin/Native links Android and MinGW binaries through the Clang
+ * driver, which takes these options as they are, and binaries for other targets with the linker itself. For those other
+ * targets, the resolver converts these compiler-driver options for the linker:
+ * - `-Wl,<options>` and `-Xlinker <option>` become the linker options they wrap.
+ * - `-pthread` becomes `-lpthread`.
+ * - `-rdynamic` becomes `-export_dynamic` for Apple targets and `--export-dynamic` for Linux targets.
+ * - `-static-libgcc`, `-shared-libgcc`, and `-static-libstdc++` are dropped: they choose how the compiler driver links its
+ *   runtime libraries, which Kotlin/Native links itself.
+ *
+ * Other options reach the linker unchanged.
  */
 internal class PkgConfigLinkerOptionsResolver(
     private val pkgConfigParser: PkgConfigParser = PkgConfigParser(),
 ) {
-    fun resolve(archive: Path, pkgConfigFiles: List<Path>): List<String> {
+    fun resolve(archive: Path, pkgConfigFiles: List<Path>, target: KonanTarget): List<String> {
         val library = archive.library() ?: return emptyList()
         val parsedFiles = pkgConfigFiles.mapNotNull { it.parse() }
         val namedCandidates = parsedFiles.filter { it.path.matchesLibraryName(library.linkerName) }
@@ -30,12 +43,12 @@ internal class PkgConfigLinkerOptionsResolver(
         val options = candidate.publicOptions ?: return emptyList()
         val privateOptions = parsed.expandedFieldTokens("Libs.private") ?: return emptyList()
         val logicalLibraryDirectory = candidate.logicalLibraryDirectory(archive, library)
-        return options
-            .withoutImportedLibrary(library, logicalLibraryDirectory)
-            .toDirectLinkerOptions(candidate.path, "Libs") +
-            privateOptions
-                .withoutImportedLibrary(library, logicalLibraryDirectory)
-                .toDirectLinkerOptions(candidate.path, "Libs.private")
+        val publicLinkerOptions = options.withoutImportedLibrary(library, logicalLibraryDirectory)
+        val privateLinkerOptions = privateOptions.withoutImportedLibrary(library, logicalLibraryDirectory)
+        if (target.family in COMPILER_DRIVER_LINKED_FAMILIES) return publicLinkerOptions + privateLinkerOptions
+
+        return publicLinkerOptions.toDirectLinkerOptions(target, candidate.path, "Libs") +
+            privateLinkerOptions.toDirectLinkerOptions(target, candidate.path, "Libs.private")
     }
 
     private fun Path.parse(): ParsedPkgConfig? = runCatching {
@@ -84,16 +97,25 @@ internal class PkgConfigLinkerOptionsResolver(
         return result
     }
 
-    private fun List<String>.toDirectLinkerOptions(pkgConfigFile: Path, fieldName: String): List<String> {
+    private fun List<String>.toDirectLinkerOptions(target: KonanTarget, pkgConfigFile: Path, fieldName: String): List<String> {
         val result = mutableListOf<String>()
-        for (option in this) {
+        val options = iterator()
+        while (options.hasNext()) {
+            val option = options.next()
             when {
                 option == "-pthread" -> result += "-lpthread"
+                option == "-rdynamic" -> result += if (target.family.isAppleFamily) "-export_dynamic" else "--export-dynamic"
+                option in RUNTIME_LIBRARY_OPTIONS -> Unit
+                option == "-Xlinker" -> {
+                    require(options.hasNext()) {
+                        malformedOptionMessage(option, fieldName, pkgConfigFile, "linker argument is missing")
+                    }
+                    result += options.next()
+                }
                 option.startsWith(LINKER_OPTION_PREFIX) -> {
                     val linkerOptions = option.removePrefix(LINKER_OPTION_PREFIX).split(',')
                     require(linkerOptions.none { it.isEmpty() }) {
-                        "Malformed compiler-driver linker option '$option' in field '$fieldName' " +
-                            "of pkg-config file '$pkgConfigFile': linker arguments must not be empty"
+                        malformedOptionMessage(option, fieldName, pkgConfigFile, "linker arguments must not be empty")
                     }
                     result += linkerOptions
                 }
@@ -102,6 +124,9 @@ internal class PkgConfigLinkerOptionsResolver(
         }
         return result
     }
+
+    private fun malformedOptionMessage(option: String, fieldName: String, pkgConfigFile: Path, reason: String): String =
+        "Malformed compiler-driver linker option '$option' in field '$fieldName' of pkg-config file '$pkgConfigFile': $reason"
 
     private fun List<String>.importedLibraryDirectoryOptionLength(index: Int, directory: String?): Int? {
         if (directory == null) return null
@@ -142,5 +167,15 @@ internal class PkgConfigLinkerOptionsResolver(
 
     private companion object {
         const val LINKER_OPTION_PREFIX = "-Wl,"
+
+        /**
+         * Target families whose binaries Kotlin/Native links through the Clang driver rather than with the linker itself.
+         */
+        val COMPILER_DRIVER_LINKED_FAMILIES = setOf(Family.ANDROID, Family.MINGW)
+
+        /**
+         * Compiler-driver options that choose how the driver links its runtime libraries, which Kotlin/Native links itself.
+         */
+        val RUNTIME_LIBRARY_OPTIONS = setOf("-static-libgcc", "-shared-libgcc", "-static-libstdc++")
     }
 }
