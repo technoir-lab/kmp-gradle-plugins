@@ -8,6 +8,7 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.LocalState
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
@@ -30,6 +31,12 @@ abstract class CMakeBuildTask @Inject internal constructor(
 
     @get:Input
     abstract val cmakeBuildType: Property<String>
+
+    /**
+     * The `CMAKE_BUILD_PARALLEL_LEVEL` environment variable, which limits the parallel build jobs unless it is blank.
+     */
+    @get:Internal
+    internal abstract val cmakeBuildParallelLevel: Property<String>
 
     @get:InputFile
     @get:PathSensitive(PathSensitivity.NONE)
@@ -60,7 +67,7 @@ abstract class CMakeBuildTask @Inject internal constructor(
 
         stateFile.deleteIfExists()
         val cmakeRunner = CMakeRunner(execOperations)
-        cmakeRunner.build(configureDirectory, target, buildType)
+        cmakeRunner.build(configureDirectory, target, buildType, cmakeBuildParallelLevel.orNull)
         stateManager.write(stateFile, stateManager.create())
     }
 }

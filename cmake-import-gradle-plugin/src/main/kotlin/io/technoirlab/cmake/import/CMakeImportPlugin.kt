@@ -156,6 +156,7 @@ class CMakeImportPlugin : Plugin<Project> {
         konanTarget.setDisallowChanges(target.konanTarget)
         cmakeTarget.set(extension.targetName)
         cmakeBuildType.set(extension.buildType)
+        cmakeBuildParallelLevel.set(providers.environmentVariable("CMAKE_BUILD_PARALLEL_LEVEL"))
         generateStateFile.set(generateTask.flatMap { it.generateStateFile })
         configureDirectory.set(cmakeBuildDirectory)
         configureDirectoryPath.set(configureDirectory.map { it.asPath().normalizedPathString() })
