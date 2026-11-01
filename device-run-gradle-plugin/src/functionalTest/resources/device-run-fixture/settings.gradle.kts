@@ -1,16 +1,6 @@
 import com.android.build.api.dsl.CommonExtension
 import io.technoirlab.device.run.gradle.api.DeviceRunExtension
 
-pluginManagement {
-    plugins {
-        val androidGradlePluginVersion = "9.4.1"
-        id("com.android.application") version androidGradlePluginVersion
-        id("com.android.library") version androidGradlePluginVersion
-        id("com.android.settings") version androidGradlePluginVersion
-        id("com.android.test") version androidGradlePluginVersion
-    }
-}
-
 plugins {
     id("org.jetbrains.kotlin.jvm") apply false
     id("com.android.application") apply false
