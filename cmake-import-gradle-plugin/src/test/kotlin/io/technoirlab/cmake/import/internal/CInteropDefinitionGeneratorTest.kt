@@ -33,7 +33,7 @@ class CInteropDefinitionGeneratorTest {
     }
 
     @Test
-    fun `sorts and deduplicates exact header filters`() {
+    fun `keeps header order and sorts and deduplicates exact header filters`() {
         val includeDirectory = path("/install/include")
         val archive = path("/install/lib/libhello.a")
 
@@ -55,7 +55,7 @@ class CInteropDefinitionGeneratorTest {
         assertThat(definition).isEqualTo(
             """
             package = cmake.hello
-            headers = hello.h nested/world.h
+            headers = nested/world.h hello.h
             headerFilter = detail/internal.hpp hello.h nested/world.h
             compilerOpts = -I/install/include
             staticLibraries = libhello.a

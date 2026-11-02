@@ -9,7 +9,7 @@ public abstract interface class io/technoirlab/cmake/import/api/CMakeImportExten
 	public static final field NAME Ljava/lang/String;
 	public abstract fun getBuildType ()Lorg/gradle/api/provider/Property;
 	public abstract fun getDefines ()Lorg/gradle/api/provider/MapProperty;
-	public abstract fun getHeaders ()Lorg/gradle/api/provider/SetProperty;
+	public abstract fun getHeaders ()Lorg/gradle/api/provider/ListProperty;
 	public abstract fun getInstallComponent ()Lorg/gradle/api/provider/Property;
 	public abstract fun getPackageName ()Lorg/gradle/api/provider/Property;
 	public abstract fun getSourceDirectory ()Lorg/gradle/api/file/DirectoryProperty;
@@ -33,7 +33,7 @@ public abstract class io/technoirlab/cmake/import/tasks/CMakeBuildTask : io/tech
 public abstract class io/technoirlab/cmake/import/tasks/CMakeGenerateCInteropDefinitionTask : org/gradle/api/DefaultTask {
 	public abstract fun getCmakeComponent ()Lorg/gradle/api/provider/Property;
 	public abstract fun getDefinitionFile ()Lorg/gradle/api/file/RegularFileProperty;
-	public abstract fun getIncludedHeaders ()Lorg/gradle/api/provider/SetProperty;
+	public abstract fun getIncludedHeaders ()Lorg/gradle/api/provider/ListProperty;
 	public abstract fun getInstallDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 	public abstract fun getPackageName ()Lorg/gradle/api/provider/Property;
 }

@@ -9,7 +9,7 @@ internal class CInteropDefinitionGenerator {
         buildString {
             appendLine("package = ${packageName.definitionValue()}")
             if (headers.isNotEmpty()) {
-                val headerValues = headers.map { it.portablePathString() }.sorted()
+                val headerValues = headers.map { it.portablePathString() }
                 appendLine(
                     "headers = ${headerValues.joinToString(" ") { it.definitionValue() }}",
                 )

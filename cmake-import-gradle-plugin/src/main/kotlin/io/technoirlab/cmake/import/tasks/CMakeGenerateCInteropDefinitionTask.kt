@@ -22,7 +22,6 @@ import org.gradle.api.problems.Problems
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
@@ -68,8 +67,12 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
     @get:Input
     abstract val packageName: Property<String>
 
+    /**
+     * Headers that C-interop includes, in this order, as paths relative to the installed `include/` directory.
+     * When empty, the definition includes every installed public header, in path order.
+     */
     @get:Input
-    abstract val includedHeaders: SetProperty<String>
+    abstract val includedHeaders: ListProperty<String>
 
     @get:Internal
     abstract val installDirectory: DirectoryProperty
@@ -113,7 +116,7 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
         )
     }
 
-    private fun CMakeInstallOutput.validate(component: String?, includedHeaders: Set<String>) {
+    private fun CMakeInstallOutput.validate(component: String?, includedHeaders: List<String>) {
         val foundProblems = mutableListOf<Problem>()
         val componentDescription = component?.let { "component '$it'" } ?: "project"
         if (!includeDirectory.isDirectory()) {
@@ -126,7 +129,7 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
             }
         }
 
-        val missingHeaders = (includedHeaders - headers.map { it.portablePathString() }.toSet()).sorted()
+        val missingHeaders = (includedHeaders.toSet() - headers.map { it.portablePathString() }.toSet()).sorted()
         if (missingHeaders.isNotEmpty()) {
             foundProblems += problems.reporter.create(CONFIGURED_PUBLIC_HEADERS_NOT_INSTALLED) {
                 contextualLabel(
@@ -157,13 +160,13 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
         }
     }
 
-    private fun CMakeInstallOutput.definition(includedHeaders: Set<String>): CInteropDefinition {
+    private fun CMakeInstallOutput.definition(includedHeaders: List<String>): CInteropDefinition {
         val archive = archives.single()
         val target = konanTarget.get()
         val linkerOptions = PkgConfigLinkerOptionsResolver().resolve(archive, pkgConfigFiles, linkerKind(target))
         return CInteropDefinition(
             packageName = packageName.get(),
-            headers = filterHeaders(headers, includedHeaders),
+            headers = selectHeaders(headers, includedHeaders),
             headerFilter = headers,
             includeDirectory = includeDirectory,
             archive = archive,
@@ -181,10 +184,14 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
         return LinkerKind.of(linker(configurables))
     }
 
-    private fun filterHeaders(headers: List<Path>, includedHeaders: Set<String>): List<Path> = if (includedHeaders.isNotEmpty()) {
-        headers.filter { it.portablePathString() in includedHeaders }
-    } else {
-        headers
+    /**
+     * Returns the installed [headers] that [includedHeaders] lists, in its order without repeats, or every installed header when it
+     * lists none. Validation has already reported listed headers that were not installed.
+     */
+    private fun selectHeaders(headers: List<Path>, includedHeaders: List<String>): List<Path> {
+        if (includedHeaders.isEmpty()) return headers
+        val headersByPath = headers.associateBy { it.portablePathString() }
+        return includedHeaders.distinct().map(headersByPath::getValue)
     }
 
     private companion object {
