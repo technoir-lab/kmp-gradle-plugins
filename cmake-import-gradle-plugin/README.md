@@ -54,7 +54,8 @@ cmakeImport {
     // Passed to CMake as -DBUILD_SHARED_LIBS=OFF
     // defines.put("BUILD_SHARED_LIBS", "OFF")
 
-    // Optional include-directory-relative headers. The default exposes every installed header.
+    // Optional include-directory-relative headers, in the order C-interop includes them.
+    // The default exposes every installed header.
     // headers.add("hello.h")
 }
 ```

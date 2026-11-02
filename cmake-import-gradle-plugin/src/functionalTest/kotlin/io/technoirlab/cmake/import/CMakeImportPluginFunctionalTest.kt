@@ -4,6 +4,7 @@ import io.technoirlab.core.capitalized
 import io.technoirlab.gradle.test.kit.GradleRunnerExtension
 import io.technoirlab.gradle.test.kit.appendBuildScript
 import io.technoirlab.gradle.test.kit.buildDir
+import io.technoirlab.gradle.test.kit.buildScript
 import io.technoirlab.gradle.test.kit.replaceText
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testkit.runner.TaskOutcome
@@ -845,23 +846,29 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
-    fun `configured headers retain exact path form and are sorted`() {
+    fun `reordered configured headers regenerate the definition in the new order without repeats`() {
         val project = gradleRunner.root.project("kmp-application")
+        val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition${hostTargetSuffix()}"
         project.appendBuildScript(
             """
             cmakeImport {
-                headers.add("nested/world.h")
-                headers.add("hello.h")
+                headers.addAll("hello.h", "nested/world.h")
             }
             """.trimIndent(),
         )
+        gradleRunner.build(definitionTask)
+        project.buildScript.replaceText(
+            """headers.addAll("hello.h", "nested/world.h")""",
+            """headers.addAll("nested/world.h", "hello.h", "nested/world.h")""",
+        )
 
-        gradleRunner.build(":kmp-application:cmakeGenerateCInteropDefinition${hostTargetSuffix()}")
+        val result = gradleRunner.build(definitionTask)
 
         val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
+        assertThat(result.task(definitionTask)?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(definition)
             .content()
-            .contains("\nheaders = hello.h nested/world.h\n")
+            .contains("\nheaders = nested/world.h hello.h\n")
     }
 
     @Test

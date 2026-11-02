@@ -7,7 +7,7 @@ import java.nio.file.Path
  */
 internal data class CInteropDefinition(
     val packageName: String,
-    val headers: List<Path>, // relative to [includeDirectory]
+    val headers: List<Path>, // relative to [includeDirectory], in the order C-interop includes them
     val headerFilter: List<Path>, // relative to [includeDirectory]
     val includeDirectory: Path,
     val archive: Path,
