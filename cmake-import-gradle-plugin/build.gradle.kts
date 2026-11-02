@@ -30,6 +30,7 @@ dependencies {
     compileOnly(libs.kotlin.gradle.plugin)
 
     testImplementation(libs.assertj.core)
+    testImplementation(libs.gradle.test.kit)
     testImplementation(libs.kotlin.gradle.plugin)
 }
 

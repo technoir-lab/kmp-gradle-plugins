@@ -2,6 +2,7 @@ package io.technoirlab.device.run.gradle
 
 import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.dsl.Device
+import com.android.build.api.dsl.TestExtension
 import io.technoirlab.device.run.gradle.api.DeviceRunDevice
 import io.technoirlab.device.run.gradle.api.DeviceRunExtension
 import io.technoirlab.device.run.gradle.files.PreparePushedFilesTask
@@ -16,6 +17,7 @@ import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.OutputFile
 import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.named
@@ -141,6 +143,74 @@ class DeviceRunPluginTest {
         val firstService = first.preparePushedFilesTask().buildService.get()
 
         assertThat(firstService).isSameAs(secondService)
+    }
+
+    @Test
+    fun `cloud tests run after pushed file preparation and device setup`() {
+        project.configureAndroid()
+        plugin.apply(project)
+        project.registerSmallPhone()
+
+        project.evaluate()
+
+        project.assertCloudTestsRunAfterPreparation()
+    }
+
+    @Test
+    fun `cloud tests of a library module run after pushed file preparation and device setup`() {
+        val library = createRootProject("device-run-fixture") {
+            apply(plugin = "com.android.library")
+            configureAndroid()
+        }
+        plugin.apply(library)
+        library.registerSmallPhone()
+
+        library.evaluate()
+
+        library.assertCloudTestsRunAfterPreparation()
+    }
+
+    @Test
+    fun `cloud tests of a test module run after pushed file preparation and device setup`() {
+        val root = createRootProject("device-run-fixture")
+        val application = root.subProject("android-application") {
+            apply(plugin = "com.android.application")
+            configureAndroid()
+        }
+        val testModule = root.subProject("android-test") {
+            apply(plugin = "com.android.test")
+            configureAndroid()
+            configure<TestExtension> {
+                targetProjectPath = ":android-application"
+            }
+        }
+        plugin.apply(testModule)
+        testModule.registerSmallPhone()
+
+        application.evaluate()
+        testModule.evaluate()
+
+        testModule.assertCloudTestsRunAfterPreparation()
+    }
+
+    private fun Project.configureAndroid() {
+        extensions.configure<CommonExtension> {
+            namespace = "io.technoirlab.device.run.fixture"
+            compileSdk = 37
+            defaultConfig.minSdk = 30
+        }
+    }
+
+    private fun Project.registerSmallPhone() {
+        extensions.getByType<DeviceRunExtension>().devices.register("smallPhone") {
+            deviceId.set("smallphone-arm-35")
+        }
+    }
+
+    private fun Project.assertCloudTestsRunAfterPreparation() {
+        val testTask = tasks.named("smallPhoneDebugAndroidTest").get()
+        val setupTask = tasks.named("smallPhoneSetup").get()
+        assertThat(testTask.taskDependencies.getDependencies(testTask)).contains(preparePushedFilesTask(), setupTask)
     }
 
     @Suppress("UnstableApiUsage")

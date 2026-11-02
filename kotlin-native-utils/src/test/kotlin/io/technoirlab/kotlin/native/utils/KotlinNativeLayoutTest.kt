@@ -1,13 +1,13 @@
 package io.technoirlab.kotlin.native.utils
 
+import io.technoirlab.gradle.test.kit.createRootProject
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
-import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Test
 
 class KotlinNativeLayoutTest {
-    private val project = ProjectBuilder.builder().build()
+    private val project = createRootProject("kotlin-native-utils-fixture")
     private val providers = StubProviderFactory(project.providers)
     private val nativeLayout = KotlinNativeLayout(providers, project.layout)
 

@@ -18,6 +18,7 @@ dependencies {
     implementation(gradleApi())
 
     testImplementation(libs.assertj.core)
+    testImplementation(libs.gradle.test.kit)
 }
 
 tasks.test {

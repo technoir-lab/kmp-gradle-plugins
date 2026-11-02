@@ -49,54 +49,6 @@ class DeviceRunPluginFunctionalTest {
     }
 
     @Test
-    fun `dry run schedules generated inputs, pushed file preparation, and setup before cloud tests without credentials`() {
-        gradleRunner.root.project("android-application").appendBuildScript(
-            """
-            abstract class GenerateProbe : DefaultTask() {
-                @get:OutputFile
-                abstract val outputFile: RegularFileProperty
-            
-                @TaskAction
-                fun generate() {
-                    outputFile.get().asFile.writeText("probe")
-                }
-            }
-            
-            val generateProbe = tasks.register<GenerateProbe>("generateProbe") {
-                outputFile = layout.buildDirectory.file("probe/probe-input.txt")
-            }
-            
-            deviceRun {
-                files {
-                    push.register("probe") {
-                        localFile = generateProbe.flatMap { it.outputFile }
-                        destinationPath = "/sdcard/probe-input.txt"
-                    }
-                }
-            }
-            """.trimIndent(),
-        )
-
-        val result = gradleRunner.build(TEST_TASK) {
-            dryRun = true
-            environmentVariables.putAll(System.getenv())
-            environmentVariables["GOOGLE_APPLICATION_CREDENTIALS"] = gradleRunner.root.dir / "missing-credentials.json"
-        }
-
-        for (module in MODULES) {
-            assertThat(result.output).containsSubsequence(
-                ":$module:deviceRunPreparePushedFiles SKIPPED",
-                ":$module:smallPhoneDebugAndroidTest SKIPPED",
-            )
-            assertThat(result.output).containsSubsequence(":$module:smallPhoneSetup SKIPPED", ":$module:smallPhoneDebugAndroidTest SKIPPED")
-        }
-        assertThat(result.output).containsSubsequence(
-            ":android-application:generateProbe SKIPPED",
-            ":android-application:deviceRunPreparePushedFiles SKIPPED",
-        )
-    }
-
-    @Test
     fun `invalid options fail cloud tasks with a problem for each`() {
         gradleRunner.root.project("android-application").appendBuildScript(
             """
@@ -131,12 +83,14 @@ class DeviceRunPluginFunctionalTest {
     }
 
     @Test
-    fun `cloud tests with orchestrator execution reuse the configuration cache`() {
+    fun `cloud tests with orchestrator execution reuse the configuration cache without credentials`() {
         gradleRunner.root.project("android-application").appendBuildScript(ORCHESTRATOR_EXECUTION)
 
         val results = List(2) {
             gradleRunner.build(":android-application:$TEST_TASK") {
                 dryRun = true
+                environmentVariables.putAll(System.getenv())
+                environmentVariables["GOOGLE_APPLICATION_CREDENTIALS"] = gradleRunner.root.dir / "missing-credentials.json"
             }
         }
 
