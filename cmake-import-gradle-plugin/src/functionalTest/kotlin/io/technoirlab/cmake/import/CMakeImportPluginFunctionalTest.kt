@@ -849,6 +849,7 @@ class CMakeImportPluginFunctionalTest {
     fun `reordered configured headers regenerate the definition in the new order without repeats`() {
         val project = gradleRunner.root.project("kmp-application")
         val definitionTask = ":kmp-application:cmakeGenerateCInteropDefinition${hostTargetSuffix()}"
+        // Start in alphabetical order, so the reordered definition below can't come from sorting.
         project.appendBuildScript(
             """
             cmakeImport {
