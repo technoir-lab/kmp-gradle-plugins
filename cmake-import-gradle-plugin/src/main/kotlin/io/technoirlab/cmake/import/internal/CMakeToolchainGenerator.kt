@@ -41,14 +41,12 @@ internal class CMakeToolchainGenerator(
             cCompiler = CMakeCompilerDriverSettings(
                 command = Path(cCommand.first().withExecutableSuffix()).portablePathString(),
                 arguments = cCommand.drop(1),
-                linkArguments = configurables.compilerDriverRuntimeLinkArguments(),
+                linkArguments = configurables.compilerDriverRuntimeLinkArguments(cxx = false),
             ),
             cxxCompiler = CMakeCompilerDriverSettings(
                 command = Path(cxxCommand.first().withExecutableSuffix()).portablePathString(),
                 arguments = cxxCommand.drop(1),
-                linkArguments = configurables.compilerDriverRuntimeLinkArguments(
-                    CXX_COMPILER_DRIVER_RUNTIME_LINK_FLAGS,
-                ),
+                linkArguments = configurables.compilerDriverRuntimeLinkArguments(cxx = true),
             ),
             archiver = Path(clang.llvmAr().first().withExecutableSuffix()).portablePathString(),
             compilerDriverLinker = configurables.compilerDriverLinker(),
@@ -209,10 +207,10 @@ internal class CMakeToolchainGenerator(
      * CMake targets own their libraries and linker policy, but still need driver options that select runtimes
      * supplied by the target toolchain. Classify those options by meaning rather than by target family.
      */
-    private fun Configurables.compilerDriverRuntimeLinkArguments(languageSpecificFlags: Set<String> = emptySet()): List<String> =
-        linkerKonanFlags.filter {
-            it in COMMON_COMPILER_DRIVER_RUNTIME_LINK_FLAGS || it in languageSpecificFlags
-        }
+    private fun Configurables.compilerDriverRuntimeLinkArguments(cxx: Boolean): List<String> = linkerKonanFlags.filter { flag ->
+        val runtimeOption = CompilerDriverRuntimeOption.of(flag)
+        runtimeOption != null && (cxx || !runtimeOption.isCxxOnly)
+    }
 
     private fun AndroidConfigurables.androidExecutableLinker(api: String): CMakeExecutableLinker {
         val compilerDriverTriple = when (target) {
@@ -305,8 +303,6 @@ internal class CMakeToolchainGenerator(
         const val SAFE_COMMAND_LINE_CHARACTERS = "_@%+=:,./-"
         const val LINKER_PROPERTY = "linker"
         const val KOTLIN_NATIVE_LINKER_TYPE = "kotlin_native"
-        val COMMON_COMPILER_DRIVER_RUNTIME_LINK_FLAGS = setOf("-static-libgcc")
-        val CXX_COMPILER_DRIVER_RUNTIME_LINK_FLAGS = setOf("-static-libstdc++")
         val LINKER_TARGET_FAMILIES = setOf(Family.LINUX, Family.MINGW)
     }
 }

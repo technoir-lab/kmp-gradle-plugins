@@ -19,6 +19,7 @@ import io.technoirlab.kotlin.native.utils.KotlinNativeLayout
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
+import org.gradle.api.file.RegularFile
 import org.gradle.api.problems.ProblemGroup
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
@@ -60,7 +61,8 @@ class CMakeImportPlugin : Plugin<Project> {
         val cmakeBuildDirectory = layout.buildDirectory.dir("intermediates/cmake/${target.name}")
         val cmakeInstallDirectory = layout.buildDirectory.dir("outputs/cmake/${target.name}")
         val taskStateDirectory = layout.buildDirectory.dir("tmp/cmake/${target.name}")
-        val toolchainTask = registerGenerateToolchainTask(target, extension)
+        val kotlinNativeInputs = kotlinNativeInputs(target, extension)
+        val toolchainTask = registerGenerateToolchainTask(target, kotlinNativeInputs)
         val generateTask = registerGenerateTask(
             target,
             toolchainTask,
@@ -77,9 +79,10 @@ class CMakeImportPlugin : Plugin<Project> {
             cmakeInstallDirectory,
         )
         val generateCInteropDefinitionTask = registerGenerateCInteropDefinitionTask(
-            target,
-            installTask,
-            extension,
+            target = target,
+            installTask = installTask,
+            extension = extension,
+            kotlinNativeInputs = kotlinNativeInputs,
             cinteropName = CINTEROP_NAME,
         )
 
@@ -105,25 +108,31 @@ class CMakeImportPlugin : Plugin<Project> {
         }
     }
 
-    private fun Project.registerGenerateToolchainTask(
-        target: KotlinNativeTarget,
-        extension: CMakeImportExtension,
-    ): TaskProvider<CMakeGenerateToolchainTask> {
+    private fun Project.kotlinNativeInputs(target: KotlinNativeTarget, extension: CMakeImportExtension): KotlinNativeInputs {
         val nativeDistributionTask = tasks.named<KotlinNativeDownloadTask>(KOTLIN_NATIVE_DOWNLOAD_TASK_NAME)
-        val nativeLayout = KotlinNativeLayout(providers, layout)
         val nativePropertiesFile = nativeDistributionTask.flatMap { it.nativeDirectoryLocation }
             .map { marker ->
                 File(marker.asFile.readText().trim(), KonanProperties.KONAN_PROPERTIES_PATH)
             }
-        return tasks.register<CMakeGenerateToolchainTask>("cmakeGenerateToolchain${target.name.capitalized()}") {
+        return KotlinNativeInputs(
+            konanPropertiesFile = layout.file(nativePropertiesFile),
+            konanPropertyOverrides = getKonanPropertyOverrides(target, extension.buildType),
+            dependenciesDirectory = KotlinNativeLayout(providers, layout).dependenciesDirectory,
+        )
+    }
+
+    private fun Project.registerGenerateToolchainTask(
+        target: KotlinNativeTarget,
+        kotlinNativeInputs: KotlinNativeInputs,
+    ): TaskProvider<CMakeGenerateToolchainTask> =
+        tasks.register<CMakeGenerateToolchainTask>("cmakeGenerateToolchain${target.name.capitalized()}") {
             konanTarget.setDisallowChanges(target.konanTarget)
-            kotlinNativeDependenciesDirectory.set(nativeLayout.dependenciesDirectory)
+            kotlinNativeDependenciesDirectory.set(kotlinNativeInputs.dependenciesDirectory)
             kotlinNativeDependenciesDirectoryPath.set(kotlinNativeDependenciesDirectory.map { it.asFile.path })
-            konanPropertyOverrides.set(getKonanPropertyOverrides(target, extension.buildType))
-            konanPropertiesFile.set(layout.file(nativePropertiesFile))
+            konanPropertyOverrides.set(kotlinNativeInputs.konanPropertyOverrides)
+            konanPropertiesFile.set(kotlinNativeInputs.konanPropertiesFile)
             toolchainFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/toolchain.cmake"))
         }
-    }
 
     private fun Project.registerGenerateTask(
         target: KotlinNativeTarget,
@@ -183,6 +192,7 @@ class CMakeImportPlugin : Plugin<Project> {
         target: KotlinNativeTarget,
         installTask: TaskProvider<CMakeInstallTask>,
         extension: CMakeImportExtension,
+        kotlinNativeInputs: KotlinNativeInputs,
         cinteropName: String,
     ): TaskProvider<CMakeGenerateCInteropDefinitionTask> {
         val installDirectory = installTask.flatMap { it.installDirectory }
@@ -192,6 +202,9 @@ class CMakeImportPlugin : Plugin<Project> {
         val taskName = "cmakeGenerateCInteropDefinition${target.name.capitalized()}"
         return tasks.register<CMakeGenerateCInteropDefinitionTask>(taskName) {
             konanTarget.setDisallowChanges(target.konanTarget)
+            konanPropertiesFile.set(kotlinNativeInputs.konanPropertiesFile)
+            konanPropertyOverrides.set(kotlinNativeInputs.konanPropertyOverrides)
+            kotlinNativeDependenciesDirectoryPath.set(kotlinNativeInputs.dependenciesDirectory.map { it.asFile.path })
             cmakeComponent.set(extension.installComponent)
             packageName.set(extension.packageName)
             includedHeaders.set(extension.headers)
@@ -270,6 +283,15 @@ class CMakeImportPlugin : Plugin<Project> {
             else -> null
         }
     }
+
+    /**
+     * Kotlin/Native distribution inputs that the tasks of one target share.
+     */
+    private class KotlinNativeInputs(
+        val konanPropertiesFile: Provider<RegularFile>,
+        val konanPropertyOverrides: Provider<Map<String, String>>,
+        val dependenciesDirectory: Provider<Directory>,
+    )
 
     internal companion object {
         private const val DEFAULT_BUILD_TYPE = "Release"

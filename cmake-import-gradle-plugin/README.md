@@ -118,6 +118,18 @@ If the CMake project installs a pkg-config file for its archive, the generated d
 and `Libs.private` linker options, except those that link the archive itself. Files that declare `Requires` or
 `Requires.private` are ignored.
 
+Kotlin/Native links Android and MinGW binaries through the Clang driver, so their definitions list these options as
+written. It links binaries for other targets with the linker itself, so their definitions convert these compiler-driver
+options for the linker:
+
+- `-Wl,<options>` and `-Xlinker <option>` become the linker options they wrap.
+- `-pthread` becomes `-lpthread`.
+- `-rdynamic` becomes `-export_dynamic` on Apple targets and `--export-dynamic` on Linux targets.
+- `-static-libgcc`, `-shared-libgcc`, and `-static-libstdc++` are dropped, because Kotlin/Native links the C and C++
+  runtime libraries itself.
+
+Other options reach the linker unchanged.
+
 On Apple targets, Kotlin/Native embeds these options in static frameworks and Swift export static libraries as autolink
 entries, so apps that link those binaries need no extra linker flags for them. Only `-framework <name>` and `-l<name>`
 options can be autolinked, so the definition lists them before all other options and adds a strong copy of each weak

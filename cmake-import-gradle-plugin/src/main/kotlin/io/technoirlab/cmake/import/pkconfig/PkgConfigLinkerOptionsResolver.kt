@@ -1,5 +1,6 @@
 package io.technoirlab.cmake.import.pkconfig
 
+import io.technoirlab.cmake.import.internal.LinkerKind
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import kotlin.io.path.nameWithoutExtension
@@ -7,11 +8,15 @@ import kotlin.io.path.readText
 
 /**
  * Extracts transitive linker options from an installed pkg-config file.
+ *
+ * pkg-config files list options for the compiler driver. The resolver drops the options that link the archive itself, including
+ * those that `-Wl,` and `-Xlinker` options wrap, and writes the rest in the form that the target's linker takes, as
+ * [CompilerDriverOptions.toOptions] describes.
  */
 internal class PkgConfigLinkerOptionsResolver(
     private val pkgConfigParser: PkgConfigParser = PkgConfigParser(),
 ) {
-    fun resolve(archive: Path, pkgConfigFiles: List<Path>): List<String> {
+    fun resolve(archive: Path, pkgConfigFiles: List<Path>, linkerKind: LinkerKind): List<String> {
         val library = archive.library() ?: return emptyList()
         val parsedFiles = pkgConfigFiles.mapNotNull { it.parse() }
         val namedCandidates = parsedFiles.filter { it.path.matchesLibraryName(library.linkerName) }
@@ -28,19 +33,15 @@ internal class PkgConfigLinkerOptionsResolver(
         if (parsed.field("Requires.private").orEmpty().isNotBlank()) return emptyList()
 
         val options = candidate.publicOptions ?: return emptyList()
-        val privateOptions = parsed.expandedFieldTokens("Libs.private") ?: return emptyList()
-        val logicalLibraryDirectory = candidate.logicalLibraryDirectory(archive, library)
-        return options
-            .withoutImportedLibrary(library, logicalLibraryDirectory)
-            .toDirectLinkerOptions(candidate.path, "Libs") +
-            privateOptions
-                .withoutImportedLibrary(library, logicalLibraryDirectory)
-                .toDirectLinkerOptions(candidate.path, "Libs.private")
+        val privateOptions = parsed.expandedFieldTokens("Libs.private")?.let(CompilerDriverOptions::parse) ?: return emptyList()
+        val importedLibrary = importedLibraryReferences(library, candidate.logicalLibraryDirectory(archive, library))
+        return options.without(importedLibrary).toOptions(linkerKind, candidate.fieldDescription("Libs")) +
+            privateOptions.without(importedLibrary).toOptions(linkerKind, candidate.fieldDescription("Libs.private"))
     }
 
     private fun Path.parse(): ParsedPkgConfig? = runCatching {
         val metadata = pkgConfigParser.parse(readText(StandardCharsets.UTF_8), parent) ?: return@runCatching null
-        ParsedPkgConfig(this, metadata, metadata.expandedFieldTokens("Libs"))
+        ParsedPkgConfig(this, metadata, metadata.expandedFieldTokens("Libs")?.let(CompilerDriverOptions::parse))
     }.getOrNull()
 
     private fun Path.library(): Library? {
@@ -59,8 +60,8 @@ internal class PkgConfigLinkerOptionsResolver(
 
     private fun String.removeLibraryPrefix(): String = if (startsWith("lib", ignoreCase = true)) drop(3) else this
 
-    private fun List<String>.containsImportedLibrary(library: Library): Boolean =
-        indices.any { importedLibraryOptionLength(it, library) != null }
+    private fun CompilerDriverOptions.containsImportedLibrary(library: Library): Boolean =
+        contains { arguments, index -> arguments.importedLibraryOptionLength(index, library) }
 
     private fun ParsedPkgConfig.logicalLibraryDirectory(archive: Path, library: Library): String? {
         if (publicOptions?.containsImportedLibrary(library) != true) return null
@@ -68,40 +69,16 @@ internal class PkgConfigLinkerOptionsResolver(
         return metadata.expandedVariable("libdir")
     }
 
-    private fun List<String>.withoutImportedLibrary(library: Library, logicalLibraryDirectory: String?): List<String> {
-        val result = mutableListOf<String>()
-        var index = 0
-        while (index < size) {
-            val importedLibraryOptionLength = importedLibraryOptionLength(index, library)
-            val importedLibraryDirectoryOptionLength =
-                importedLibraryDirectoryOptionLength(index, logicalLibraryDirectory)
-            when {
-                importedLibraryOptionLength != null -> index += importedLibraryOptionLength
-                importedLibraryDirectoryOptionLength != null -> index += importedLibraryDirectoryOptionLength
-                else -> result += this[index++]
-            }
-        }
-        return result
-    }
+    private fun ParsedPkgConfig.fieldDescription(fieldName: String): String = "field '$fieldName' of pkg-config file '$path'"
 
-    private fun List<String>.toDirectLinkerOptions(pkgConfigFile: Path, fieldName: String): List<String> {
-        val result = mutableListOf<String>()
-        for (option in this) {
-            when {
-                option == "-pthread" -> result += "-lpthread"
-                option.startsWith(LINKER_OPTION_PREFIX) -> {
-                    val linkerOptions = option.removePrefix(LINKER_OPTION_PREFIX).split(',')
-                    require(linkerOptions.none { it.isEmpty() }) {
-                        "Malformed compiler-driver linker option '$option' in field '$fieldName' " +
-                            "of pkg-config file '$pkgConfigFile': linker arguments must not be empty"
-                    }
-                    result += linkerOptions
-                }
-                else -> result += option
-            }
+    /**
+     * Matches the options that link [library] or add its [logicalLibraryDirectory] to the library search paths.
+     */
+    private fun importedLibraryReferences(library: Library, logicalLibraryDirectory: String?): (List<String>, Int) -> Int? =
+        { arguments, index ->
+            arguments.importedLibraryOptionLength(index, library)
+                ?: arguments.importedLibraryDirectoryOptionLength(index, logicalLibraryDirectory)
         }
-        return result
-    }
 
     private fun List<String>.importedLibraryDirectoryOptionLength(index: Int, directory: String?): Int? {
         if (directory == null) return null
@@ -137,10 +114,6 @@ internal class PkgConfigLinkerOptionsResolver(
     private data class ParsedPkgConfig(
         val path: Path,
         val metadata: PkgConfigMetadata,
-        val publicOptions: List<String>?,
+        val publicOptions: CompilerDriverOptions?,
     )
-
-    private companion object {
-        const val LINKER_OPTION_PREFIX = "-Wl,"
-    }
 }

@@ -6,6 +6,8 @@ import io.technoirlab.cmake.import.internal.CInteropDefinitionGenerator
 import io.technoirlab.cmake.import.internal.CMakeInstallOutput
 import io.technoirlab.cmake.import.internal.CMakeInstallScanner.Companion.INCLUDE_DIRECTORY_NAME
 import io.technoirlab.cmake.import.internal.CMakeInstallScanner.Companion.LIBRARY_DIRECTORY_NAME
+import io.technoirlab.cmake.import.internal.KonanConfigurablesLoader
+import io.technoirlab.cmake.import.internal.LinkerKind
 import io.technoirlab.cmake.import.internal.LinkerOptionsArranger
 import io.technoirlab.cmake.import.internal.portablePathString
 import io.technoirlab.cmake.import.pkconfig.PkgConfigLinkerOptionsResolver
@@ -18,9 +20,11 @@ import org.gradle.api.problems.Problem
 import org.gradle.api.problems.ProblemId
 import org.gradle.api.problems.Problems
 import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
@@ -29,6 +33,7 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 import org.jetbrains.kotlin.konan.target.KonanTarget
+import org.jetbrains.kotlin.konan.target.linker
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import javax.inject.Inject
@@ -46,6 +51,16 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
 ) : DefaultTask() {
     @get:Input
     internal abstract val konanTarget: Property<KonanTarget>
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    internal abstract val konanPropertiesFile: RegularFileProperty
+
+    @get:Input
+    internal abstract val konanPropertyOverrides: MapProperty<String, String>
+
+    @get:Input
+    internal abstract val kotlinNativeDependenciesDirectoryPath: Property<String>
 
     @get:Internal
     abstract val cmakeComponent: Property<String>
@@ -144,15 +159,26 @@ abstract class CMakeGenerateCInteropDefinitionTask @Inject internal constructor(
 
     private fun CMakeInstallOutput.definition(includedHeaders: Set<String>): CInteropDefinition {
         val archive = archives.single()
-        val linkerOptions = PkgConfigLinkerOptionsResolver().resolve(archive, pkgConfigFiles)
+        val target = konanTarget.get()
+        val linkerOptions = PkgConfigLinkerOptionsResolver().resolve(archive, pkgConfigFiles, linkerKind(target))
         return CInteropDefinition(
             packageName = packageName.get(),
             headers = filterHeaders(headers, includedHeaders),
             headerFilter = headers,
             includeDirectory = includeDirectory,
             archive = archive,
-            linkerOptions = LinkerOptionsArranger().arrange(linkerOptions, konanTarget.get()),
+            linkerOptions = LinkerOptionsArranger().arrange(linkerOptions, target),
         )
+    }
+
+    private fun linkerKind(target: KonanTarget): LinkerKind {
+        val configurables = KonanConfigurablesLoader().load(
+            target = target,
+            konanPropertiesFile = konanPropertiesFile.get().asPath(),
+            konanPropertyOverrides = konanPropertyOverrides.get(),
+            dependenciesDirectory = kotlinNativeDependenciesDirectoryPath.get(),
+        )
+        return LinkerKind.of(linker(configurables))
     }
 
     private fun filterHeaders(headers: List<Path>, includedHeaders: Set<String>): List<Path> = if (includedHeaders.isNotEmpty()) {
