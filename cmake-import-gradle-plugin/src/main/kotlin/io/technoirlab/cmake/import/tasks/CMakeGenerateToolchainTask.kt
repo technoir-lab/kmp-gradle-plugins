@@ -1,8 +1,8 @@
 package io.technoirlab.cmake.import.tasks
 
 import io.technoirlab.cmake.import.internal.CMakeToolchainGenerator
+import io.technoirlab.cmake.import.internal.KonanConfigurablesLoader
 import io.technoirlab.gradle.asPath
-import io.technoirlab.kotlin.native.utils.KonanProperties
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
@@ -17,7 +17,6 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 import org.jetbrains.kotlin.konan.target.KonanTarget
-import org.jetbrains.kotlin.konan.target.loadConfigurables
 import java.nio.charset.StandardCharsets
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.writeText
@@ -49,14 +48,11 @@ internal abstract class CMakeGenerateToolchainTask : DefaultTask() {
 
     @TaskAction
     fun generate() {
-        val propertiesFile = konanPropertiesFile.get().asPath()
-        val konanTarget = konanTarget.get()
-        val konanProperties = KonanProperties.load(propertiesFile, konanPropertyOverrides.get())
-        val configurables = loadConfigurables(
-            konanTarget,
-            konanProperties,
-            kotlinNativeDependenciesDirectoryPath.get(),
-            progressCallback = { _, _, _ -> },
+        val configurables = KonanConfigurablesLoader().load(
+            target = konanTarget.get(),
+            konanPropertiesFile = konanPropertiesFile.get().asPath(),
+            konanPropertyOverrides = konanPropertyOverrides.get(),
+            dependenciesDirectory = kotlinNativeDependenciesDirectoryPath.get(),
         )
         val toolchainGenerator = CMakeToolchainGenerator()
         val output = toolchainFile.get().asPath().createParentDirectories()

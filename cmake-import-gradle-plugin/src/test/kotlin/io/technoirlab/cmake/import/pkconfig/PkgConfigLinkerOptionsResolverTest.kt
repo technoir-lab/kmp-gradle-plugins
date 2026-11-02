@@ -1,13 +1,11 @@
 package io.technoirlab.cmake.import.pkconfig
 
+import io.technoirlab.cmake.import.internal.LinkerKind
 import io.technoirlab.cmake.import.internal.normalizedPathString
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
-import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
@@ -34,7 +32,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.MACOS_ARM64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.APPLE)
 
         assertThat(options).containsExactly(
             "-framework",
@@ -58,7 +56,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly("-lpthread", "-lm", "-ldl")
     }
@@ -74,7 +72,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly(
             "--as-needed",
@@ -98,7 +96,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly("--export-dynamic", "--as-needed", "-lm", "--no-as-needed", "-ldl")
     }
@@ -114,14 +112,13 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.MACOS_ARM64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.APPLE)
 
         assertThat(options).containsExactly("-export_dynamic", "-framework", "CoreMedia", "-lm", "-lc++")
     }
 
-    @ParameterizedTest
-    @MethodSource("compilerDriverTargets")
-    fun `keeps compiler-driver options for targets that link through the compiler driver`(target: KonanTarget) {
+    @Test
+    fun `keeps compiler-driver options for targets that link through the compiler driver`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
             """
@@ -131,7 +128,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), target)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.COMPILER_DRIVER)
 
         assertThat(options).containsExactly(
             "-Wl,--as-needed,-z,defs",
@@ -149,6 +146,54 @@ class PkgConfigLinkerOptionsResolverTest {
     }
 
     @Test
+    fun `removes a forwarded reference to the archive with its -Xlinker option`() {
+        val pkgConfigFile = pkgConfigFile(
+            "hello.pc",
+            """
+            Name: hello
+            Libs: -lm -Xlinker -lhello
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
+
+        assertThat(options).containsExactly("-lm")
+    }
+
+    @Test
+    fun `removes wrapped references to the archive and its directory for the linker`() {
+        val pkgConfigFile = pkgConfigFile("hello.pc", wrappedArchiveReferencesPkgConfig())
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
+
+        assertThat(options).containsExactly("-lm", "--as-needed", "--no-as-needed", "-ldl")
+    }
+
+    @Test
+    fun `removes wrapped references to the archive and its directory for the compiler driver`() {
+        val pkgConfigFile = pkgConfigFile("hello.pc", wrappedArchiveReferencesPkgConfig())
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.COMPILER_DRIVER)
+
+        assertThat(options).containsExactly("-lm", "-Wl,--as-needed,--no-as-needed", "-ldl")
+    }
+
+    @Test
+    fun `selects pkg-config file that links the archive through a wrapped option`() {
+        val pkgConfigFile = pkgConfigFile(
+            "other.pc",
+            """
+            Name: other
+            Libs: -Wl,-lhello -lm
+            """.trimIndent(),
+        )
+
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
+
+        assertThat(options).containsExactly("-lm")
+    }
+
+    @Test
     fun `fails explicitly for malformed wrapped public linker option`() {
         val pkgConfigFile = pkgConfigFile(
             "hello.pc",
@@ -159,7 +204,7 @@ class PkgConfigLinkerOptionsResolverTest {
         )
 
         assertThatThrownBy {
-            resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+            resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
         }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage(
@@ -180,7 +225,7 @@ class PkgConfigLinkerOptionsResolverTest {
         )
 
         assertThatThrownBy {
-            resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+            resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
         }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage(
@@ -201,7 +246,7 @@ class PkgConfigLinkerOptionsResolverTest {
         )
 
         assertThatThrownBy {
-            resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+            resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
         }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage(
@@ -222,7 +267,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.MINGW_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.COMPILER_DRIVER)
 
         assertThat(options).containsExactly(
             "-mwindows",
@@ -247,7 +292,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly(
             "-L/installation/dependencies",
@@ -274,7 +319,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("hello.LIB"), listOf(unrelated, matching), KonanTarget.MINGW_X64)
+        val options = resolver.resolve(archive("hello.LIB"), listOf(unrelated, matching), LinkerKind.COMPILER_DRIVER)
 
         assertThat(options).containsExactly("-lm")
     }
@@ -290,7 +335,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("hello.LiB"), listOf(matching), KonanTarget.MINGW_X64)
+        val options = resolver.resolve(archive("hello.LiB"), listOf(matching), LinkerKind.COMPILER_DRIVER)
 
         assertThat(options).isEmpty()
     }
@@ -305,7 +350,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly("-lm")
     }
@@ -320,7 +365,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libfood.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libfood.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly("-lm")
     }
@@ -336,7 +381,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly("-lm", "-ldl")
     }
@@ -351,7 +396,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly("-lm")
     }
@@ -369,7 +414,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly("-L", "/opt/dependency/lib", "-lbar")
     }
@@ -385,7 +430,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libfoo.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly("-L/install/lib", "-lm")
     }
@@ -403,7 +448,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("foo.lib"), listOf(pkgConfigFile), KonanTarget.MINGW_X64)
+        val options = resolver.resolve(archive("foo.lib"), listOf(pkgConfigFile), LinkerKind.COMPILER_DRIVER)
 
         assertThat(options).containsExactly("-lm")
     }
@@ -422,7 +467,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.MINGW_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.COMPILER_DRIVER)
 
         assertThat(options).containsExactly(
             "-L${installDirectory.normalizedPathString()}/dependencies",
@@ -444,7 +489,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.MINGW_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.COMPILER_DRIVER)
 
         assertThat(options).containsExactly(
             "-L${installDirectory.normalizedPathString()}/dependencies/lib",
@@ -465,7 +510,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly("-L/configured/hello2/lib", "-lsibling")
     }
@@ -482,7 +527,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly("-L/configured/hello/lib", "-lm")
     }
@@ -500,7 +545,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly(
             "-L${(installDirectory / "lib/pkgconfig").normalizedPathString()}/../../dependencies/lib",
@@ -521,7 +566,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly(
             "-L${installDirectory.normalizedPathString()}/dependencies/lib",
@@ -539,7 +584,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).containsExactly(
             "-L/opt/dependency dir/lib",
@@ -555,7 +600,7 @@ class PkgConfigLinkerOptionsResolverTest {
         val first = pkgConfigFile("one/hello.pc", validHelloPkgConfig("-lm"))
         val second = pkgConfigFile("two/HELLO.pc", validHelloPkgConfig("-ldl"))
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(first, second), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(first, second), LinkerKind.GNU)
 
         assertThat(options).isEmpty()
     }
@@ -572,7 +617,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).isEmpty()
     }
@@ -588,7 +633,7 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.MACOS_ARM64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.APPLE)
 
         assertThat(options).isEmpty()
     }
@@ -604,10 +649,19 @@ class PkgConfigLinkerOptionsResolverTest {
             """.trimIndent(),
         )
 
-        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), KonanTarget.LINUX_X64)
+        val options = resolver.resolve(archive("libhello.a"), listOf(pkgConfigFile), LinkerKind.GNU)
 
         assertThat(options).isEmpty()
     }
+
+    @Suppress("ktlint:standard:function-signature")
+    private fun wrappedArchiveReferencesPkgConfig(): String =
+        $$"""
+        libdir=/install/lib
+        Name: hello
+        Libs: -L${libdir} -lm -Xlinker -lhello -Wl,-lhello -Wl,--as-needed,-lhello,--no-as-needed
+        Libs.private: -Xlinker -L${libdir} -Wl,-L,${libdir} -ldl
+        """.trimIndent()
 
     @Suppress("ktlint:standard:function-signature")
     private fun validHelloPkgConfig(transitiveOption: String): String =
@@ -627,10 +681,5 @@ class PkgConfigLinkerOptionsResolverTest {
         file.parent.createDirectories()
         file.writeText(content)
         return file
-    }
-
-    private companion object {
-        @JvmStatic
-        fun compilerDriverTargets() = listOf(KonanTarget.ANDROID_ARM64, KonanTarget.MINGW_X64)
     }
 }

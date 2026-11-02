@@ -686,6 +686,21 @@ class CMakeImportPluginFunctionalTest {
     }
 
     @Test
+    fun `application links when pkg-config options wrap references to the archive`() {
+        val project = gradleRunner.root.project("kmp-application")
+        val pkgConfigFile = gradleRunner.root.dir / "cmake/hello.pc"
+        pkgConfigFile.replaceText("-lhello", "-Wl,-lhello -Xlinker -lhello")
+
+        val result = gradleRunner.build(":kmp-application:runReleaseExecutable${hostTargetSuffix()}")
+
+        assertThat(result.output).contains("Hello, world!")
+        val definition = project.buildDir / "generated/cmake/${hostTargetName()}/cmake.def"
+        assertThat(definition)
+            .content()
+            .doesNotContain("-lhello")
+    }
+
+    @Test
     fun `generated Apple definition lists autolinkable direct linker options first`() {
         assumeTrue(host.isMac, "Apple targets require a macOS host")
 
