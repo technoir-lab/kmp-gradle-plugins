@@ -3,6 +3,7 @@ package io.technoirlab.device.run.gradle
 import org.gradle.api.Action
 import org.gradle.api.problems.AdditionalData
 import org.gradle.api.problems.Problem
+import org.gradle.api.problems.ProblemGroups
 import org.gradle.api.problems.ProblemId
 import org.gradle.api.problems.ProblemReporter
 import org.gradle.api.problems.ProblemSpec
@@ -23,6 +24,8 @@ internal class RecordingProblems : Problems {
     val thrown = mutableListOf<RecordedProblem>()
 
     override fun getReporter(): ProblemReporter = reporter
+
+    override fun getGroups(): ProblemGroups = throw UnsupportedOperationException("RecordingProblems has no problem groups")
 
     private inner class Reporter : ProblemReporter {
         override fun create(problemId: ProblemId, action: Action<in ProblemSpec>): Problem =
