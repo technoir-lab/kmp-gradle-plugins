@@ -1,8 +1,8 @@
 # Template overrides
 
-The baseline is OpenAPI Generator **7.26.0**, as pinned in `gradle/libs.versions.toml`.
+The baseline is OpenAPI Generator **7.27.0**, as pinned in `gradle/libs.versions.toml`.
 Resolve each template from `kotlin-client/libraries/multiplatform/` first, then `kotlin-client/` in the generator JAR.
-The matching [upstream source tree](https://github.com/OpenAPITools/openapi-generator/tree/v7.26.0/modules/openapi-generator/src/main/resources/kotlin-client)
+The matching [upstream source tree](https://github.com/OpenAPITools/openapi-generator/tree/v7.27.0/modules/openapi-generator/src/main/resources/kotlin-client)
 provides the versioned reference.
 `licenseInfo.mustache` supplies the generated-source notice. `api.mustache` supplies the Ktor API implementation.
 The remaining templates were added as unmodified upstream copies; their history records each change.
@@ -26,7 +26,7 @@ the checked-in client, then review its diff.
 | `data_class_*_var`, `interface_*_var`, `data_class` | Put property and enum entry annotations on separate lines, and omit blank lines between class annotations. | Kotlin conventions place annotations on their own lines, directly above the declaration; generated sources follow them even without KtLint. Upstream emits a blank line after `@Serializable` and another before the discriminator annotations of sealed classes. |
 | `data_class_*_var`, `interface_*_var` | Document properties with multiline KDoc instead of block comments. | Block comments are not documentation, so IDEs and Dokka ignored property descriptions, including those of abstract properties that class KDoc does not cover. |
 | `api` | Generate API classes that receive Ktor's `HttpClient` as their only client dependency. | Decouple API bindings from the generated REST client infrastructure so consumers control HTTP client configuration and lifecycle. |
-| `data_class`, `enum_class`, `api` | Omit the description paragraph from class, enum, and parameter KDoc when there is no description. | Upstream emits a blank description line and trailing spaces. |
+| `api` | Omit the description from parameter KDoc when there is no description. | Upstream emits a trailing space after the parameter name. |
 | `data_class` | Open the constructor directly after the class name, end each parameter with a comma, and omit blank lines at the constructor's boundaries. | Kotlin conventions use trailing commas in multiline declarations and no space before the parameter list. |
 | `enum_class`, `data_class`, `api` | Separate enum entries from each other and from the declarations that follow with one blank line, and precede each nested enum class and the enum serializer object with one. Omit blank lines at the start of enum bodies, and indent `decode` by four spaces. | Each template laid out enums differently: top-level enums opened with a blank line, nested enums had no blank lines between entries, `toString()`, or consecutive enum classes, and API enums contained whitespace-only lines. |
 | `data_class` | Emit the multiplatform superclass constructor call only when the map or array branch has not emitted one. | Upstream emits two calls, such as `Pet()()`, for subclasses whose schemas set `additionalProperties`, which fails to parse. |
