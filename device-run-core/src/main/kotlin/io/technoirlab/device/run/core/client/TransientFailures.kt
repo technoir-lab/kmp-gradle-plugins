@@ -5,14 +5,19 @@ import com.google.auth.Retryable
 import java.io.IOException
 
 /**
- * Returns whether a later attempt of the failed request can succeed: the request failed without a response, with a
- * [transient status][isTransientStatusCode], or while obtaining an access token for a reason that the credentials report as
+ * Returns whether a later attempt of the failed request can succeed.
+ *
+ * A failure with a response can succeed later only with a [transient status][isTransientStatusCode], including a token response that
+ * the credentials wrap in their own failure. A failure without a response can succeed later unless the credentials report it as not
  * retryable.
  */
-internal fun IOException.isTransient(): Boolean = when (this) {
-    is HttpResponseException -> isTransientStatusCode(statusCode)
-    is Retryable -> isRetryable
-    else -> true
+internal fun IOException.isTransient(): Boolean {
+    val response = generateSequence<Throwable>(this) { it.cause }.filterIsInstance<HttpResponseException>().firstOrNull()
+    return when {
+        response != null -> isTransientStatusCode(response.statusCode)
+        this is Retryable -> isRetryable
+        else -> true
+    }
 }
 
 /**
