@@ -11,6 +11,7 @@ import org.gradle.kotlin.dsl.named
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+import org.openapitools.generator.gradle.plugin.tasks.ValidateTask
 import java.net.URI
 
 class OpenApiKotlinGeneratorPluginTest {
@@ -55,5 +56,42 @@ class OpenApiKotlinGeneratorPluginTest {
         assertThat(generateTask.remoteInputSpec.get()).isEqualTo("https://example.com/openapi.yaml")
         assertThat(generateTask.packageName.get()).isEqualTo("com.example.client")
         assertThat(generateTask.configOptions.get()).containsEntry("sourceFolder", "src/commonMain/kotlin")
+    }
+
+    @Test
+    fun `generates and validates from a local specification file`() {
+        val specFile = project.layout.projectDirectory.file("openapi.yaml").asFile
+        project.apply(plugin = "org.jetbrains.kotlin.jvm")
+        project.apply(plugin = "io.technoirlab.openapi-kotlin-generator")
+        project.configure<OpenApiKotlinGeneratorExtension> {
+            specUrl.set(specFile.toURI())
+            packageName.set("com.example.client")
+        }
+
+        project.evaluate()
+
+        val generateTask = project.tasks.named<GenerateTask>("openApiGenerate").get()
+        val validateTask = project.tasks.named<ValidateTask>("openApiValidate").get()
+        assertThat(generateTask.inputSpec.get().asFile).isEqualTo(specFile)
+        assertThat(generateTask.remoteInputSpec.isPresent).isFalse()
+        assertThat(validateTask.inputSpec.get().asFile).isEqualTo(specFile)
+        assertThat(validateTask.remoteInputSpec.isPresent).isFalse()
+    }
+
+    @Test
+    fun `tasks use a specification URL configured after they are created`() {
+        project.apply(plugin = "org.jetbrains.kotlin.jvm")
+        project.apply(plugin = "io.technoirlab.openapi-kotlin-generator")
+        val generateTask = project.tasks.named<GenerateTask>("openApiGenerate").get()
+        val validateTask = project.tasks.named<ValidateTask>("openApiValidate").get()
+
+        project.configure<OpenApiKotlinGeneratorExtension> {
+            specUrl.set(URI("https://example.com/openapi.yaml"))
+        }
+
+        assertThat(generateTask.remoteInputSpec.get()).isEqualTo("https://example.com/openapi.yaml")
+        assertThat(generateTask.inputSpec.isPresent).isFalse()
+        assertThat(validateTask.remoteInputSpec.get()).isEqualTo("https://example.com/openapi.yaml")
+        assertThat(validateTask.inputSpec.isPresent).isFalse()
     }
 }

@@ -7,8 +7,10 @@ import io.technoirlab.openapi.kotlin.generator.api.OpenApiKotlinGeneratorExtensi
 import io.technoirlab.openapi.kotlin.generator.internal.OpenApiGeneratorConfig
 import io.technoirlab.openapi.kotlin.generator.internal.OpenApiKotlinGeneratorExtensionImpl
 import io.technoirlab.openapi.kotlin.generator.tasks.OpenApiCleanTask
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.create
@@ -18,6 +20,7 @@ import org.gradle.kotlin.dsl.register
 import org.openapitools.generator.gradle.plugin.OpenApiGeneratorPlugin
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 import org.openapitools.generator.gradle.plugin.tasks.ValidateTask
+import java.net.URI
 import kotlin.io.path.toPath
 
 /**
@@ -46,6 +49,8 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
 
     private fun Project.configureOpenApiGenerator(config: OpenApiKotlinGeneratorExtension, sourceSetName: Provider<String>) {
         val sourcePath = sourceSetName.map { "src/$it/kotlin" }
+        val specFile = layout.file(config.specUrl.map { url -> if (url.scheme == FILE_SCHEME) url.toPath().toFile() else null })
+        val remoteSpecUrl = config.specUrl.map { url -> if (url.scheme == FILE_SCHEME) null else url.toString() }
         val cleanTask = tasks.register<OpenApiCleanTask>("openApiClean") {
             group = OpenApiGeneratorPlugin.pluginGroup
             description = "Removes previously generated Open API Kotlin sources."
@@ -56,16 +61,13 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
 
         val generateTask = tasks.named<GenerateTask>("openApiGenerate") {
             dependsOn(cleanTask)
+            requireSpecUrl(config.specUrl)
             workerIsolation.setDisallowChanges("process")
             quiet.setDisallowChanges(true)
             generatorName.setDisallowChanges(OpenApiGeneratorConfig.GENERATOR)
             library.setDisallowChanges(OpenApiGeneratorConfig.LIBRARY)
-            val specUrl = config.specUrl.get()
-            if (specUrl.scheme == "file") {
-                inputSpec.setDisallowChanges(specUrl.toPath().toFile())
-            } else {
-                remoteInputSpec.setDisallowChanges(config.specUrl.map { it.toString() })
-            }
+            inputSpec.setDisallowChanges(specFile)
+            remoteInputSpec.setDisallowChanges(remoteSpecUrl)
             packageName.setDisallowChanges(config.packageName)
             apiPackage.setDisallowChanges(config.packageName.map { "$it.api" })
             modelPackage.setDisallowChanges(config.packageName.map { "$it.model" })
@@ -95,12 +97,9 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
         }
 
         tasks.named<ValidateTask>("openApiValidate") {
-            val specUrl = config.specUrl.get()
-            if (specUrl.scheme == "file") {
-                inputSpec.setDisallowChanges(specUrl.toPath().toFile())
-            } else {
-                remoteInputSpec.setDisallowChanges(config.specUrl.map { it.toString() })
-            }
+            requireSpecUrl(config.specUrl)
+            inputSpec.setDisallowChanges(specFile)
+            remoteInputSpec.setDisallowChanges(remoteSpecUrl)
         }
 
         tasks.named("openApiGenerators") { disable() }
@@ -118,5 +117,17 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
         tasks.named { it == "runKtlintFormatOver${sourceSetName.get().capitalized()}SourceSet" }.configureEach {
             mustRunAfter(generateTask)
         }
+    }
+
+    private fun Task.requireSpecUrl(specUrl: Provider<URI>) {
+        doFirst {
+            if (!specUrl.isPresent) {
+                throw GradleException("Set ${OpenApiKotlinGeneratorExtension.NAME}.specUrl to the URI of the OpenAPI specification.")
+            }
+        }
+    }
+
+    private companion object {
+        private const val FILE_SCHEME = "file"
     }
 }
