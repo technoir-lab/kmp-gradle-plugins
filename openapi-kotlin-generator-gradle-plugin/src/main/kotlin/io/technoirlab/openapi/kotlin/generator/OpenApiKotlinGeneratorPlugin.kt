@@ -46,6 +46,8 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
 
     private fun Project.configureOpenApiGenerator(config: OpenApiKotlinGeneratorExtension, sourceSetName: Provider<String>) {
         val sourcePath = sourceSetName.map { "src/$it/kotlin" }
+        val specFile = layout.file(config.specUrl.map { url -> if (url.scheme == FILE_SCHEME) url.toPath().toFile() else null })
+        val remoteSpecUrl = config.specUrl.map { url -> if (url.scheme == FILE_SCHEME) null else url.toString() }
         val cleanTask = tasks.register<OpenApiCleanTask>("openApiClean") {
             group = OpenApiGeneratorPlugin.pluginGroup
             description = "Removes previously generated Open API Kotlin sources."
@@ -60,12 +62,8 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
             quiet.setDisallowChanges(true)
             generatorName.setDisallowChanges(OpenApiGeneratorConfig.GENERATOR)
             library.setDisallowChanges(OpenApiGeneratorConfig.LIBRARY)
-            val specUrl = config.specUrl.get()
-            if (specUrl.scheme == "file") {
-                inputSpec.setDisallowChanges(specUrl.toPath().toFile())
-            } else {
-                remoteInputSpec.setDisallowChanges(config.specUrl.map { it.toString() })
-            }
+            inputSpec.setDisallowChanges(specFile)
+            remoteInputSpec.setDisallowChanges(remoteSpecUrl)
             packageName.setDisallowChanges(config.packageName)
             apiPackage.setDisallowChanges(config.packageName.map { "$it.api" })
             modelPackage.setDisallowChanges(config.packageName.map { "$it.model" })
@@ -95,12 +93,8 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
         }
 
         tasks.named<ValidateTask>("openApiValidate") {
-            val specUrl = config.specUrl.get()
-            if (specUrl.scheme == "file") {
-                inputSpec.setDisallowChanges(specUrl.toPath().toFile())
-            } else {
-                remoteInputSpec.setDisallowChanges(config.specUrl.map { it.toString() })
-            }
+            inputSpec.setDisallowChanges(specFile)
+            remoteInputSpec.setDisallowChanges(remoteSpecUrl)
         }
 
         tasks.named("openApiGenerators") { disable() }
@@ -118,5 +112,9 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
         tasks.named { it == "runKtlintFormatOver${sourceSetName.get().capitalized()}SourceSet" }.configureEach {
             mustRunAfter(generateTask)
         }
+    }
+
+    private companion object {
+        private const val FILE_SCHEME = "file"
     }
 }
