@@ -7,10 +7,8 @@ import io.technoirlab.openapi.kotlin.generator.api.OpenApiKotlinGeneratorExtensi
 import io.technoirlab.openapi.kotlin.generator.internal.OpenApiGeneratorConfig
 import io.technoirlab.openapi.kotlin.generator.internal.OpenApiKotlinGeneratorExtensionImpl
 import io.technoirlab.openapi.kotlin.generator.tasks.OpenApiCleanTask
-import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.create
@@ -20,7 +18,6 @@ import org.gradle.kotlin.dsl.register
 import org.openapitools.generator.gradle.plugin.OpenApiGeneratorPlugin
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 import org.openapitools.generator.gradle.plugin.tasks.ValidateTask
-import java.net.URI
 import kotlin.io.path.toPath
 
 /**
@@ -61,7 +58,6 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
 
         val generateTask = tasks.named<GenerateTask>("openApiGenerate") {
             dependsOn(cleanTask)
-            requireSpecUrl(config.specUrl)
             workerIsolation.setDisallowChanges("process")
             quiet.setDisallowChanges(true)
             generatorName.setDisallowChanges(OpenApiGeneratorConfig.GENERATOR)
@@ -97,7 +93,6 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
         }
 
         tasks.named<ValidateTask>("openApiValidate") {
-            requireSpecUrl(config.specUrl)
             inputSpec.setDisallowChanges(specFile)
             remoteInputSpec.setDisallowChanges(remoteSpecUrl)
         }
@@ -116,14 +111,6 @@ class OpenApiKotlinGeneratorPlugin : Plugin<Project> {
         }
         tasks.named { it == "runKtlintFormatOver${sourceSetName.get().capitalized()}SourceSet" }.configureEach {
             mustRunAfter(generateTask)
-        }
-    }
-
-    private fun Task.requireSpecUrl(specUrl: Provider<URI>) {
-        doFirst {
-            if (!specUrl.isPresent) {
-                throw GradleException("Set ${OpenApiKotlinGeneratorExtension.NAME}.specUrl to the URI of the OpenAPI specification.")
-            }
         }
     }
 

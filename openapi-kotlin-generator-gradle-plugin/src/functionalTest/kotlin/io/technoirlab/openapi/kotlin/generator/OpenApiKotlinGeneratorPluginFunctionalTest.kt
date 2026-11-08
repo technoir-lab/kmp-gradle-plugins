@@ -59,17 +59,6 @@ class OpenApiKotlinGeneratorPluginFunctionalTest {
     }
 
     @Test
-    fun `generation without a specification URL names the missing property`() {
-        val project = gradleRunner.root.project("jvm-client")
-        project.buildScript.replaceText("    specUrl = uri(\"../petstore.yaml\")\n", "")
-
-        val result = gradleRunner.build(":jvm-client:openApiGenerate", expectFailure = true)
-
-        assertThat(result.task(":jvm-client:openApiGenerate")?.outcome).isEqualTo(TaskOutcome.FAILED)
-        assertThat(result.output).contains("Set openApiKotlinGenerator.specUrl to the URI of the OpenAPI specification.")
-    }
-
-    @Test
     fun `regeneration removes stale generated files and preserves handwritten files`() {
         val project = gradleRunner.root.project("jvm-client")
         val handwrittenFile = project.kotlinFile("com.example.petstore.model.PetExtensions")
