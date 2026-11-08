@@ -61,6 +61,7 @@ class CMakeImportPlugin : Plugin<Project> {
         val cmakeBuildDirectory = layout.buildDirectory.dir("intermediates/cmake/${target.name}")
         val cmakeInstallDirectory = layout.buildDirectory.dir("outputs/cmake/${target.name}")
         val taskStateDirectory = layout.buildDirectory.dir("tmp/cmake/${target.name}")
+        val cinteropDefinitionFile = layout.buildDirectory.file("generated/cmake/${target.name}/$CINTEROP_NAME.def")
         val kotlinNativeInputs = kotlinNativeInputs(target, extension)
         val toolchainTask = registerGenerateToolchainTask(target, kotlinNativeInputs)
         val generateTask = registerGenerateTask(
@@ -83,13 +84,12 @@ class CMakeImportPlugin : Plugin<Project> {
             installTask = installTask,
             extension = extension,
             kotlinNativeInputs = kotlinNativeInputs,
-            cinteropName = CINTEROP_NAME,
+            definitionFile = cinteropDefinitionFile,
         )
 
         target.compilations.named(KotlinCompilation.MAIN_COMPILATION_NAME) {
             cinterops.register(CINTEROP_NAME) {
                 tasks.named<CInteropProcess>(interopProcessingTaskName).configure {
-                    settings.packageName = extension.packageName.get()
                     if (enabled) {
                         definitionFile.set(generateCInteropDefinitionTask.flatMap { it.definitionFile })
                         inputs.files(
@@ -102,6 +102,10 @@ class CMakeImportPlugin : Plugin<Project> {
                         )
                             .withPropertyName("cmakeInstalledInteropFiles")
                             .withPathSensitivity(PathSensitivity.RELATIVE)
+                    } else {
+                        // KGP rejects C-interop tasks without a definition file or package name, even disabled ones. The location
+                        // carries no dependency on the generation task, so CMake doesn't run for a target that this host can't build.
+                        definitionFile.set(cinteropDefinitionFile)
                     }
                 }
             }
@@ -193,7 +197,7 @@ class CMakeImportPlugin : Plugin<Project> {
         installTask: TaskProvider<CMakeInstallTask>,
         extension: CMakeImportExtension,
         kotlinNativeInputs: KotlinNativeInputs,
-        cinteropName: String,
+        definitionFile: Provider<RegularFile>,
     ): TaskProvider<CMakeGenerateCInteropDefinitionTask> {
         val installDirectory = installTask.flatMap { it.installDirectory }
         val installOutput = installDirectory.map { directory ->
@@ -229,7 +233,7 @@ class CMakeImportPlugin : Plugin<Project> {
                     }
                 },
             )
-            definitionFile.set(layout.buildDirectory.file("generated/cmake/${target.name}/$cinteropName.def"))
+            this.definitionFile.set(definitionFile)
         }
     }
 
