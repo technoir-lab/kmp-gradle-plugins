@@ -14,6 +14,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 
 class CMakeImportPluginTest {
     private lateinit var project: Project
@@ -43,8 +45,17 @@ class CMakeImportPluginTest {
             .containsExactly(entry("targetSysRoot.linux_x64", "/sysroots/custom"))
     }
 
-    @Test
-    fun `toolchain generation uses Konan property overrides of the binary matching the CMake build type`() {
+    @ParameterizedTest
+    @CsvSource(
+        "Debug, /sysroots/debug",
+        "debug, /sysroots/debug",
+        "Release, /sysroots/release",
+        "RelWithDebInfo, /sysroots/release",
+    )
+    fun `toolchain generation uses Konan property overrides of the binary matching the CMake build type`(
+        cmakeBuildType: String,
+        expectedSysroot: String,
+    ) {
         project.configure<KotlinMultiplatformExtension> {
             linuxX64 {
                 binaries.executable()
@@ -55,13 +66,13 @@ class CMakeImportPluginTest {
             }
         }
         project.configure<CMakeImportExtension> {
-            buildType.set("Debug")
+            buildType.set(cmakeBuildType)
         }
 
         project.evaluate()
 
         assertThat(project.linuxToolchainTask().konanPropertyOverrides.get())
-            .containsExactly(entry("targetSysRoot.linux_x64", "/sysroots/debug"))
+            .containsExactly(entry("targetSysRoot.linux_x64", expectedSysroot))
     }
 
     private fun Project.applyPlugins() {

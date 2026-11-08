@@ -258,13 +258,12 @@ class CMakeImportPlugin : Plugin<Project> {
                 }
             }
         }
-        val binaryKonanPropertyOverrides = cmakeBuildType.flatMap { buildType ->
-            if (buildType.equals(NativeBuildType.DEBUG.name, ignoreCase = true)) {
-                debugBinaryKonanPropertyOverrides
-            } else {
-                releaseBinaryKonanPropertyOverrides
+        // Unlike flatMap, zip doesn't resolve a provider-supplied build type when Gradle stores the configuration cache entry.
+        val binaryKonanPropertyOverrides = debugBinaryKonanPropertyOverrides
+            .zip(releaseBinaryKonanPropertyOverrides, ::Pair)
+            .zip(cmakeBuildType) { (debugOverrides, releaseOverrides), buildType ->
+                if (buildType.equals(NativeBuildType.DEBUG.name, ignoreCase = true)) debugOverrides else releaseOverrides
             }
-        }
         return compilationKonanPropertyOverrides.zip(
             binaryKonanPropertyOverrides,
         ) { compilationOverrides, binaryOverrides ->
