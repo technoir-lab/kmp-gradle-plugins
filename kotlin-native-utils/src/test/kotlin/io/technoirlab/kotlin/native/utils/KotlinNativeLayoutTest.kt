@@ -1,9 +1,8 @@
 package io.technoirlab.kotlin.native.utils
 
+import io.technoirlab.gradle.test.kit.StubProviderFactory
 import io.technoirlab.gradle.test.kit.createRootProject
 import org.assertj.core.api.Assertions.assertThat
-import org.gradle.api.provider.Provider
-import org.gradle.api.provider.ProviderFactory
 import org.junit.jupiter.api.Test
 
 class KotlinNativeLayoutTest {
@@ -72,19 +71,5 @@ class KotlinNativeLayoutTest {
         val directory = dependenciesDirectory.get()
 
         assertThat(directory).isEqualTo(project.layout.projectDirectory.dir("second-data/dependencies"))
-    }
-
-    private class StubProviderFactory(
-        private val delegate: ProviderFactory,
-    ) : ProviderFactory by delegate {
-        val gradleProperties = mutableMapOf<String, String>()
-        val environmentVariables = mutableMapOf<String, String>()
-        val systemProperties = mutableMapOf<String, String>()
-
-        override fun gradleProperty(propertyName: String): Provider<String> = delegate.provider { gradleProperties[propertyName] }
-
-        override fun environmentVariable(variableName: String): Provider<String> = delegate.provider { environmentVariables[variableName] }
-
-        override fun systemProperty(propertyName: String): Provider<String> = delegate.provider { systemProperties[propertyName] }
     }
 }

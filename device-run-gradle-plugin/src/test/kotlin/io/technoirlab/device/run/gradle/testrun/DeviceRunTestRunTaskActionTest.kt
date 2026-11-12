@@ -13,8 +13,7 @@ import io.technoirlab.device.run.core.testrun.appTestRunRequest
 import io.technoirlab.device.run.core.testrun.job.ArtifactCapture
 import io.technoirlab.device.run.core.testrun.job.TestReductionMode
 import io.technoirlab.device.run.core.testrun.results.CapturedScenario
-import io.technoirlab.device.run.gradle.RecordedProblem
-import io.technoirlab.device.run.gradle.RecordingProblems
+import io.technoirlab.device.run.gradle.DeviceRunProblems
 import io.technoirlab.device.run.gradle.api.CapturePolicy
 import io.technoirlab.device.run.gradle.api.DeviceOrientation
 import io.technoirlab.device.run.gradle.api.RetryScope
@@ -22,6 +21,8 @@ import io.technoirlab.device.run.gradle.api.ShardingStrategy
 import io.technoirlab.device.run.gradle.registerStubDeviceRunService
 import io.technoirlab.gradle.asPath
 import io.technoirlab.gradle.test.kit.createRootProject
+import io.technoirlab.gradle.test.kit.problems.RecordedProblem
+import io.technoirlab.gradle.test.kit.problems.RecordingProblems
 import io.technoirlab.gradle.test.kit.subProject
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -227,7 +228,7 @@ class DeviceRunTestRunTaskActionTest {
 
         assertThat(problems.reported).containsExactly(
             RecordedProblem(
-                id = "device-run:unsupported-test-option",
+                id = DeviceRunProblems.UNSUPPORTED_TEST_OPTION,
                 contextualLabel = "Animations are not disabled for the tests of :app",
             ),
         )
@@ -243,7 +244,7 @@ class DeviceRunTestRunTaskActionTest {
             .hasMessage("Device mediumPhone cannot run the tests of :app.")
         assertThat(problems.thrown).containsExactly(
             RecordedProblem(
-                id = "device-run:api-level-below-min-sdk",
+                id = DeviceRunProblems.API_LEVEL_BELOW_MIN_SDK,
                 contextualLabel = "Catalog device mediumphone-arm-35 runs API level 35, but the tests require at least API level 36",
                 solutions = listOf(
                     "Set deviceRun.devices[\"mediumPhone\"].deviceId to a catalog device that runs API level 36 or higher.",
@@ -263,7 +264,7 @@ class DeviceRunTestRunTaskActionTest {
             .hasMessage("Device mediumPhone cannot install the tested application of :app.")
         assertThat(problems.thrown).containsExactly(
             RecordedProblem(
-                id = "device-run:no-tested-apk",
+                id = DeviceRunProblems.NO_TESTED_APK,
                 contextualLabel = "AGP selected no APK of the tested application for catalog device mediumphone-arm-35, " +
                     "which supports ABIs arm64-v8a at API level 35",
                 solutions = listOf(
