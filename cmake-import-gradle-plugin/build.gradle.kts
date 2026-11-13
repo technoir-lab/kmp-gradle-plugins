@@ -3,7 +3,6 @@ plugins {
 }
 
 gradlePluginConfig {
-    minGradleVersion = "9.1"
     packageName = "io.technoirlab.cmake.import"
 
     buildFeatures {

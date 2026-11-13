@@ -3,6 +3,8 @@ package io.technoirlab.device.run.gradle
 import io.technoirlab.device.run.core.DeviceRunner
 import io.technoirlab.device.run.core.InvalidOptionsException
 import io.technoirlab.device.run.core.device.DeviceOptions
+import io.technoirlab.gradle.test.kit.problems.RecordedProblem
+import io.technoirlab.gradle.test.kit.problems.RecordingProblems
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.api.InvalidUserDataException
@@ -27,11 +29,11 @@ class InvalidOptionsTest {
             .hasCauseInstanceOf(InvalidOptionsException::class.java)
         assertThat(problems.thrown).containsExactly(
             RecordedProblem(
-                id = "device-run:invalid-option",
+                id = DeviceRunProblems.INVALID_OPTION,
                 contextualLabel = "deviceRun.devices[\"pixel\"].deviceId is required; set it to the ID of a Device Run catalog device.",
             ),
             RecordedProblem(
-                id = "device-run:invalid-option",
+                id = DeviceRunProblems.INVALID_OPTION,
                 contextualLabel = "deviceRun.devices[\"pixel\"].locale 'en_US' must have the form language-region, such as en-US.",
             ),
         )

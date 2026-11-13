@@ -4,10 +4,10 @@ import io.technoirlab.device.run.core.RecordingDeviceRunner
 import io.technoirlab.device.run.core.device.CatalogDeviceSnapshotSerializer
 import io.technoirlab.device.run.core.device.DeviceOptions
 import io.technoirlab.device.run.core.device.MEDIUM_PHONE_SNAPSHOT
-import io.technoirlab.device.run.gradle.RecordingProblems
 import io.technoirlab.device.run.gradle.registerStubDeviceRunService
 import io.technoirlab.gradle.asPath
 import io.technoirlab.gradle.test.kit.createRootProject
+import io.technoirlab.gradle.test.kit.problems.RecordingProblems
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.file.Directory
 import org.gradle.kotlin.dsl.newInstance

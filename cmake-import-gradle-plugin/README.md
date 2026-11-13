@@ -8,7 +8,7 @@ into the build lifecycle, and generates Kotlin C-interop definition from CMake i
 
 ## Prerequisites
 
-- Gradle 9.1 or newer
+- Gradle 9.6 or newer
 - Kotlin Multiplatform Gradle plugin 2.4.10 or newer
 - CMake 3.29 or newer, available on `PATH`
 - Apple targets: macOS with an Xcode installation that contains the corresponding platform SDK
