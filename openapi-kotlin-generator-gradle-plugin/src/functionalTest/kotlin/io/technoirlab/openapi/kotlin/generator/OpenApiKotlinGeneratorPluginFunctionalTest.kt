@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.RegisterExtension
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.Path
+import kotlin.io.path.appendText
 import kotlin.io.path.copyToRecursively
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.div
@@ -78,6 +79,32 @@ class OpenApiKotlinGeneratorPluginFunctionalTest {
             .containsPattern("""\R\Rclass AnimalApi\(""")
         assertThat(project.kotlinFile("com.example.petstore.model.Animal")).exists()
         assertThat(handwrittenFile).hasContent(handwrittenContent)
+    }
+
+    @Test
+    fun `applies additional type annotations to union wrappers and enums`() {
+        val project = gradleRunner.root.project("jvm-client")
+        project.buildScript.appendText(
+            """
+            
+            tasks.named<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("openApiGenerate") {
+                additionalProperties.put("additionalModelTypeAnnotations", "@com.example.ModelMarker")
+                additionalProperties.put("additionalEnumTypeAnnotations", "@com.example.EnumMarker")
+            }
+            """.trimIndent(),
+        )
+
+        gradleRunner.build(":jvm-client:openApiGenerate")
+
+        assertThat(project.kotlinFile("com.example.petstore.model.PetReference"))
+            .content(Charsets.UTF_8)
+            .containsPattern("""\R@com\.example\.ModelMarker\Rdata class PetReference\(""")
+        assertThat(project.kotlinFile("com.example.petstore.model.Status"))
+            .content(Charsets.UTF_8)
+            .containsPattern("""\R@com\.example\.EnumMarker\Renum class Status\(""")
+        assertThat(project.kotlinFile("com.example.petstore.model.PetSearch"))
+            .content(Charsets.UTF_8)
+            .containsPattern("""\R {4}@com\.example\.EnumMarker\R {4}enum class For\(""")
     }
 
     @Test

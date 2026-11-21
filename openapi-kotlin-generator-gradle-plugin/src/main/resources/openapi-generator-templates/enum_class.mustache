@@ -62,6 +62,9 @@ import kotlinx.serialization.encoding.Encoder
 @JsonClass(generateAdapter = false)
 {{/moshi}}
 {{/multiplatform}}
+{{#additionalEnumTypeAnnotations}}
+{{{.}}}
+{{/additionalEnumTypeAnnotations}}
 {{#nonPublicApi}}internal {{/nonPublicApi}}{{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}enum class {{classname}}({{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}{{#jackson}}@get:JsonValue {{/jackson}}val value: {{{dataType}}}) {
 {{#allowableValues}}
 {{#enumVars}}

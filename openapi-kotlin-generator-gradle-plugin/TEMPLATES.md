@@ -30,6 +30,8 @@ the checked-in client, then review its diff.
 | `data_class` | Open the constructor directly after the class name, end each parameter with a comma, and omit blank lines at the constructor's boundaries. | Kotlin conventions use trailing commas in multiline declarations and no space before the parameter list. |
 | `enum_class`, `data_class`, `api` | Separate enum entries from each other and from the declarations that follow with one blank line, and precede each nested enum class and the enum serializer object with one. Omit blank lines at the start of enum bodies, and indent `decode` by four spaces. | Each template laid out enums differently: top-level enums opened with a blank line, nested enums had no blank lines between entries, `toString()`, or consecutive enum classes, and API enums contained whitespace-only lines. |
 | `data_class` | Emit the multiplatform superclass constructor call only when the map or array branch has not emitted one. | Upstream emits two calls, such as `Pet()()`, for subclasses whose schemas set `additionalProperties`, which fails to parse. |
+| `union_class` | Apply `additionalModelTypeAnnotations` to union wrappers. | Upstream's multiplatform union templates omit the partial that `data_class` and the base union templates include, so the option skipped union wrappers. |
+| `enum_class`, `data_class` | Apply `additionalEnumTypeAnnotations` to enum classes, including those nested in data classes. | Upstream declares the option for the Kotlin client, but none of its templates renders it, so it had no effect. |
 
 ## Union matching
 

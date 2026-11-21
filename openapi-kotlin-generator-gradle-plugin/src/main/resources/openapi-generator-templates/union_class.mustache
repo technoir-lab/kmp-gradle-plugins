@@ -27,6 +27,7 @@ import kotlinx.serialization.serializer
 @Deprecated(message = "This schema is deprecated.")
 {{/isDeprecated}}
 @Serializable(with = {{classname}}.{{classname}}Serializer::class)
+{{>additionalModelTypeAnnotations}}
 {{#nonPublicApi}}internal {{/nonPublicApi}}{{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}data class {{classname}}({{>modelMutable}} actualInstance: Any? = null) {
     object {{classname}}Serializer : KSerializer<{{classname}}> {
         override val descriptor = buildClassSerialDescriptor("{{classname}}")
