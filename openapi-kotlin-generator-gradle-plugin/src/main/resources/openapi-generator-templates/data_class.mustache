@@ -163,6 +163,9 @@ import {{packageName}}.infrastructure.ITransformForStorage
     {{#multiplatform}}
     @Serializable
     {{/multiplatform}}
+    {{#additionalEnumTypeAnnotations}}
+    {{{.}}}
+    {{/additionalEnumTypeAnnotations}}
     {{#nonPublicApi}}internal {{/nonPublicApi}}{{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}enum class {{{nameInPascalCase}}}({{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}{{#jackson}}@get:JsonValue {{/jackson}}val value: {{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}{{#mostInnerItems}}{{dataType}}{{/mostInnerItems}}{{/isContainer}}) {
     {{#allowableValues}}
     {{#enumVars}}
