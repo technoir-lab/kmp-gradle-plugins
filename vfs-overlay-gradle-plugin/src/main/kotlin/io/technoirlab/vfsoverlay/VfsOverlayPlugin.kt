@@ -6,10 +6,12 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import org.jetbrains.kotlin.konan.target.Family
 
 class VfsOverlayPlugin : Plugin<Project> {
@@ -33,8 +35,10 @@ class VfsOverlayPlugin : Plugin<Project> {
                     if (konanTarget.family == Family.MINGW) return@configureEach
                     compilations.configureEach {
                         cinterops.configureEach {
-                            tasks.named(interopProcessingTaskName) { dependsOn(generateVfsOverlayFileTask) }
-                            compilerOpts("-ivfsoverlay", overlayFile.get().asFile.absolutePath)
+                            tasks.named<CInteropProcess>(interopProcessingTaskName) {
+                                dependsOn(generateVfsOverlayFileTask)
+                                settings.compilerOpts("-ivfsoverlay", overlayFile.get().asFile.absolutePath)
+                            }
                         }
                     }
                 }
