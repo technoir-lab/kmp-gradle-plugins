@@ -9,7 +9,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testkit.runner.TaskOutcome.SUCCESS
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
+import kotlin.io.path.createDirectories
 import kotlin.io.path.div
+import kotlin.io.path.writeText
 
 class VfsOverlayPluginFunctionalTest {
     @RegisterExtension
@@ -64,5 +66,42 @@ class VfsOverlayPluginFunctionalTest {
         val buildResult = gradleRunner.build(":build")
 
         assertThat(buildResult.task(":generateVfsOverlayFile")?.outcome).isEqualTo(SUCCESS)
+    }
+
+    @Test
+    fun `reruns cinterop processing when overlay mappings or mapped headers change`() {
+        val sdk1 = (gradleRunner.root.dir / "sdk-1.0-headers").createDirectories()
+        val sdk2 = (gradleRunner.root.dir / "sdk-2.0-headers").createDirectories()
+        (sdk1 / "sample.h").writeText("int sample_v1(void);\n")
+        (sdk2 / "sample.h").writeText("int sample_v2(void);\n")
+        val defFile = gradleRunner.root.dir / "src/nativeInterop/cinterop/sample.def"
+        defFile.parent.createDirectories()
+        val virtualDir = (gradleRunner.root.dir / "bundled-headers").toAbsolutePath().toString().replace("\\", "/")
+        defFile.writeText(
+            """
+            package = com.example.kmp
+            headers = sample.h
+            compilerOpts = -I$virtualDir
+            """.trimIndent(),
+        )
+        gradleRunner.root.appendBuildScript(
+            """
+            vfsOverlay {
+                mapping(layout.projectDirectory.dir("bundled-headers"), layout.projectDirectory.dir("sdk-1.0-headers"))
+            }
+            """.trimIndent(),
+        )
+
+        val firstRun = gradleRunner.build(":cinteropSampleAndroidNativeArm64")
+        assertThat(firstRun.task(":cinteropSampleAndroidNativeArm64")?.outcome).isEqualTo(SUCCESS)
+
+        gradleRunner.root.buildScript.replaceText("sdk-1.0-headers", "sdk-2.0-headers")
+        val afterMappingChange = gradleRunner.build(":cinteropSampleAndroidNativeArm64")
+        assertThat(afterMappingChange.task(":generateVfsOverlayFile")?.outcome).isEqualTo(SUCCESS)
+        assertThat(afterMappingChange.task(":cinteropSampleAndroidNativeArm64")?.outcome).isEqualTo(SUCCESS)
+
+        (sdk2 / "sample.h").writeText("int sample_v3(void);\n")
+        val afterHeaderChange = gradleRunner.build(":cinteropSampleAndroidNativeArm64")
+        assertThat(afterHeaderChange.task(":cinteropSampleAndroidNativeArm64")?.outcome).isEqualTo(SUCCESS)
     }
 }
