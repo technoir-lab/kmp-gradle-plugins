@@ -4,6 +4,7 @@ import io.technoirlab.gradle.whenPluginApplied
 import io.technoirlab.vfsoverlay.api.VfsOverlayExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.named
@@ -43,6 +44,12 @@ class VfsOverlayPlugin : Plugin<Project> {
                         cinterops.configureEach {
                             tasks.named<CInteropProcess>(interopProcessingTaskName) {
                                 dependsOn(generateVfsOverlayFileTask)
+                                inputs.file(overlayFile)
+                                    .withPropertyName("vfsOverlayFile")
+                                    .withPathSensitivity(PathSensitivity.NONE)
+                                inputs.files(resolvedMappings.map { it.values })
+                                    .withPropertyName("vfsOverlayTargets")
+                                    .withPathSensitivity(PathSensitivity.RELATIVE)
                                 settings.compilerOpts("-ivfsoverlay", overlayFile.get().asFile.absolutePath)
                             }
                         }
