@@ -52,6 +52,24 @@ class VfsOverlayPluginTest {
     }
 
     @Test
+    fun `defers overlay file resolution until cinterop task configuration`() {
+        project.configure<KotlinMultiplatformExtension> {
+            androidNativeArm64 {
+                compilations.named("main") {
+                    cinterops.register("sample")
+                }
+            }
+        }
+        project.layout.buildDirectory.set(project.layout.projectDirectory.dir("custom-build"))
+
+        project.evaluate()
+
+        val cinteropTask = project.tasks.named<CInteropProcess>("cinteropSampleAndroidNativeArm64").get()
+        val overlayFile = generateTask().get().overlayFile.get().asFile
+        assertThat(cinteropTask.settings.compilerOpts).containsSubsequence("-ivfsoverlay", overlayFile.absolutePath)
+    }
+
+    @Test
     fun `maps files of present providers and ignores mappings with an absent target`() {
         extension.mapping(
             source = project.provider { File("/headers/source1") },
