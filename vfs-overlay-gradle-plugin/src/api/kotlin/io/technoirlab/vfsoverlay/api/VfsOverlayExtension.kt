@@ -19,6 +19,7 @@ import java.io.File
 interface VfsOverlayExtension {
     /**
      * Map of file mappings from source (original) files to target (virtual) files.
+     * Relative paths are resolved against the project directory.
      */
     val mappings: MapProperty<File, File>
 
@@ -29,6 +30,7 @@ interface VfsOverlayExtension {
 
     /**
      * Adds a file mapping from a source (original) path to a target (virtual) path.
+     * Relative paths are resolved against the project directory.
      */
     fun mapping(source: File, target: File)
 
@@ -39,6 +41,7 @@ interface VfsOverlayExtension {
 
     /**
      * Adds a file mapping from a source (original) path to a target (virtual) path.
+     * Relative paths are resolved against the project directory.
      * Has no effect if the source or target provider is empty.
      */
     fun mapping(source: Provider<File>, target: Provider<File>)

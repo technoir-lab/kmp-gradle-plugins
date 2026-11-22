@@ -21,9 +21,15 @@ class VfsOverlayPlugin : Plugin<Project> {
         )
 
         whenPluginApplied("org.jetbrains.kotlin.multiplatform") {
+            val projectDir = layout.projectDirectory.asFile
+            val resolvedMappings = config.mappings.map { entries ->
+                entries.entries.associate { (source, target) ->
+                    projectDir.resolve(source) to projectDir.resolve(target)
+                }
+            }
             val overlayFile = layout.buildDirectory.file("vfsoverlay/vfsoverlay.json")
             val generateVfsOverlayFileTask = tasks.register<GenerateVfsOverlayFileTask>("generateVfsOverlayFile") {
-                mappings.set(config.mappings)
+                mappings.set(resolvedMappings)
                 this.overlayFile.set(overlayFile)
             }
 
