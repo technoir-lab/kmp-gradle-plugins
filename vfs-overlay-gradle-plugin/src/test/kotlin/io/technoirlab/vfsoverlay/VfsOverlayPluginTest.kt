@@ -97,6 +97,24 @@ class VfsOverlayPluginTest {
     }
 
     @Test
+    fun `resolves relative file mappings against project directory`() {
+        extension.mapping(source = File("bundled-headers"), target = File("custom-headers"))
+        extension.mapping(
+            source = project.provider { File("provider-source") },
+            target = project.provider { File("provider-target") },
+        )
+        extension.mappings.put(File("direct-source"), File("direct-target"))
+
+        val mappings = generateTask().get().mappings.get()
+
+        assertThat(mappings).containsExactly(
+            entry(project.file("bundled-headers"), project.file("custom-headers")),
+            entry(project.file("provider-source"), project.file("provider-target")),
+            entry(project.file("direct-source"), project.file("direct-target")),
+        )
+    }
+
+    @Test
     fun `ignores mappings with missing directory providers`() {
         extension.mapping(
             source = project.objects.directoryProperty().asFile,
